@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-ink: #0b1f1a;
+  --color-lime: #c8f542;
+  --color-cream: #f6f1e8;
+  --color-background: var(--color-cream);
+  --color-foreground: var(--color-ink);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+select option {
+  color: #0b1f1a;
+}
