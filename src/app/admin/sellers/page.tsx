@@ -7,7 +7,7 @@ export default function AdminSellers() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Sellers / dukkans</h1>
+      <h1 className="text-2xl font-semibold">Dukkans</h1>
       <div className="mt-6 space-y-3">
         {state.shops.map((shop) => (
           <div
@@ -17,7 +17,7 @@ export default function AdminSellers() {
             <div>
               <p className="font-semibold">{shop.name}</p>
               <p className="text-xs text-stone-500">
-                {shop.address} · {shop.status} · {shop.deliveryModes.join(", ")}
+                {shop.address} · {shop.status}
               </p>
             </div>
             <div className="flex gap-2">
@@ -33,11 +33,7 @@ export default function AdminSellers() {
               <button
                 type="button"
                 onClick={() =>
-                  dispatch({
-                    type: "setShopStatus",
-                    shopId: shop.id,
-                    status: "suspended",
-                  })
+                  dispatch({ type: "setShopStatus", shopId: shop.id, status: "suspended" })
                 }
                 className="rounded-full border px-3 py-1 text-xs"
               >

@@ -2,14 +2,29 @@ export type Role = "buyer" | "seller" | "admin";
 
 export type DeliveryMode = "partner" | "shop";
 
-export type ProductStatus = "pending" | "approved" | "rejected";
+export type ApprovalStatus = "pending" | "approved" | "rejected";
+
+export type ShopStatus = "pending" | "active" | "suspended";
+
+export type ApplicationStatus =
+  | "submitted"
+  | "under_review"
+  | "approved"
+  | "rejected";
 
 export type OrderStatus =
   | "placed"
   | "accepted"
+  | "assigned"
   | "out_for_delivery"
   | "delivered"
   | "cancelled";
+
+export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
+
+export type TicketKind = "complaint" | "support";
+
+export type TagKind = "sale" | "coupon" | "offer" | "badge";
 
 export type Coordinates = {
   lat: number;
@@ -20,8 +35,37 @@ export type User = {
   id: string;
   name: string;
   email: string;
+  password: string;
   role: Role;
   shopId?: string;
+  phone?: string;
+  dob?: string;
+  pinCode?: string;
+  shopRadiusKm?: number;
+};
+
+export type Advertisement = {
+  id: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  href: string;
+  badge: string;
+  hue: number;
+  catalogProductId?: string;
+  active: boolean;
+};
+
+export type PlatformSettings = {
+  deliveryRadiusKm: number;
+  partnerEtaMinutes: number;
+  showDemoRoleSwitcher: boolean;
+};
+
+export type Category = {
+  id: string;
+  name: string;
+  emoji: string;
 };
 
 export type Neighborhood = {
@@ -35,7 +79,7 @@ export type Shop = {
   id: string;
   name: string;
   ownerUserId: string;
-  category: string;
+  categoryIds: string[];
   description: string;
   address: string;
   coordinates: Coordinates;
@@ -44,50 +88,142 @@ export type Shop = {
   verified: boolean;
   gstin?: string;
   yearStarted: number;
-  deliveryModes: DeliveryMode[];
-  status: "pending" | "active" | "suspended";
+  status: ShopStatus;
+  partnerDeliveryEnabled: boolean;
+  shopDeliveryEnabled: boolean;
+  partnerDeliveryFee: number;
+  shopDeliveryFee: number;
+  minOrderAmount: number;
 };
 
-export type Product = {
+export type CatalogProduct = {
   id: string;
-  shopId: string;
   name: string;
   brand: string;
-  category: string;
+  categoryId: string;
   description: string;
-  price: number;
-  mrp: number;
   unit: string;
-  stock: number;
-  rating: number;
-  reviews: number;
   imageLabel: string;
   imageHue: number;
+};
+
+export type ProductTag = {
+  id: string;
+  label: string;
+  kind: TagKind;
+  code?: string;
+  discountPercent?: number;
+};
+
+export type Listing = {
+  id: string;
+  catalogProductId: string;
+  shopId: string;
+  basePrice: number;
+  sellerPrice: number;
+  stock: number;
   moq: number;
-  status: ProductStatus;
-  deliveryModes: DeliveryMode[];
+  color?: string;
+  quality?: string;
+  tags: ProductTag[];
+  status: ApprovalStatus;
 };
 
 export type CartItem = {
-  productId: string;
+  listingId: string;
   quantity: number;
   deliveryMode: DeliveryMode;
+};
+
+export type Partner = {
+  id: string;
+  name: string;
+  vehicle: string;
+  phone: string;
+  available: boolean;
+};
+
+export type OrderItem = {
+  listingId: string;
+  catalogProductId: string;
+  quantity: number;
+  unitPrice: number;
+  deliveryMode: DeliveryMode;
+  deliveryFee: number;
 };
 
 export type Order = {
   id: string;
   buyerId: string;
   shopId: string;
-  items: CartItem[];
+  items: OrderItem[];
   deliveryMode: DeliveryMode;
   status: OrderStatus;
+  subtotal: number;
+  deliveryFee: number;
   total: number;
   createdAt: string;
   address: string;
+  partnerId?: string;
 };
 
-export type Category = {
+export type Review = {
   id: string;
-  name: string;
-  emoji: string;
+  catalogProductId: string;
+  listingId?: string;
+  shopId: string;
+  buyerId: string;
+  rating: number;
+  title: string;
+  body: string;
+  createdAt: string;
+  sellerReply?: { body: string; createdAt: string };
 };
+
+export type TicketMessage = {
+  id: string;
+  authorId: string;
+  body: string;
+  createdAt: string;
+};
+
+export type Ticket = {
+  id: string;
+  kind: TicketKind;
+  status: TicketStatus;
+  subject: string;
+  buyerId?: string;
+  shopId?: string;
+  orderId?: string;
+  listingId?: string;
+  createdAt: string;
+  messages: TicketMessage[];
+};
+
+export type SellerApplication = {
+  id: string;
+  userId: string;
+  shopId: string;
+  status: ApplicationStatus;
+  businessName: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  address: string;
+  gstin: string;
+  categoryIds: string[];
+  notes: string;
+  submittedAt: string;
+};
+
+export type Coupon = {
+  id: string;
+  shopId: string;
+  code: string;
+  label: string;
+  discountPercent: number;
+  minOrderAmount: number;
+  active: boolean;
+};
+
+export type NearbyShop = Shop & { distanceKm: number };

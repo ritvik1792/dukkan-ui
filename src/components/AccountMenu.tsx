@@ -1,0 +1,265 @@
+"use client";
+
+import { useApp } from "@/context/AppContext";
+import { categories } from "@/data/seed";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+
+function AccountIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
+      <circle cx="12" cy="8" r="3.25" stroke="currentColor" strokeWidth="1.75" />
+      <path
+        d="M5.5 19.25c.9-3.2 3.4-5 6.5-5s5.6 1.8 6.5 5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function MenuLink({
+  href,
+  children,
+  onClick,
+}: {
+  href: string;
+  children: string;
+  onClick: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="block py-0.5 text-[13px] leading-6 text-stone-800 hover:text-teal-800 hover:underline"
+    >
+      {children}
+    </Link>
+  );
+}
+
+export function AccountMenu() {
+  const { user, isAuthenticated, logout } = useApp();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<number>(0);
+  const router = useRouter();
+
+  function cancelClose() {
+    window.clearTimeout(closeTimer.current);
+  }
+
+  function scheduleClose() {
+    cancelClose();
+    closeTimer.current = window.setTimeout(() => setOpen(false), 180);
+  }
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+      window.clearTimeout(closeTimer.current);
+    };
+  }, []);
+
+  const firstName = user?.name.split(" ")[0];
+  const close = () => setOpen(false);
+
+  return (
+    <div
+      ref={ref}
+      className="relative"
+      onMouseEnter={() => {
+        cancelClose();
+        setOpen(true);
+      }}
+      onMouseLeave={scheduleClose}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="flex min-w-[52px] items-center gap-1 rounded-xl px-2 py-1 text-left text-white hover:bg-white/10"
+      >
+        <AccountIcon className="h-6 w-6 shrink-0 sm:hidden" />
+        <span className="hidden leading-tight sm:block">
+          <span className="block text-[11px] text-white/85">
+            {isAuthenticated && firstName ? `Hello, ${firstName}` : "Hello, sign in"}
+          </span>
+          <span className="block text-[13px] font-bold">Account &amp; lists</span>
+        </span>
+        <span className="sr-only sm:hidden">Account menu</span>
+      </button>
+
+      {open && !isAuthenticated && (
+        <div
+          role="menu"
+          className="absolute right-0 z-50 mt-2 w-56 overflow-visible rounded-md bg-white p-4 text-ink shadow-[0_4px_16px_rgba(0,0,0,0.18)]"
+        >
+          <div className="absolute -top-2 right-6 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-white" />
+          <Link
+            href="/login"
+            onClick={close}
+            className="block w-full rounded-full bg-[#ffd814] py-2 text-center text-sm font-semibold text-ink hover:bg-[#f7ca00]"
+          >
+            Sign in
+          </Link>
+        </div>
+      )}
+
+      {open && isAuthenticated && user && (
+        <div
+          role="menu"
+          className="absolute right-0 z-50 mt-2 w-[min(calc(100vw-1.5rem),34rem)] overflow-visible rounded-md bg-white text-ink shadow-[0_4px_16px_rgba(0,0,0,0.18)]"
+        >
+          <div className="absolute -top-2 right-6 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-white" />
+
+          <div className="flex items-center justify-between gap-3 bg-sky-100 px-4 py-2.5">
+            <p className="text-[13px] text-stone-700">
+              Shopping as <span className="font-semibold">{user.name}</span>
+            </p>
+            <Link
+              href="/account"
+              onClick={close}
+              className="shrink-0 text-[13px] font-medium text-teal-800 hover:underline"
+            >
+              Manage profile ›
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 divide-x divide-stone-200">
+            <div className="px-5 py-4">
+              <p className="text-[15px] font-bold">Your shopping</p>
+              <div className="mt-2">
+                <MenuLink href="/" onClick={close}>
+                  Nearby dukkans
+                </MenuLink>
+                <MenuLink href="/search" onClick={close}>
+                  Search products
+                </MenuLink>
+                <MenuLink href="/cart" onClick={close}>
+                  Cart
+                </MenuLink>
+                <MenuLink href="/search" onClick={close}>
+                  Keep shopping
+                </MenuLink>
+                {categories.slice(0, 6).map((c) => (
+                  <MenuLink key={c.id} href={`/search?category=${c.id}`} onClick={close}>
+                    {c.name}
+                  </MenuLink>
+                ))}
+                <MenuLink href="/sell" onClick={close}>
+                  Sell on Dukkan
+                </MenuLink>
+              </div>
+            </div>
+
+            <div className="px-5 py-4">
+              <p className="text-[15px] font-bold">Your Account</p>
+              <div className="mt-2 flex flex-col items-start">
+                <button
+                  type="button"
+                  className="py-0.5 text-[13px] leading-6 text-stone-800 hover:text-teal-800 hover:underline"
+                  onClick={() => {
+                    logout();
+                    close();
+                    router.push("/login");
+                  }}
+                >
+                  Switch accounts
+                </button>
+                <button
+                  type="button"
+                  className="py-0.5 text-[13px] leading-6 text-stone-800 hover:text-teal-800 hover:underline"
+                  onClick={() => {
+                    logout();
+                    close();
+                    router.push("/");
+                  }}
+                >
+                  Sign out
+                </button>
+              </div>
+              <div className="my-3 border-t border-stone-200" />
+              <MenuLink href="/account" onClick={close}>
+                Your Account
+              </MenuLink>
+              <MenuLink href="/wishlist" onClick={close}>
+                Your Wishlist
+              </MenuLink>
+              <MenuLink href="/account/orders" onClick={close}>
+                Your Orders
+              </MenuLink>
+              <MenuLink href="/account/tickets" onClick={close}>
+                Support tickets
+              </MenuLink>
+              <MenuLink href="/account" onClick={close}>
+                Shop radius &amp; profile
+              </MenuLink>
+              <MenuLink href="/search" onClick={close}>
+                Keep shopping for
+              </MenuLink>
+              <MenuLink href="/" onClick={close}>
+                Your recommendations
+              </MenuLink>
+              {user.role === "seller" && (
+                <>
+                  <MenuLink href="/seller" onClick={close}>
+                    Your Seller Account
+                  </MenuLink>
+                  <MenuLink href="/seller/products" onClick={close}>
+                    Your listings
+                  </MenuLink>
+                  <MenuLink href="/seller/orders" onClick={close}>
+                    Seller orders
+                  </MenuLink>
+                  <MenuLink href="/seller/promos" onClick={close}>
+                    Sales &amp; coupons
+                  </MenuLink>
+                  <MenuLink href="/seller/reviews" onClick={close}>
+                    Reviews
+                  </MenuLink>
+                  <MenuLink href="/seller/tickets" onClick={close}>
+                    Complaints
+                  </MenuLink>
+                </>
+              )}
+              {user.role === "buyer" && (
+                <MenuLink href="/sell" onClick={close}>
+                  Your Seller Account
+                </MenuLink>
+              )}
+              {user.role === "admin" && (
+                <>
+                  <MenuLink href="/admin" onClick={close}>
+                    Admin console
+                  </MenuLink>
+                  <MenuLink href="/admin/sellers" onClick={close}>
+                    Dukkans
+                  </MenuLink>
+                  <MenuLink href="/admin/tickets" onClick={close}>
+                    Platform support
+                  </MenuLink>
+                  <MenuLink href="/admin/settings" onClick={close}>
+                    Platform settings
+                  </MenuLink>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

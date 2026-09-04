@@ -1,0 +1,93 @@
+"use client";
+
+import { categories } from "@/data/seed";
+import { CATEGORY_HUES } from "@/lib/constants";
+import Link from "next/link";
+
+export function CategoryList({
+  activeId,
+  onSelect,
+}: {
+  activeId?: string;
+  onSelect?: () => void;
+}) {
+  return (
+    <nav className="space-y-1">
+      <Link
+        href="/search"
+        onClick={onSelect}
+        className={`block rounded-xl px-3 py-2 text-sm ${
+          !activeId ? "bg-ink text-lime" : "hover:bg-stone-100"
+        }`}
+      >
+        All
+      </Link>
+      {categories.map((c) => (
+        <Link
+          key={c.id}
+          href={`/search?category=${c.id}`}
+          onClick={onSelect}
+          className={`block rounded-xl px-3 py-2 text-sm ${
+            activeId === c.id ? "bg-ink text-lime" : "hover:bg-stone-100"
+          }`}
+        >
+          {c.emoji} {c.name}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+export function CategoryChips({
+  activeId,
+}: {
+  activeId?: string;
+}) {
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1">
+      <Link
+        href="/"
+        className={`shrink-0 rounded-full px-4 py-2 text-sm ${
+          !activeId ? "bg-ink text-white" : "bg-white text-ink"
+        }`}
+      >
+        All
+      </Link>
+      {categories.map((c) => (
+        <Link
+          key={c.id}
+          href={`/search?category=${c.id}`}
+          className={`shrink-0 rounded-full px-4 py-2 text-sm ${
+            activeId === c.id ? "bg-ink text-white" : "bg-white text-ink"
+          }`}
+        >
+          {c.emoji} {c.name}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+export function CategoryCircles() {
+  return (
+    <>
+      {categories.map((c) => (
+        <Link
+          key={c.id}
+          href={`/search?category=${c.id}`}
+          className="flex min-w-[5.75rem] flex-1 snap-start flex-col items-center text-center"
+        >
+          <div
+            className="flex h-[84px] w-[84px] items-center justify-center rounded-full shadow-inner sm:h-24 sm:w-24"
+            style={{
+              background: `linear-gradient(160deg, hsl(${CATEGORY_HUES[c.id] ?? 140} 70% 88%), hsl(${CATEGORY_HUES[c.id] ?? 140} 55% 72%))`,
+            }}
+          >
+            <span className="text-3xl leading-none">{c.emoji}</span>
+          </div>
+          <p className="mt-2 text-[13px] font-semibold leading-tight text-ink">{c.name}</p>
+        </Link>
+      ))}
+    </>
+  );
+}
