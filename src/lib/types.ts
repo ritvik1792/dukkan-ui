@@ -1,6 +1,21 @@
 export type Role = "buyer" | "seller" | "admin";
 
-export type PaymentMethod = "upi" | "card" | "cod";
+export type PaymentMethod =
+  | "upi"
+  | "card"
+  | "cod"
+  | "credit_card"
+  | "debit_card"
+  | "wallet"
+  | "net_banking";
+
+export type CouponPayMethod = "credit_card" | "debit_card" | "wallet" | "upi" | "net_banking";
+
+export type DiscountType = "percent" | "flat";
+
+export type TagStatus = "active" | "taken_down";
+
+export type TagOwner = "seller" | "admin";
 
 export type PaymentStatus = "paid" | "cod";
 
@@ -146,6 +161,41 @@ export type ProductTag = {
   discountPercent?: number;
 };
 
+export type SaleRule = {
+  minAmount: number;
+  discountPercent: number;
+  maxDiscount: number;
+};
+
+export type CouponCardRule = {
+  networks: CardBrand[];
+  banks: string;
+};
+
+export type CouponRule = {
+  minPrice: number;
+  maxDiscount: number;
+  discountType: DiscountType;
+  discountValue: number;
+  paymentMethods: CouponPayMethod[];
+  creditCard?: CouponCardRule;
+};
+
+export type PromoTag = {
+  id: string;
+  label: string;
+  kind: TagKind;
+  owner: TagOwner;
+  shopId?: string;
+  createdByUserId: string;
+  status: TagStatus;
+  code?: string;
+  sale?: SaleRule;
+  coupon?: CouponRule;
+  listingIds: string[];
+  createdAt: string;
+};
+
 export type Listing = {
   id: string;
   catalogProductId: string;
@@ -156,6 +206,7 @@ export type Listing = {
   moq: number;
   color?: string;
   quality?: string;
+  warranty?: string;
   tags: ProductTag[];
   status: ApprovalStatus;
 };
@@ -181,6 +232,7 @@ export type OrderItem = {
   unitPrice: number;
   deliveryMode: DeliveryMode;
   deliveryFee: number;
+  warranty?: string;
 };
 
 export type OrderEvent = {
@@ -207,6 +259,9 @@ export type Order = {
   deliverBy?: string;
   paymentMethod?: PaymentMethod;
   paymentStatus?: PaymentStatus;
+  paymentRefId?: string;
+  discount?: number;
+  couponCode?: string;
 };
 
 export type Review = {
@@ -220,7 +275,9 @@ export type Review = {
   body: string;
   createdAt: string;
   orderId?: string;
+  imageUrls?: string[];
   sellerReply?: { body: string; createdAt: string };
+  hidden?: boolean;
 };
 
 export type TicketMessage = {
@@ -228,6 +285,7 @@ export type TicketMessage = {
   authorId: string;
   body: string;
   createdAt: string;
+  imageUrls?: string[];
 };
 
 export type Ticket = {
@@ -242,6 +300,7 @@ export type Ticket = {
   assignedToUserId?: string;
   createdAt: string;
   messages: TicketMessage[];
+  hidden?: boolean;
 };
 
 export type SellerApplication = {

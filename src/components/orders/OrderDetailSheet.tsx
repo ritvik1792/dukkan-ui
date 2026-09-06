@@ -1,12 +1,15 @@
 "use client";
 
+import { ReviewCard } from "@/components/reviews/ReviewCard";
+import { WriteReviewForm } from "@/components/reviews/WriteReviewForm";
+import { OrderLineItems, OrderPaymentFacts } from "@/components/orders/OrderFacts";
 import { TicketThread } from "@/components/tickets/TicketThread";
 import { Field, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
 import { partners } from "@/data/seed";
-import { formatDate, formatInr, paymentMethodLabel, paymentStatusLabel } from "@/lib/format";
+import { formatDate, formatInr } from "@/lib/format";
 import {
   fromDatetimeLocal,
   nextOrderAdvance,
@@ -94,6 +97,7 @@ export function OrderDetailSheet({
             <h2 className="text-lg font-semibold">{order.id}</h2>
             <p className="mt-1 text-xs text-stone-500">
               {shop?.name} · {order.deliveryMode === "partner" ? "Partner" : "Shop delivery"}
+              {order.paymentRefId ? ` · ${order.paymentRefId}` : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -120,12 +124,7 @@ export function OrderDetailSheet({
                 <dt className="text-xs text-stone-400">Deliver to</dt>
                 <dd>{order.address}</dd>
               </div>
-              <div>
-                <dt className="text-xs text-stone-400">Payment</dt>
-                <dd>
-                  {paymentMethodLabel(order.paymentMethod)} · {paymentStatusLabel(order.paymentStatus)}
-                </dd>
-              </div>
+              <OrderPaymentFacts order={order} />
               <div>
                 <dt className="text-xs text-stone-400">Items</dt>
                 <dd>{formatInr(order.subtotal)}</dd>
@@ -135,16 +134,7 @@ export function OrderDetailSheet({
                 <dd className="font-semibold">{formatInr(order.total)}</dd>
               </div>
             </dl>
-            <ul className="mt-3 space-y-1 text-sm">
-              {order.items.map((item) => (
-                <li key={item.listingId} className="flex justify-between gap-3">
-                  <span>
-                    {catalogById(item.catalogProductId)?.name} × {item.quantity}
-                  </span>
-                  <span>{formatInr(item.unitPrice * item.quantity)}</span>
-                </li>
-              ))}
-            </ul>
+            <OrderLineItems order={order} />
           </section>
 
           {mode === "seller" && (
@@ -295,48 +285,66 @@ export function OrderDetailSheet({
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">
                 Reviews
               </p>
-              {reviews.length === 0 ? (
+              {reviews.length === 0 && mode !== "buyer" && (
                 <p className="rounded-2xl bg-white p-4 text-sm text-stone-500">
                   No review on this order yet.
                 </p>
-              ) : (
+              )}
+              {mode === "buyer" &&
+                user?.id === order.buyerId &&
+                order.items
+                  .filter(
+                    (item) =>
+                      !reviews.some(
+                        (review) =>
+                          review.listingId === item.listingId ||
+                          review.catalogProductId === item.catalogProductId,
+                      ),
+                  )
+                  .map((item) => (
+                    <div key={item.listingId} className="mb-3">
+                      <WriteReviewForm
+                        catalogProductId={item.catalogProductId}
+                        listingId={item.listingId}
+                        shopId={order.shopId}
+                        orderId={order.id}
+                        productName={catalogById(item.catalogProductId)?.name}
+                      />
+                    </div>
+                  ))}
+              {reviews.length > 0 && (
                 <ul className="space-y-3">
                   {reviews.map((review) => (
-                    <li key={review.id} className="rounded-2xl bg-white p-4">
-                      <p className="font-semibold">
-                        {review.rating} ★ · {catalogById(review.catalogProductId)?.name}
-                      </p>
-                      <p className="mt-1 text-sm">{review.title}</p>
-                      <p className="mt-1 text-sm text-stone-600">{review.body}</p>
-                      {review.sellerReply ? (
-                        <p className="mt-2 rounded-xl bg-cream px-3 py-2 text-sm">
-                          Seller: {review.sellerReply.body}
-                        </p>
-                      ) : mode === "seller" ? (
-                        <div className="mt-3">
-                          <TextArea
-                            rows={2}
-                            placeholder="Reply to this review"
-                            value={reviewDrafts[review.id] ?? ""}
-                            onChange={(e) =>
-                              setReviewDrafts((d) => ({ ...d, [review.id]: e.target.value }))
-                            }
-                          />
-                          <button
-                            type="button"
-                            className="mt-2 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-lime"
-                            onClick={() => {
-                              const body = reviewDrafts[review.id]?.trim();
-                              if (!body) return;
-                              dispatch({ type: "replyReview", reviewId: review.id, body });
-                            }}
-                          >
-                            Post reply
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-xs text-stone-400">No seller reply yet.</p>
-                      )}
+                    <li key={review.id}>
+                      <ReviewCard
+                        review={review}
+                        productName={catalogById(review.catalogProductId)?.name}
+                        canAddPhotos={mode === "buyer" && user?.id === review.buyerId}
+                      >
+                        {!review.sellerReply && mode === "seller" ? (
+                          <div className="mt-3">
+                            <TextArea
+                              rows={2}
+                              placeholder="Reply to this review"
+                              value={reviewDrafts[review.id] ?? ""}
+                              onChange={(e) =>
+                                setReviewDrafts((d) => ({ ...d, [review.id]: e.target.value }))
+                              }
+                            />
+                            <button
+                              type="button"
+                              className="mt-2 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-lime"
+                              onClick={() => {
+                                const body = reviewDrafts[review.id]?.trim();
+                                if (!body) return;
+                                dispatch({ type: "replyReview", reviewId: review.id, body });
+                              }}
+                            >
+                              Post reply
+                            </button>
+                          </div>
+                        ) : null}
+                      </ReviewCard>
                     </li>
                   ))}
                 </ul>

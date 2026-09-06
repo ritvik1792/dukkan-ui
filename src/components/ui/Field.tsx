@@ -32,3 +32,34 @@ export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
 export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
   return <select {...props} className={`${fieldClass} ${props.className ?? ""}`} />;
 }
+
+export function FileButton({
+  buttonLabel = "Choose file",
+  fileName,
+  showFileName = true,
+  className,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & {
+  buttonLabel?: string;
+  fileName?: string;
+  showFileName?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="relative inline-flex">
+        <span className="inline-flex cursor-pointer items-center rounded-full bg-ink px-4 py-2 text-sm font-semibold text-lime shadow-sm">
+          {buttonLabel}
+        </span>
+        <input
+          {...props}
+          type="file"
+          aria-label={buttonLabel}
+          className={`absolute inset-0 cursor-pointer opacity-0 ${className ?? ""}`}
+        />
+      </span>
+      {showFileName && (
+        <span className="text-sm text-stone-500">{fileName || "No file chosen"}</span>
+      )}
+    </div>
+  );
+}

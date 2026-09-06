@@ -54,7 +54,7 @@ export function ShopCard({ shop }: { shop: NearbyShop }) {
     .map((id) => categories.find((c) => c.id === id)?.name)
     .filter(Boolean)
     .slice(0, 2);
-  const promos = shopPromoLines(shop, state.listings, state.coupons);
+  const promos = shopPromoLines(shop, state.listings, state.coupons, state.promoTags);
   const headline = promos[0];
   const more = Math.max(0, promos.length - 1);
 

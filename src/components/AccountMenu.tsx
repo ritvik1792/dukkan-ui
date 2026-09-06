@@ -250,8 +250,17 @@ export function AccountMenu() {
                   <MenuLink href="/admin" onClick={close}>
                     Admin console
                   </MenuLink>
-                  <MenuLink href="/admin/sellers" onClick={close}>
-                    Dukkans
+                  <MenuLink href="/admin/applications" onClick={close}>
+                    Join requests
+                  </MenuLink>
+                  <MenuLink href="/admin/products" onClick={close}>
+                    Products
+                  </MenuLink>
+                  <MenuLink href="/admin/tags" onClick={close}>
+                    Tags & coupons
+                  </MenuLink>
+                  <MenuLink href="/admin/reviews" onClick={close}>
+                    Reviews
                   </MenuLink>
                   <MenuLink href="/admin/tickets" onClick={close}>
                     Platform support

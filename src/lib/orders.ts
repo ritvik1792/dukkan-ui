@@ -1,3 +1,4 @@
+import { fallbackPaymentRefId } from "@/lib/format";
 import type { Order, OrderEvent, OrderStatus, Shop, User } from "@/lib/types";
 
 export const ORDER_FLOW: OrderStatus[] = [
@@ -69,6 +70,7 @@ export function migrateOrder(order: Order): Order {
     status: normalizeOrderStatus(order.status),
     paymentMethod,
     paymentStatus: order.paymentStatus ?? (paymentMethod === "cod" ? "cod" : "paid"),
+    paymentRefId: order.paymentRefId ?? fallbackPaymentRefId(order.id, paymentMethod),
     timeline: order.timeline?.map((event) => ({
       ...event,
       status: normalizeOrderStatus(event.status),

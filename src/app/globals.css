@@ -219,11 +219,31 @@ select option {
 }
 
 .drawer-panel {
-  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    translate 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.3s ease;
 }
 
 .wizard-track {
-  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    translate 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes page-slide-in {
+  from {
+    opacity: 0;
+    translate: 48px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.page-slide-in {
+  animation: page-slide-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -231,6 +251,7 @@ select option {
   .animate-fade-in,
   .animate-pop-in,
   .page-enter,
+  .page-slide-in,
   .nav-progress,
   .qty-fill,
   .qty-layer,

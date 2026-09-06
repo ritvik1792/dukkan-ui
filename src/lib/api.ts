@@ -181,6 +181,7 @@ export type RawListing = {
   moq: number;
   color?: string | null;
   quality?: string | null;
+  warranty?: string | null;
   status: string;
   tags?: RawListingTag[];
 };
@@ -245,6 +246,7 @@ export function mapListing(raw: RawListing): Listing {
     moq: raw.moq,
     color: raw.color ?? undefined,
     quality: raw.quality ?? undefined,
+    warranty: raw.warranty ?? undefined,
     status: asEnum<ApprovalStatus>(raw.status, "approved"),
     tags: (raw.tags ?? []).map(
       (tag): ProductTag => ({

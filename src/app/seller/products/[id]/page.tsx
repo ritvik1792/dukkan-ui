@@ -41,6 +41,7 @@ export default function EditProductPage() {
         moq: form.moq,
         color: form.color || undefined,
         quality: form.quality || undefined,
+        warranty: form.warranty || undefined,
         tags: form.tags,
       },
     });
@@ -52,6 +53,7 @@ export default function EditProductPage() {
       <h1 className="text-2xl font-semibold">Edit product</h1>
       <div className="mt-6">
         <ListingForm
+          shopId={listing.shopId}
           initial={listingToForm(listing, product)}
           submitLabel="Save"
           onSubmit={save}

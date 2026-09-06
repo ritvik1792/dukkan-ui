@@ -1,5 +1,6 @@
 "use client";
 
+import { TicketPhotoGrid, TicketPhotoPicker, useTicketPhotos } from "@/components/tickets/TicketPhotos";
 import { Field, Select, TextArea } from "@/components/ui/Field";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useApp } from "@/context/AppContext";
@@ -13,28 +14,36 @@ export function TicketThread({
   canAssign = false,
   canReply = true,
   variant = "card",
+  onOpenOrder,
 }: {
   ticket: Ticket;
   canAssign?: boolean;
   canReply?: boolean;
   variant?: "card" | "plain";
+  onOpenOrder?: (orderId: string) => void;
 }) {
   const { user, state, dispatch, shopById } = useApp();
   const [draft, setDraft] = useState("");
+  const photos = useTicketPhotos();
   const shop = shopById(ticket.shopId ?? "");
   const assignees = shopStaff(state.users, shop);
   const assigned = state.users.find((u) => u.id === ticket.assignedToUserId);
+  const relatedOrder = ticket.orderId
+    ? state.orders.find((order) => order.id === ticket.orderId)
+    : undefined;
 
   function send() {
     const body = draft.trim();
-    if (!user || !body) return;
+    if (!user || (!body && photos.urls.length === 0)) return;
     dispatch({
       type: "addTicketMessage",
       ticketId: ticket.id,
       authorId: user.id,
       body,
+      imageUrls: photos.urls.length ? photos.urls : undefined,
     });
     setDraft("");
+    photos.clear();
   }
 
   const plain = variant === "plain";
@@ -48,11 +57,24 @@ export function TicketThread({
               <p className="font-semibold">{ticket.subject}</p>
               <p className="mt-0.5 text-xs text-stone-500">
                 {ticket.id}
-                {ticket.orderId ? ` · ${ticket.orderId}` : ""}
+                {ticket.orderId ? " · " : ""}
+                {ticket.orderId &&
+                  (onOpenOrder ? (
+                    <button
+                      type="button"
+                      className="underline decoration-stone-300 hover:decoration-ink"
+                      onClick={() => onOpenOrder(ticket.orderId!)}
+                    >
+                      {ticket.orderId}
+                    </button>
+                  ) : (
+                    ticket.orderId
+                  ))}
+                {relatedOrder?.paymentRefId ? ` · ${relatedOrder.paymentRefId}` : ""}
               </p>
             </div>
             <StatusPill>
-              {ticket.kind} · {titleCase(ticket.status)}
+              {ticket.hidden ? "taken down" : `${ticket.kind} · ${titleCase(ticket.status)}`}
             </StatusPill>
           </div>
           <p className="mt-2 text-xs text-stone-500">
@@ -97,20 +119,27 @@ export function TicketThread({
               <p className={`text-[11px] ${mine ? "text-lime/70" : "text-stone-500"}`}>
                 {author?.name ?? "Unknown"} · {formatDate(message.createdAt)}
               </p>
-              <p className="mt-1 whitespace-pre-wrap">{message.body}</p>
+              {message.body && <p className="mt-1 whitespace-pre-wrap">{message.body}</p>}
+              {message.imageUrls?.length ? <TicketPhotoGrid urls={message.imageUrls} compact /> : null}
             </li>
           );
         })}
       </ul>
       {canReply && user && (
-        <div className="mt-3">
+        <div className="mt-3 space-y-2">
           <TextArea
             rows={2}
             placeholder="Write a reply"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
           />
-          <div className="mt-2 flex flex-wrap gap-2">
+          <TicketPhotoPicker
+            urls={photos.urls}
+            fileName={photos.fileName}
+            onAdd={photos.add}
+            onRemove={photos.remove}
+          />
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-lime"
@@ -118,7 +147,7 @@ export function TicketThread({
             >
               Send
             </button>
-            {canAssign && ticket.status !== "resolved" && ticket.status !== "closed" && (
+            {canAssign && ticket.status !== "resolved" && ticket.status !== "closed" && !ticket.hidden && (
               <button
                 type="button"
                 className="rounded-full border border-stone-200 px-3 py-1.5 text-xs"
@@ -131,6 +160,21 @@ export function TicketThread({
                 }
               >
                 Resolve
+              </button>
+            )}
+            {canAssign && (
+              <button
+                type="button"
+                className="rounded-full border border-stone-200 px-3 py-1.5 text-xs"
+                onClick={() =>
+                  dispatch({
+                    type: "setTicketHidden",
+                    ticketId: ticket.id,
+                    hidden: !ticket.hidden,
+                  })
+                }
+              >
+                {ticket.hidden ? "Restore" : "Take down"}
               </button>
             )}
           </div>

@@ -14,6 +14,7 @@ import {
   orderStatusLabel,
 } from "@/lib/orders";
 import type { DeliveryMode, Order, OrderStatus } from "@/lib/types";
+import { afterPaint } from "@/lib/drawer";
 import { useEffect, useMemo, useState } from "react";
 
 export default function SellerOrders() {
@@ -58,7 +59,7 @@ export default function SellerOrders() {
       const items = order.items
         .map((item) => catalogById(item.catalogProductId)?.name ?? "")
         .join(" ");
-      return `${order.id} ${shop?.name ?? ""} ${buyer?.name ?? ""} ${order.address} ${items}`
+      return `${order.id} ${order.paymentRefId ?? ""} ${shop?.name ?? ""} ${buyer?.name ?? ""} ${order.address} ${items}`
         .toLowerCase()
         .includes(q);
     });
@@ -83,8 +84,8 @@ export default function SellerOrders() {
 
   useEffect(() => {
     if (!selectedId) return;
-    const id = window.requestAnimationFrame(() => setDrawerShown(true));
-    return () => window.cancelAnimationFrame(id);
+    setDrawerShown(false);
+    return afterPaint(() => setDrawerShown(true));
   }, [selectedId]);
 
   if (!user) return null;
@@ -130,7 +131,7 @@ export default function SellerOrders() {
           <TextInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Order, customer, product"
+            placeholder="Order, payment ref, customer, product"
           />
         </Field>
         <Field label="Status">
@@ -205,6 +206,7 @@ export default function SellerOrders() {
                   <td className="px-4 py-3">
                     <p className="font-medium">{order.id}</p>
                     <p className="text-xs text-stone-400">
+                      {order.paymentRefId ? `${order.paymentRefId} · ` : ""}
                       {shop?.name} · {formatDate(order.createdAt)}
                     </p>
                   </td>

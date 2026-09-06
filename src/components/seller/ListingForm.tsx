@@ -1,11 +1,12 @@
 "use client";
 
-import { Field, Select, TextArea, TextInput } from "@/components/ui/Field";
-import type { CatalogProduct, Listing, ProductTag, TagKind } from "@/lib/types";
+import { Field, FileButton, Select, TextArea, TextInput } from "@/components/ui/Field";
+import { useApp } from "@/context/AppContext";
+import type { CatalogProduct, Listing, ProductTag } from "@/lib/types";
 import { categories } from "@/data/seed";
-import { createId } from "@/lib/ids";
 import { fileToDataUrl } from "@/lib/images";
-import { useState } from "react";
+import { eligiblePromoTags, snapshotTag, tagRuleSummary } from "@/lib/tags";
+import { useMemo, useState } from "react";
 
 export type ListingFormValue = {
   name: string;
@@ -19,6 +20,7 @@ export type ListingFormValue = {
   moq: number;
   color: string;
   quality: string;
+  warranty: string;
   tags: ProductTag[];
   mainImage: string;
   gallery: string[];
@@ -37,6 +39,7 @@ export function listingToForm(listing: Listing, product: CatalogProduct): Listin
     moq: listing.moq,
     color: listing.color ?? "",
     quality: listing.quality ?? "",
+    warranty: listing.warranty ?? "",
     tags: listing.tags,
     mainImage: product.imageUrl ?? "",
     gallery: product.galleryUrls ?? [],
@@ -55,6 +58,7 @@ const emptyForm: ListingFormValue = {
   moq: 1,
   color: "",
   quality: "",
+  warranty: "",
   tags: [],
   mainImage: "",
   gallery: [],
@@ -70,6 +74,7 @@ export function ListingForm({
   compact,
   hideCategory,
   lockedCategoryId,
+  shopId,
   onSubmit,
 }: {
   initial?: ListingFormValue;
@@ -77,13 +82,17 @@ export function ListingForm({
   compact?: boolean;
   hideCategory?: boolean;
   lockedCategoryId?: string;
+  shopId?: string;
   onSubmit: (value: ListingFormValue) => void;
 }) {
+  const { state } = useApp();
   const [form, setForm] = useState<ListingFormValue>(initial ?? emptyForm);
-  const [tagLabel, setTagLabel] = useState("");
-  const [tagKind, setTagKind] = useState<TagKind>("sale");
-  const [tagCode, setTagCode] = useState("");
-  const [tagPct, setTagPct] = useState(10);
+  const [mainFileName, setMainFileName] = useState("");
+  const [galleryFileName, setGalleryFileName] = useState("");
+  const eligible = useMemo(
+    () => eligiblePromoTags(state.promoTags, shopId),
+    [state.promoTags, shopId],
+  );
 
   function set<K extends keyof ListingFormValue>(key: K, value: ListingFormValue[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -92,14 +101,17 @@ export function ListingForm({
   async function onMainFile(files: FileList | null) {
     const file = files?.[0];
     if (!file) return;
+    setMainFileName(file.name);
     const url = await fileToDataUrl(file);
     set("mainImage", url);
   }
 
   async function onGalleryFiles(files: FileList | null) {
     if (!files?.length) return;
+    const picked = Array.from(files).slice(0, 6);
+    setGalleryFileName(picked.map((file) => file.name).join(", "));
     const next: string[] = [];
-    for (const file of Array.from(files).slice(0, 6)) {
+    for (const file of picked) {
       next.push(await fileToDataUrl(file));
     }
     setForm((f) => ({ ...f, gallery: [...f.gallery, ...next].slice(0, 8) }));
@@ -117,26 +129,34 @@ export function ListingForm({
         );
       }}
     >
-      <Field label="Main picture">
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => void onMainFile(e.target.files)}
-          className="w-full text-sm"
-        />
+      <div>
+        <p className="text-sm font-medium">Main picture</p>
+        <div className="mt-1">
+          <FileButton
+            accept="image/*"
+            buttonLabel="Choose picture"
+            fileName={mainFileName || (form.mainImage ? "Picture added" : "")}
+            onChange={(e) => void onMainFile(e.target.files)}
+          />
+        </div>
         {form.mainImage && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={form.mainImage} alt="" className="mt-2 h-28 w-full rounded-xl object-cover" />
         )}
-      </Field>
-      <Field label="Other pictures" hint="up to 8">
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => void onGalleryFiles(e.target.files)}
-          className="w-full text-sm"
-        />
+      </div>
+      <div>
+        <p className="text-sm font-medium">
+          Other pictures <span className="font-normal text-stone-400">up to 8</span>
+        </p>
+        <div className="mt-1">
+          <FileButton
+            accept="image/*"
+            multiple
+            buttonLabel="Choose pictures"
+            fileName={galleryFileName}
+            onChange={(e) => void onGalleryFiles(e.target.files)}
+          />
+        </div>
         {form.gallery.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
             {form.gallery.map((src, index) => (
@@ -155,7 +175,7 @@ export function ListingForm({
             ))}
           </div>
         )}
-      </Field>
+      </div>
       <Field label="Product name">
         <TextInput required value={form.name} onChange={(e) => set("name", e.target.value)} />
       </Field>
@@ -207,66 +227,52 @@ export function ListingForm({
         <Field label="Quality" hint="optional">
           <TextInput value={form.quality} onChange={(e) => set("quality", e.target.value)} />
         </Field>
+        <Field label="Warranty" hint="optional">
+          <TextInput
+            value={form.warranty}
+            onChange={(e) => set("warranty", e.target.value)}
+            placeholder="12 months, 7-day replacement"
+          />
+        </Field>
       </div>
       <div className={tagBox}>
         <p className="text-sm font-semibold">Tags / sale / coupon</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <TextInput
-            placeholder="Label"
-            value={tagLabel}
-            onChange={(e) => setTagLabel(e.target.value)}
-          />
-          <Select value={tagKind} onChange={(e) => setTagKind(e.target.value as TagKind)}>
-            <option value="sale">Sale</option>
-            <option value="coupon">Coupon</option>
-            <option value="offer">Offer</option>
-            <option value="badge">Badge</option>
-          </Select>
-          <TextInput placeholder="Code" value={tagCode} onChange={(e) => setTagCode(e.target.value)} />
-          <TextInput
-            type="number"
-            placeholder="% off"
-            value={tagPct}
-            onChange={(e) => setTagPct(Number(e.target.value))}
-          />
-        </div>
-        <button
-          type="button"
-          className="mt-3 rounded-full bg-ink px-3 py-1 text-xs text-lime"
-          onClick={() => {
-            if (!tagLabel) return;
-            setForm((f) => ({
-              ...f,
-              tags: [
-                ...f.tags,
-                {
-                  id: createId("tag"),
-                  label: tagLabel,
-                  kind: tagKind,
-                  code: tagCode || undefined,
-                  discountPercent: tagPct || undefined,
-                },
-              ],
-            }));
-            setTagLabel("");
-          }}
-        >
-          Add tag
-        </button>
-        <ul className="mt-3 space-y-1 text-sm">
-          {form.tags.map((t) => (
-            <li key={t.id} className="flex justify-between">
-              <span>
-                {t.label} ({t.kind})
-              </span>
-              <button
-                type="button"
-                onClick={() => setForm((f) => ({ ...f, tags: f.tags.filter((x) => x.id !== t.id) }))}
-              >
-                Remove
-              </button>
-            </li>
-          ))}
+        <p className="mt-1 text-xs text-stone-500">
+          Choose from your tags and platform tags. Create new ones under Sales & coupons.
+        </p>
+        <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto">
+          {eligible.map((tag) => {
+            const selected = form.tags.some((item) => item.id === tag.id);
+            return (
+              <li key={tag.id}>
+                <label className="flex cursor-pointer items-start gap-2 rounded-xl px-1 py-1 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={selected}
+                    onChange={() =>
+                      setForm((current) => ({
+                        ...current,
+                        tags: selected
+                          ? current.tags.filter((item) => item.id !== tag.id)
+                          : [...current.tags, snapshotTag(tag)],
+                      }))
+                    }
+                  />
+                  <span>
+                    <span className="font-medium">
+                      {tag.label}
+                      {tag.owner === "admin" ? " · Platform" : ""}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-stone-400">{tagRuleSummary(tag)}</span>
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+          {eligible.length === 0 && (
+            <li className="text-sm text-stone-500">No active tags yet. Add one from Sales & coupons.</li>
+          )}
         </ul>
       </div>
       <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-lime">

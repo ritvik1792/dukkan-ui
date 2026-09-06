@@ -7,6 +7,7 @@ import type { Listing } from "@/lib/types";
 import type { UniqueOffer } from "@/services/catalog";
 import { cheapestLanded } from "@/services/pricing";
 import { listingCartQty, listingMaxQty } from "@/services/cart";
+import { visibleListingTags } from "@/lib/tags";
 import Link from "next/link";
 import { QtyControl } from "./QtyControl";
 import { ProductArt } from "./ProductArt";
@@ -115,9 +116,10 @@ export function CatalogProductCard({
   offer: UniqueOffer;
   preferShopId?: string;
 }) {
-  const { selectProduct } = useApp();
+  const { selectProduct, state } = useApp();
   const listing =
     offer.nearbyListings.find((l) => l.shopId === preferShopId) ?? offer.bestListing;
+  const tags = listing ? visibleListingTags(listing, state.promoTags) : [];
   const off = listing ? percentOff(listing.basePrice, listing.sellerPrice) : 0;
 
   function openProduct() {
@@ -141,7 +143,7 @@ export function CatalogProductCard({
         className="flex min-w-0 flex-1 flex-col"
       >
         <div className="mt-2 flex flex-wrap gap-1">
-          {listing?.tags.slice(0, 2).map((tag) => (
+          {tags.slice(0, 2).map((tag) => (
             <TagBadge key={tag.id} tag={tag} />
           ))}
         </div>

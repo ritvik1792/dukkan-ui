@@ -26,6 +26,14 @@ export function paymentMethodLabel(method?: string) {
       return "UPI";
     case "card":
       return "Card";
+    case "credit_card":
+      return "Credit card";
+    case "debit_card":
+      return "Debit card";
+    case "wallet":
+      return "Wallet";
+    case "net_banking":
+      return "Net banking";
     case "cod":
       return "Cash on delivery";
     default:
@@ -50,6 +58,27 @@ export function paymentStatusLabel(status?: string) {
   if (status === "paid") return "Paid";
   if (status === "cod") return "Pay on delivery";
   return "Pending";
+}
+
+export function paymentRefPrefix(method?: string) {
+  if (method === "upi") return "UPI";
+  if (method === "card" || method === "credit_card" || method === "debit_card") return "CARD";
+  if (method === "wallet") return "WALLET";
+  if (method === "net_banking") return "NB";
+  return "COD";
+}
+
+export function createPaymentRefId(method?: string) {
+  const suffix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`.toUpperCase();
+  return `${paymentRefPrefix(method)}-${suffix}`;
+}
+
+export function fallbackPaymentRefId(orderId: string, method?: string) {
+  return `${paymentRefPrefix(method)}-${orderId.replace(/^ORD-/, "")}`;
+}
+
+export function itemWarranty(itemWarrantyValue?: string, listingWarranty?: string) {
+  return itemWarrantyValue || listingWarranty || "No warranty";
 }
 
 export function formatPhone(phone: string) {

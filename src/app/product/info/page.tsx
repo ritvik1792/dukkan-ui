@@ -4,22 +4,26 @@ import { DeliveryPicker } from "@/components/DeliveryPicker";
 import { WishlistButton } from "@/components/CatalogProductCard";
 import { ProductArt } from "@/components/ProductArt";
 import { QtyControl } from "@/components/QtyControl";
+import { ReviewCard } from "@/components/reviews/ReviewCard";
+import { WriteReviewForm } from "@/components/reviews/WriteReviewForm";
 import { TagBadge } from "@/components/TagBadge";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
 import { formatInr, percentOff } from "@/lib/format";
+import { visibleListingTags } from "@/lib/tags";
 import { formatDistance } from "@/lib/geo";
 import { ROUTES } from "@/lib/routes";
 import type { CatalogProduct, DeliveryMode, Listing, Review } from "@/lib/types";
 import { listingCartQty, listingMaxQty } from "@/services/cart";
 import { cheapestLanded, deliveryFeeFor, shopDeliveryModes } from "@/services/pricing";
 import { fetchProduct } from "@/services/storefront";
+import { normalizeOrderStatus } from "@/lib/orders";
 import Link from "next/link";
 import { useMotionRouter } from "@/lib/motion";
 import { useEffect, useMemo, useState } from "react";
 
 export default function ProductInfoPage() {
-  const { state, nearbyShops, shopById, dispatch, selectShop } = useApp();
+  const { state, nearbyShops, shopById, dispatch, selectShop, user } = useApp();
   const { showAlert } = useAlert();
   const router = useMotionRouter();
   const productId = state.viewProductId;
@@ -224,7 +228,7 @@ export default function ProductInfoPage() {
             {avg ? `${avg.toFixed(1)} ★` : "No rating"} · {reviews.length} reviews
           </p>
           <div className="mt-4 flex flex-wrap gap-1">
-            {listing.tags.map((tag) => (
+            {visibleListingTags(listing, state.promoTags).map((tag) => (
               <TagBadge key={tag.id} tag={tag} />
             ))}
           </div>
@@ -248,11 +252,15 @@ export default function ProductInfoPage() {
           <p className="mt-1 text-sm text-stone-500">
             Delivery typically {state.settings.partnerEtaMinutes} min · Sold by {shop.name}
           </p>
-          {(listing.color || listing.quality) && (
+          {(listing.color || listing.quality || listing.warranty) && (
             <p className="mt-2 text-sm text-stone-500">
-              {listing.color ? `Colour: ${listing.color}` : ""}
-              {listing.color && listing.quality ? " · " : ""}
-              {listing.quality ? `Quality: ${listing.quality}` : ""}
+              {[
+                listing.color ? `Colour: ${listing.color}` : "",
+                listing.quality ? `Quality: ${listing.quality}` : "",
+                listing.warranty ? `Warranty: ${listing.warranty}` : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           )}
 
@@ -323,6 +331,7 @@ export default function ProductInfoPage() {
                     {s.verified ? " · GST verified" : ""}
                     {l.color ? ` · ${l.color}` : ""}
                     {l.quality ? ` · ${l.quality}` : ""}
+                    {l.warranty ? ` · ${l.warranty}` : ""}
                   </p>
                 </div>
                 <div className="text-right">
@@ -350,19 +359,38 @@ export default function ProductInfoPage() {
 
       <section className="mt-10">
         <h2 className="text-lg font-semibold">Reviews</h2>
+        {user?.id &&
+          state.orders.some(
+            (order) =>
+              order.buyerId === user.id &&
+              normalizeOrderStatus(order.status) === "delivered" &&
+              order.items.some((item) => item.catalogProductId === product.id),
+          ) &&
+          !reviews.some((review) => review.buyerId === user.id && review.catalogProductId === product.id) && (
+            <div className="mt-4">
+              <WriteReviewForm
+                catalogProductId={product.id}
+                listingId={listing.id}
+                shopId={shop.id}
+                orderId={
+                  state.orders.find(
+                    (order) =>
+                      order.buyerId === user.id &&
+                      normalizeOrderStatus(order.status) === "delivered" &&
+                      order.items.some((item) => item.catalogProductId === product.id),
+                  )?.id
+                }
+                productName={product.name}
+              />
+            </div>
+          )}
         <ul className="mt-4 space-y-3">
           {reviews.map((review) => (
-            <li key={review.id} className="rounded-2xl bg-white p-4">
-              <p className="font-semibold">
-                {review.rating} ★ · {review.title}
-              </p>
-              <p className="mt-1 text-sm text-stone-600">{review.body}</p>
-              {review.sellerReply && (
-                <p className="mt-2 rounded-xl bg-cream px-3 py-2 text-sm">
-                  <span className="font-medium">Seller: </span>
-                  {review.sellerReply.body}
-                </p>
-              )}
+            <li key={review.id}>
+              <ReviewCard
+                review={review}
+                canAddPhotos={user?.id === review.buyerId}
+              />
             </li>
           ))}
           {reviews.length === 0 && (

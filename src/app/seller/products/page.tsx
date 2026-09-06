@@ -14,6 +14,8 @@ import { categories } from "@/data/seed";
 import { formatInr } from "@/lib/format";
 import { createId } from "@/lib/ids";
 import type { Listing, ProductTag } from "@/lib/types";
+import { afterPaint } from "@/lib/drawer";
+import { eligiblePromoTags, snapshotTag } from "@/lib/tags";
 import { findCatalogByName } from "@/services/catalog";
 import { useEffect, useMemo, useState } from "react";
 
@@ -111,8 +113,8 @@ export default function SellerProducts() {
 
   useEffect(() => {
     if (!panel) return;
-    const id = window.requestAnimationFrame(() => setDrawerShown(true));
-    return () => window.cancelAnimationFrame(id);
+    setDrawerShown(false);
+    return afterPaint(() => setDrawerShown(true));
   }, [panel]);
 
   if (!user) return null;
@@ -171,14 +173,15 @@ export default function SellerProducts() {
         moq: form.moq,
         color: form.color || undefined,
         quality: form.quality || undefined,
+        warranty: form.warranty || undefined,
         tags: form.tags,
-        status: listing?.status ?? "pending",
+        status: listing?.status ?? "approved",
       },
     });
     showAlert({
       tone: "success",
-      title: listing ? "Product saved" : "Product submitted",
-      message: listing ? undefined : "Waiting for approval.",
+      title: listing ? "Product saved" : "Product published",
+      message: listing ? undefined : "Live for buyers as soon as your dukkan is active.",
     });
     closePanel();
   }
@@ -214,7 +217,7 @@ export default function SellerProducts() {
         <div>
           <h1 className="text-2xl font-semibold">Products</h1>
           <p className="mt-1 text-sm text-stone-500">
-            Search, filter by category, then add a product in a sliding panel.
+            Search, filter, then add a product. New listings go live immediately.
           </p>
         </div>
         <button
@@ -247,9 +250,9 @@ export default function SellerProducts() {
         <Field label="Status">
           <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="">All statuses</option>
+            <option value="approved">Live</option>
+            <option value="rejected">Hidden by admin</option>
             <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
           </Select>
         </Field>
         <Field label="Stock">
@@ -347,8 +350,8 @@ export default function SellerProducts() {
                           {p?.name}
                         </button>
                         <p className="text-xs text-stone-400">
-                          {l.color || l.quality
-                            ? [l.color, l.quality].filter(Boolean).join(" · ")
+                          {l.color || l.quality || l.warranty
+                            ? [l.color, l.quality, l.warranty].filter(Boolean).join(" · ")
                             : p?.unit}
                         </p>
                       </div>
@@ -388,7 +391,13 @@ export default function SellerProducts() {
                       ))}
                     </div>
                   </td>
-                  <td className="px-4 py-3 capitalize">{l.status}</td>
+                  <td className="px-4 py-3">
+                    {l.status === "approved"
+                      ? "Live"
+                      : l.status === "rejected"
+                        ? "Hidden by admin"
+                        : "Pending"}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <button
@@ -432,8 +441,8 @@ export default function SellerProducts() {
             className={`drawer-scrim absolute inset-0 bg-black/40 ${drawerShown ? "opacity-100" : "opacity-0"}`}
           />
           <aside
-            className={`drawer-panel absolute inset-y-0 left-0 flex w-full max-w-xl flex-col bg-white shadow-2xl ${
-              drawerShown ? "translate-x-0" : "-translate-x-full"
+            className={`drawer-panel absolute inset-y-0 right-0 flex w-full max-w-xl flex-col bg-white shadow-2xl ${
+              drawerShown ? "translate-x-0" : "translate-x-full"
             }`}
           >
             <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
@@ -528,8 +537,9 @@ export default function SellerProducts() {
                       compact
                       hideCategory
                       lockedCategoryId={chosenCategory}
+                      shopId={shop?.id}
                       initial={blankListingForm(chosenCategory)}
-                      submitLabel="Submit for approval"
+                      submitLabel="Save product"
                       onSubmit={(form) => saveForm(form)}
                     />
                   </div>
@@ -541,6 +551,7 @@ export default function SellerProducts() {
                   <ListingForm
                     key={editing.id}
                     compact
+                    shopId={editing.shopId}
                     initial={listingToForm(editing, editingProduct)}
                     submitLabel="Save"
                     onSubmit={(form) => saveForm(form, editing)}
@@ -565,7 +576,8 @@ export default function SellerProducts() {
               else if (patch.stock != null) stock = patch.stock;
               else if (listing.stock <= 0) stock = 1;
               const tags = [...listing.tags];
-              if (patch.coupon) tags.push(patch.coupon);
+              const extra = patch.tag;
+              if (extra && !tags.some((item) => item.id === extra.id)) tags.push(extra);
               dispatch({
                 type: "upsertListing",
                 listing: { ...listing, stock, tags },
@@ -588,7 +600,7 @@ export default function SellerProducts() {
 
 type BulkPatch = {
   categoryId?: string;
-  coupon?: ProductTag;
+  tag?: ProductTag;
   stock?: number;
   enabled: boolean;
 };
@@ -602,12 +614,15 @@ function BulkEditModal({
   onClose: () => void;
   onApply: (patch: BulkPatch) => void;
 }) {
+  const { user, state } = useApp();
   const [categoryId, setCategoryId] = useState("");
-  const [couponLabel, setCouponLabel] = useState("");
-  const [couponCode, setCouponCode] = useState("");
-  const [couponPct, setCouponPct] = useState(10);
+  const [tagId, setTagId] = useState("");
   const [stock, setStock] = useState("");
   const [enabled, setEnabled] = useState(true);
+  const shop =
+    state.shops.find((item) => item.id === user?.shopId) ??
+    state.shops.find((item) => item.ownerUserId === user?.id);
+  const eligible = eligiblePromoTags(state.promoTags, shop?.id);
 
   return (
     <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -657,25 +672,15 @@ function BulkEditModal({
               ))}
             </Select>
           </Field>
-          <Field label="Coupon / tag" hint="leave label empty to skip">
-            <div className="grid grid-cols-3 gap-2">
-              <TextInput
-                placeholder="Label"
-                value={couponLabel}
-                onChange={(e) => setCouponLabel(e.target.value)}
-              />
-              <TextInput
-                placeholder="Code"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value)}
-              />
-              <TextInput
-                type="number"
-                placeholder="% off"
-                value={couponPct}
-                onChange={(e) => setCouponPct(Number(e.target.value))}
-              />
-            </div>
+          <Field label="Attach tag" hint="optional">
+            <Select value={tagId} onChange={(e) => setTagId(e.target.value)}>
+              <option value="">Keep current</option>
+              {eligible.map((tag) => (
+                <option key={tag.id} value={tag.id}>
+                  {tag.label} · {tag.kind}
+                </option>
+              ))}
+            </Select>
           </Field>
           <Field label="Stock" hint="leave empty to skip">
             <TextInput
@@ -698,14 +703,11 @@ function BulkEditModal({
             onClick={() =>
               onApply({
                 categoryId: categoryId || undefined,
-                coupon: couponLabel
-                  ? {
-                      id: createId("tag"),
-                      label: couponLabel,
-                      kind: "coupon",
-                      code: couponCode || undefined,
-                      discountPercent: couponPct || undefined,
-                    }
+                tag: tagId
+                  ? (() => {
+                      const tag = eligible.find((item) => item.id === tagId);
+                      return tag ? snapshotTag(tag) : undefined;
+                    })()
                   : undefined,
                 stock: stock === "" ? undefined : Math.max(0, Number(stock)),
                 enabled,

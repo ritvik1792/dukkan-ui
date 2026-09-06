@@ -6,6 +6,7 @@ import { LogoMark } from "@/components/LogoMark";
 import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { useApp } from "@/context/AppContext";
 import { neighborhoods } from "@/data/seed";
+import { afterPaint } from "@/lib/drawer";
 import { useMotionRouter } from "@/lib/motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -24,8 +25,8 @@ export function Header() {
   useEffect(() => {
     if (menuOpen) {
       setMenuRender(true);
-      const id = requestAnimationFrame(() => setMenuShown(true));
-      return () => cancelAnimationFrame(id);
+      const cancel = afterPaint(() => setMenuShown(true));
+      return cancel;
     }
     setMenuShown(false);
     const timeout = window.setTimeout(() => setMenuRender(false), 280);

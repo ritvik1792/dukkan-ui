@@ -5,8 +5,10 @@ import type {
   Coupon,
   Listing,
   NearbyShop,
+  PromoTag,
   Shop,
 } from "@/lib/types";
+import { tagRuleSummary, visibleListingTags } from "@/lib/tags";
 import { cheapestLanded } from "./pricing";
 
 export function shopsInRadius(
@@ -90,6 +92,7 @@ export function shopPromoLines(
   shop: Shop,
   listings: Listing[],
   coupons: Coupon[],
+  promoTags: PromoTag[] = [],
 ): string[] {
   const lines: string[] = [];
   const seen = new Set<string>();
@@ -101,6 +104,17 @@ export function shopPromoLines(
     lines.push(line);
   }
 
+  for (const tag of promoTags) {
+    if (tag.status !== "active") continue;
+    if (tag.kind === "badge") continue;
+    const forShop = tag.owner === "admin" || tag.shopId === shop.id;
+    if (!forShop) continue;
+    if (tag.listingIds.length && !tag.listingIds.some((id) => listings.some((listing) => listing.id === id && listing.shopId === shop.id))) {
+      continue;
+    }
+    push(tag.kind === "offer" ? tag.label : tagRuleSummary(tag));
+  }
+
   for (const coupon of coupons) {
     if (coupon.shopId !== shop.id || !coupon.active) continue;
     push(coupon.label);
@@ -108,7 +122,7 @@ export function shopPromoLines(
 
   for (const listing of listings) {
     if (listing.shopId !== shop.id || listing.status !== "approved") continue;
-    for (const tag of listing.tags) {
+    for (const tag of visibleListingTags(listing, promoTags)) {
       if (tag.kind === "badge") continue;
       if (tag.discountPercent) push(`${tag.discountPercent}% off · ${tag.label}`);
       else push(tag.label);

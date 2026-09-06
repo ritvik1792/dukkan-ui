@@ -74,7 +74,7 @@ export async function fetchProduct(productId: string, db: StorefrontDb): Promise
       listings: listings.filter(
         (listing) => listing.catalogProductId === productId && listing.status === "approved",
       ),
-      reviews: db.reviews.filter((review) => review.catalogProductId === productId),
+      reviews: db.reviews.filter((review) => review.catalogProductId === productId && !review.hidden),
     };
   } catch {
     const product = db.catalog.find((item) => item.id === productId);
@@ -84,7 +84,7 @@ export async function fetchProduct(productId: string, db: StorefrontDb): Promise
       listings: db.listings.filter(
         (listing) => listing.catalogProductId === productId && listing.status === "approved",
       ),
-      reviews: db.reviews.filter((review) => review.catalogProductId === productId),
+      reviews: db.reviews.filter((review) => review.catalogProductId === productId && !review.hidden),
     };
   }
 }

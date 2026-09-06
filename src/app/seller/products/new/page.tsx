@@ -47,8 +47,9 @@ export default function NewProductPage() {
         moq: form.moq,
         color: form.color || undefined,
         quality: form.quality || undefined,
+        warranty: form.warranty || undefined,
         tags: form.tags,
-        status: "pending",
+        status: "approved",
       },
     });
     router.push("/seller/products");
@@ -58,11 +59,11 @@ export default function NewProductPage() {
     <div className="max-w-xl">
       <h1 className="text-2xl font-semibold">Add product</h1>
       <p className="mt-1 text-sm text-stone-500">
-        If the same name and brand already exist, buyers still see one product and can choose
-        you as a seller.
+        Products go live immediately. If the same name and brand already exist, buyers still
+        see one product and can choose you as a seller.
       </p>
       <div className="mt-6">
-        <ListingForm submitLabel="Submit for approval" onSubmit={save} />
+        <ListingForm shopId={shop?.id} submitLabel="Save product" onSubmit={save} />
       </div>
     </div>
   );

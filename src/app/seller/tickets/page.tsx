@@ -6,6 +6,7 @@ import { StatusPill } from "@/components/ui/StatCard";
 import { useApp } from "@/context/AppContext";
 import { formatDate, titleCase } from "@/lib/format";
 import type { Ticket, TicketKind, TicketStatus } from "@/lib/types";
+import { afterPaint } from "@/lib/drawer";
 import { useEffect, useMemo, useState } from "react";
 
 export default function SellerTicketsPage() {
@@ -29,6 +30,7 @@ export default function SellerTicketsPage() {
   const tickets = useMemo(() => {
     const q = search.trim().toLowerCase();
     return state.tickets.filter((ticket) => {
+      if (ticket.hidden) return false;
       if (!ticket.shopId || !shopIds.has(ticket.shopId)) return false;
       if (statusFilter && ticket.status !== statusFilter) return false;
       if (kindFilter && ticket.kind !== kindFilter) return false;
@@ -36,18 +38,21 @@ export default function SellerTicketsPage() {
       const assigned = state.users.find((u) => u.id === ticket.assignedToUserId)?.name ?? "";
       const listing = ticket.listingId ? listingById(ticket.listingId) : undefined;
       const product = listing ? catalogById(listing.catalogProductId) : undefined;
-      return `${ticket.subject} ${ticket.id} ${ticket.orderId ?? ""} ${assigned} ${product?.name ?? ""}`
+      const order = ticket.orderId
+        ? state.orders.find((item) => item.id === ticket.orderId)
+        : undefined;
+      return `${ticket.subject} ${ticket.id} ${ticket.orderId ?? ""} ${order?.paymentRefId ?? ""} ${assigned} ${product?.name ?? ""}`
         .toLowerCase()
         .includes(q);
     });
-  }, [state.tickets, state.users, shopIds, search, statusFilter, kindFilter, listingById, catalogById]);
+  }, [state.tickets, state.orders, state.users, shopIds, search, statusFilter, kindFilter, listingById, catalogById]);
 
   const openTicket = state.tickets.find((t) => t.id === openId);
 
   useEffect(() => {
     if (!openId) return;
-    const id = window.requestAnimationFrame(() => setSheetShown(true));
-    return () => window.cancelAnimationFrame(id);
+    setSheetShown(false);
+    return afterPaint(() => setSheetShown(true));
   }, [openId]);
 
   function openTicketSheet(ticket: Ticket) {
@@ -72,7 +77,7 @@ export default function SellerTicketsPage() {
           <TextInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Subject, order, product"
+            placeholder="Subject, order, payment ref, product"
           />
         </Field>
         <Field label="Type">
@@ -114,6 +119,9 @@ export default function SellerTicketsPage() {
               const buyer = state.users.find((u) => u.id === ticket.buyerId);
               const last = ticket.messages[ticket.messages.length - 1];
               const issue = ticket.messages[0]?.body ?? "";
+              const order = ticket.orderId
+                ? state.orders.find((item) => item.id === ticket.orderId)
+                : undefined;
               return (
                 <tr
                   key={ticket.id}
@@ -125,6 +133,7 @@ export default function SellerTicketsPage() {
                     <p className="text-xs text-stone-400">
                       {ticket.id}
                       {ticket.orderId ? ` · ${ticket.orderId}` : ""}
+                      {order?.paymentRefId ? ` · ${order.paymentRefId}` : ""}
                     </p>
                   </td>
                   <td className="max-w-xs truncate px-4 py-3 text-stone-600">{issue}</td>

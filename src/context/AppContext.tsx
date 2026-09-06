@@ -15,6 +15,7 @@ import {
   catalog as seedCatalog,
   coupons as seedCoupons,
   defaultSettings,
+  promoTags as seedPromoTags,
   listings as seedListings,
   neighborhoods,
   reviews as seedReviews,
@@ -33,6 +34,11 @@ import {
 import { DEFAULT_DELIVERY_RADIUS_KM, DEMO_PASSWORD, STORAGE_KEY } from "@/lib/constants";
 import { appendOrderEvent, migrateOrder, normalizeOrderStatus } from "@/lib/orders";
 import { readViewSelection, writeViewSelection } from "@/lib/view";
+import {
+  detachListingsFromTags,
+  syncListingsOntoTags,
+  syncTagsOntoListings,
+} from "@/lib/tags";
 import { cartShipments, cartSummary } from "@/services/cart";
 import { uniqueCatalogOffers, shopsInRadius } from "@/services/catalog";
 import { authenticate, clampShopRadiusKm, loginOrCreateByPhone } from "@/services/auth";
@@ -49,8 +55,10 @@ import type {
   PaymentMethod,
   PlatformSettings,
   ProductTag,
+  PromoTag,
   Review,
   Role,
+  TagStatus,
   SavedAddress,
   SavedCard,
   SellerApplication,
@@ -73,6 +81,7 @@ export type AppState = {
   tickets: Ticket[];
   applications: SellerApplication[];
   coupons: Coupon[];
+  promoTags: PromoTag[];
   advertisements: Advertisement[];
   settings: PlatformSettings;
   wishlist: string[];
@@ -113,13 +122,19 @@ type Action =
     }
   | { type: "assignPartner"; orderId: string; partnerId: string }
   | { type: "replyReview"; reviewId: string; body: string }
+  | { type: "addReview"; review: Review }
+  | { type: "addReviewPhotos"; reviewId: string; imageUrls: string[] }
   | { type: "upsertCoupon"; coupon: Coupon }
+  | { type: "upsertPromoTag"; tag: PromoTag }
+  | { type: "setPromoTagStatus"; tagId: string; status: TagStatus }
+  | { type: "setReviewHidden"; reviewId: string; hidden: boolean }
+  | { type: "setTicketHidden"; ticketId: string; hidden: boolean }
   | { type: "setApplicationStatus"; applicationId: string; status: SellerApplication["status"] }
   | { type: "addApplication"; application: SellerApplication }
   | { type: "addTicket"; ticket: Ticket }
   | { type: "setTicketStatus"; ticketId: string; status: TicketStatus }
   | { type: "assignTicket"; ticketId: string; userId: string }
-  | { type: "addTicketMessage"; ticketId: string; authorId: string; body: string }
+  | { type: "addTicketMessage"; ticketId: string; authorId: string; body: string; imageUrls?: string[] }
   | { type: "addShopCategory"; shopId: string; categoryId: string }
   | { type: "removeShopCategory"; shopId: string; categoryId: string }
   | { type: "setListingTags"; listingId: string; tags: ProductTag[] }
@@ -161,6 +176,7 @@ const initialState: AppState = {
   tickets: seedTickets,
   applications: seedApplications,
   coupons: seedCoupons,
+  promoTags: seedPromoTags,
   advertisements: seedAds,
   settings: defaultSettings,
   wishlist: [],
@@ -186,6 +202,7 @@ function persistable(state: AppState) {
     tickets: state.tickets,
     applications: state.applications,
     coupons: state.coupons,
+    promoTags: state.promoTags,
     advertisements: state.advertisements,
     settings: state.settings,
     wishlist: state.wishlist,
@@ -289,13 +306,13 @@ function reducer(state: AppState, action: Action): AppState {
     }
     case "upsertListing": {
       const exists = state.listings.some((l) => l.id === action.listing.id);
+      const listings = exists
+        ? state.listings.map((l) => (l.id === action.listing.id ? action.listing : l))
+        : [action.listing, ...state.listings];
       return {
         ...state,
-        listings: exists
-          ? state.listings.map((l) =>
-              l.id === action.listing.id ? action.listing : l,
-            )
-          : [action.listing, ...state.listings],
+        listings,
+        promoTags: syncListingsOntoTags(state.promoTags, action.listing),
       };
     }
     case "deleteListings": {
@@ -304,6 +321,7 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         listings: state.listings.filter((listing) => !ids.has(listing.id)),
         cart: state.cart.filter((item) => !ids.has(item.listingId)),
+        promoTags: detachListingsFromTags(state.promoTags, action.listingIds),
       };
     }
     case "setListingStatus":
@@ -368,6 +386,20 @@ function reducer(state: AppState, action: Action): AppState {
             : r,
         ),
       };
+    case "addReview":
+      return { ...state, reviews: [action.review, ...state.reviews] };
+    case "addReviewPhotos":
+      return {
+        ...state,
+        reviews: state.reviews.map((r) =>
+          r.id === action.reviewId
+            ? {
+                ...r,
+                imageUrls: [...(r.imageUrls ?? []), ...action.imageUrls].slice(0, 8),
+              }
+            : r,
+        ),
+      };
     case "upsertCoupon": {
       const exists = state.coupons.some((c) => c.id === action.coupon.id);
       return {
@@ -377,6 +409,47 @@ function reducer(state: AppState, action: Action): AppState {
           : [action.coupon, ...state.coupons],
       };
     }
+    case "upsertPromoTag": {
+      const exists = state.promoTags.some((tag) => tag.id === action.tag.id);
+      const promoTags = exists
+        ? state.promoTags.map((tag) => (tag.id === action.tag.id ? action.tag : tag))
+        : [action.tag, ...state.promoTags];
+      return {
+        ...state,
+        promoTags,
+        listings: syncTagsOntoListings(state.listings, action.tag),
+      };
+    }
+    case "setPromoTagStatus": {
+      const tag = state.promoTags.find((item) => item.id === action.tagId);
+      if (!tag) return state;
+      const next = { ...tag, status: action.status };
+      return {
+        ...state,
+        promoTags: state.promoTags.map((item) => (item.id === next.id ? next : item)),
+        listings: syncTagsOntoListings(state.listings, next),
+      };
+    }
+    case "setReviewHidden":
+      return {
+        ...state,
+        reviews: state.reviews.map((review) =>
+          review.id === action.reviewId ? { ...review, hidden: action.hidden } : review,
+        ),
+      };
+    case "setTicketHidden":
+      return {
+        ...state,
+        tickets: state.tickets.map((ticket) =>
+          ticket.id === action.ticketId
+            ? {
+                ...ticket,
+                hidden: action.hidden,
+                status: action.hidden ? "closed" : ticket.status,
+              }
+            : ticket,
+        ),
+      };
     case "addApplication":
       return { ...state, applications: [action.application, ...state.applications] };
     case "setApplicationStatus":
@@ -423,6 +496,7 @@ function reducer(state: AppState, action: Action): AppState {
                 authorId: action.authorId,
                 body: action.body,
                 createdAt: new Date().toISOString(),
+                imageUrls: action.imageUrls?.length ? action.imageUrls : undefined,
               },
             ],
           };
@@ -449,13 +523,16 @@ function reducer(state: AppState, action: Action): AppState {
             : s,
         ),
       };
-    case "setListingTags":
+    case "setListingTags": {
+      const listing = state.listings.find((item) => item.id === action.listingId);
+      if (!listing) return state;
+      const next = { ...listing, tags: action.tags };
       return {
         ...state,
-        listings: state.listings.map((l) =>
-          l.id === action.listingId ? { ...l, tags: action.tags } : l,
-        ),
+        listings: state.listings.map((item) => (item.id === next.id ? next : item)),
+        promoTags: syncListingsOntoTags(state.promoTags, next),
       };
+    }
     case "upsertAd": {
       const exists = state.advertisements.some((a) => a.id === action.ad.id);
       return {
@@ -591,8 +668,23 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         shops: action.shops,
-        catalog: action.catalog,
-        listings: action.listings,
+        catalog: action.catalog.map((product) => {
+          const prev = state.catalog.find((item) => item.id === product.id);
+          return {
+            ...product,
+            imageUrl: product.imageUrl ?? prev?.imageUrl,
+            galleryUrls: product.galleryUrls?.length ? product.galleryUrls : prev?.galleryUrls,
+          };
+        }),
+        listings: action.listings.map((listing) => {
+          const prev = state.listings.find((item) => item.id === listing.id);
+          return {
+            ...listing,
+            color: listing.color ?? prev?.color,
+            quality: listing.quality ?? prev?.quality,
+            warranty: listing.warranty ?? prev?.warranty,
+          };
+        }),
         advertisements: action.advertisements,
         settings: action.settings,
         apiStatus: "online",
@@ -656,7 +748,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
               };
             }),
             orders: (parsed.orders ?? initialState.orders).map(migrateOrder),
+            reviews: (parsed.reviews ?? initialState.reviews).map((review) => {
+              if (review.imageUrls?.length) return review;
+              const seed = seedReviews.find((item) => item.id === review.id);
+              return seed?.imageUrls?.length ? { ...review, imageUrls: seed.imageUrls } : review;
+            }),
             advertisements: parsed.advertisements ?? seedAds,
+            promoTags: parsed.promoTags?.length ? parsed.promoTags : seedPromoTags,
             sessionUserId: parsed.sessionUserId ?? null,
             wishlist: parsed.wishlist ?? [],
             viewShopId: view.shopId,

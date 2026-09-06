@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { partners } from "@/data/seed";
 import { formatDate, formatInr, paymentMethodLabel } from "@/lib/format";
 import { normalizeOrderStatus, orderStatusLabel } from "@/lib/orders";
+import { afterPaint } from "@/lib/drawer";
 import { useEffect, useMemo, useState } from "react";
 
 export default function AccountOrdersPage() {
@@ -32,8 +33,8 @@ export default function AccountOrdersPage() {
 
   useEffect(() => {
     if (!selectedId) return;
-    const id = window.requestAnimationFrame(() => setDrawerShown(true));
-    return () => window.cancelAnimationFrame(id);
+    setDrawerShown(false);
+    return afterPaint(() => setDrawerShown(true));
   }, [selectedId]);
 
   function closeSheet() {
@@ -61,7 +62,8 @@ export default function AccountOrdersPage() {
                 </div>
                 <p className="mt-1 text-sm text-stone-500">
                   {shop?.name} · {order.deliveryMode} · {formatInr(order.total)}
-                  {order.paymentMethod ? ` · ${paymentMethodLabel(order.paymentMethod)}` : ""} ·{" "}
+                  {order.paymentMethod ? ` · ${paymentMethodLabel(order.paymentMethod)}` : ""}
+                  {order.paymentRefId ? ` · ${order.paymentRefId}` : ""} ·{" "}
                   {formatDate(order.createdAt)}
                 </p>
                 {partner && (

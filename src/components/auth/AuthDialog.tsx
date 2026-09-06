@@ -2,6 +2,7 @@
 
 import { LogoMark } from "@/components/LogoMark";
 import { useApp } from "@/context/AppContext";
+import { afterPaint } from "@/lib/drawer";
 import { DEMO_OTP } from "@/lib/constants";
 import { formatPhone } from "@/lib/format";
 import { findUserByPhone, needsProfileSetup, validateEmail, validateMobile } from "@/services/auth";
@@ -92,8 +93,8 @@ function PhoneAuthDialog({
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
-    const id = requestAnimationFrame(() => setShown(true));
-    return () => cancelAnimationFrame(id);
+    const cancel = afterPaint(() => setShown(true));
+    return cancel;
   }, []);
 
   useEffect(() => {

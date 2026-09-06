@@ -34,6 +34,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   products: "Listings",
   new: "New listing",
   promos: "Sales & coupons",
+  tags: "Tags",
   reviews: "Reviews",
   settings: "Settings",
   ads: "Ads",
