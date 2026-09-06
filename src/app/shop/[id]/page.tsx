@@ -2,12 +2,13 @@
 
 import { useApp } from "@/context/AppContext";
 import { ROUTES } from "@/lib/routes";
-import { useParams, useRouter } from "next/navigation";
+import { useMotionRouter } from "@/lib/motion";
+import { useParams } from "next/navigation";
 import { useEffect } from "react";
 
 export default function LegacyShopRedirect() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
+  const router = useMotionRouter();
   const { selectShop, state } = useApp();
 
   useEffect(() => {

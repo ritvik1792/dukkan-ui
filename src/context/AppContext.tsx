@@ -23,11 +23,19 @@ import {
   tickets as seedTickets,
   users as seedUsers,
 } from "@/data/seed";
+import {
+  ApiError,
+  loadStorefront,
+  loginRequest,
+  mapApiUser,
+  setToken,
+} from "@/lib/api";
 import { DEFAULT_DELIVERY_RADIUS_KM, DEMO_PASSWORD, STORAGE_KEY } from "@/lib/constants";
+import { appendOrderEvent, migrateOrder, normalizeOrderStatus } from "@/lib/orders";
 import { readViewSelection, writeViewSelection } from "@/lib/view";
 import { cartShipments, cartSummary } from "@/services/cart";
 import { uniqueCatalogOffers, shopsInRadius } from "@/services/catalog";
-import { authenticate, clampShopRadiusKm } from "@/services/auth";
+import { authenticate, clampShopRadiusKm, loginOrCreateByPhone } from "@/services/auth";
 import type {
   Advertisement,
   CartItem,
@@ -38,10 +46,13 @@ import type {
   NearbyShop,
   Neighborhood,
   Order,
+  PaymentMethod,
   PlatformSettings,
   ProductTag,
   Review,
   Role,
+  SavedAddress,
+  SavedCard,
   SellerApplication,
   Shop,
   Ticket,
@@ -69,6 +80,8 @@ export type AppState = {
   viewProductId: string | null;
   viewPreferShopId: string | null;
   hydrated: boolean;
+  apiStatus: "connecting" | "online" | "offline";
+  apiShopCount: number | null;
 };
 
 type Action =
@@ -87,9 +100,17 @@ type Action =
   | { type: "upsertShop"; shop: Shop }
   | { type: "upsertCatalog"; product: CatalogProduct }
   | { type: "upsertListing"; listing: Listing }
+  | { type: "deleteListings"; listingIds: string[] }
   | { type: "setListingStatus"; listingId: string; status: Listing["status"] }
   | { type: "setShopStatus"; shopId: string; status: Shop["status"] }
   | { type: "setOrderStatus"; orderId: string; status: Order["status"] }
+  | {
+      type: "setOrderSchedule";
+      orderId: string;
+      packingBy?: string;
+      readyBy?: string;
+      deliverBy?: string;
+    }
   | { type: "assignPartner"; orderId: string; partnerId: string }
   | { type: "replyReview"; reviewId: string; body: string }
   | { type: "upsertCoupon"; coupon: Coupon }
@@ -97,13 +118,35 @@ type Action =
   | { type: "addApplication"; application: SellerApplication }
   | { type: "addTicket"; ticket: Ticket }
   | { type: "setTicketStatus"; ticketId: string; status: TicketStatus }
+  | { type: "assignTicket"; ticketId: string; userId: string }
   | { type: "addTicketMessage"; ticketId: string; authorId: string; body: string }
   | { type: "addShopCategory"; shopId: string; categoryId: string }
   | { type: "removeShopCategory"; shopId: string; categoryId: string }
   | { type: "setListingTags"; listingId: string; tags: ProductTag[] }
   | { type: "upsertAd"; ad: Advertisement }
+  | { type: "saveAddress"; address: SavedAddress; setDefault?: boolean }
+  | { type: "deleteAddress"; addressId: string }
+  | { type: "setDefaultAddress"; addressId: string }
+  | { type: "saveCard"; card: SavedCard; setDefault?: boolean }
+  | { type: "deleteCard"; cardId: string }
+  | { type: "setDefaultCard"; cardId: string }
+  | { type: "setPaymentPrefs"; preferredPayment?: PaymentMethod; savedUpiId?: string }
   | { type: "setViewShop"; shopId: string }
-  | { type: "setViewProduct"; productId: string; preferShopId?: string | null };
+  | { type: "setViewProduct"; productId: string; preferShopId?: string | null }
+  | {
+      type: "setApi";
+      status: AppState["apiStatus"];
+      shopCount?: number | null;
+    }
+  | {
+      type: "loadCatalog";
+      shops: Shop[];
+      catalog: CatalogProduct[];
+      listings: Listing[];
+      advertisements: Advertisement[];
+      settings: PlatformSettings;
+      shopCount: number;
+    };
 
 const initialState: AppState = {
   sessionUserId: null,
@@ -125,6 +168,8 @@ const initialState: AppState = {
   viewProductId: null,
   viewPreferShopId: null,
   hydrated: false,
+  apiStatus: "connecting",
+  apiShopCount: null,
 };
 
 function persistable(state: AppState) {
@@ -253,6 +298,14 @@ function reducer(state: AppState, action: Action): AppState {
           : [action.listing, ...state.listings],
       };
     }
+    case "deleteListings": {
+      const ids = new Set(action.listingIds);
+      return {
+        ...state,
+        listings: state.listings.filter((listing) => !ids.has(listing.id)),
+        cart: state.cart.filter((item) => !ids.has(item.listingId)),
+      };
+    }
     case "setListingStatus":
       return {
         ...state,
@@ -271,7 +324,27 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         orders: state.orders.map((o) =>
-          o.id === action.orderId ? { ...o, status: action.status } : o,
+          o.id === action.orderId
+            ? {
+                ...o,
+                status: normalizeOrderStatus(action.status),
+                timeline: appendOrderEvent(o, action.status),
+              }
+            : o,
+        ),
+      };
+    case "setOrderSchedule":
+      return {
+        ...state,
+        orders: state.orders.map((o) =>
+          o.id === action.orderId
+            ? {
+                ...o,
+                packingBy: action.packingBy,
+                readyBy: action.readyBy,
+                deliverBy: action.deliverBy,
+              }
+            : o,
         ),
       };
     case "assignPartner":
@@ -279,7 +352,7 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         orders: state.orders.map((o) =>
           o.id === action.orderId
-            ? { ...o, partnerId: action.partnerId, status: "assigned" }
+            ? { ...o, partnerId: action.partnerId || undefined }
             : o,
         ),
       };
@@ -322,25 +395,38 @@ function reducer(state: AppState, action: Action): AppState {
           t.id === action.ticketId ? { ...t, status: action.status } : t,
         ),
       };
-    case "addTicketMessage":
+    case "assignTicket":
       return {
         ...state,
         tickets: state.tickets.map((t) =>
           t.id === action.ticketId
-            ? {
-                ...t,
-                messages: [
-                  ...t.messages,
-                  {
-                    id: `m-${Date.now()}`,
-                    authorId: action.authorId,
-                    body: action.body,
-                    createdAt: new Date().toISOString(),
-                  },
-                ],
-              }
+            ? { ...t, assignedToUserId: action.userId || undefined }
             : t,
         ),
+      };
+    case "addTicketMessage":
+      return {
+        ...state,
+        tickets: state.tickets.map((t) => {
+          if (t.id !== action.ticketId) return t;
+          const author = state.users.find((u) => u.id === action.authorId);
+          const staffReply = author && author.role !== "buyer";
+          return {
+            ...t,
+            status: t.status === "open" && staffReply ? "in_progress" : t.status,
+            assignedToUserId:
+              t.assignedToUserId ?? (staffReply ? action.authorId : t.assignedToUserId),
+            messages: [
+              ...t.messages,
+              {
+                id: `m-${Date.now()}`,
+                authorId: action.authorId,
+                body: action.body,
+                createdAt: new Date().toISOString(),
+              },
+            ],
+          };
+        }),
       };
     case "addShopCategory":
       return {
@@ -379,6 +465,113 @@ function reducer(state: AppState, action: Action): AppState {
           : [action.ad, ...state.advertisements],
       };
     }
+    case "saveAddress": {
+      if (!state.sessionUserId) return state;
+      return {
+        ...state,
+        users: state.users.map((user) => {
+          if (user.id !== state.sessionUserId) return user;
+          const addresses = [...(user.addresses ?? [])];
+          const index = addresses.findIndex((item) => item.id === action.address.id);
+          if (index >= 0) addresses[index] = action.address;
+          else addresses.push(action.address);
+          return {
+            ...user,
+            addresses,
+            pinCode: user.pinCode || action.address.pinCode,
+            defaultAddressId:
+              action.setDefault || !user.defaultAddressId
+                ? action.address.id
+                : user.defaultAddressId,
+          };
+        }),
+      };
+    }
+    case "deleteAddress": {
+      if (!state.sessionUserId) return state;
+      return {
+        ...state,
+        users: state.users.map((user) => {
+          if (user.id !== state.sessionUserId) return user;
+          const addresses = (user.addresses ?? []).filter((item) => item.id !== action.addressId);
+          return {
+            ...user,
+            addresses,
+            defaultAddressId:
+              user.defaultAddressId === action.addressId
+                ? addresses[0]?.id
+                : user.defaultAddressId,
+          };
+        }),
+      };
+    }
+    case "setDefaultAddress": {
+      if (!state.sessionUserId) return state;
+      return {
+        ...state,
+        users: state.users.map((user) =>
+          user.id === state.sessionUserId ? { ...user, defaultAddressId: action.addressId } : user,
+        ),
+      };
+    }
+    case "saveCard": {
+      if (!state.sessionUserId) return state;
+      return {
+        ...state,
+        users: state.users.map((user) => {
+          if (user.id !== state.sessionUserId) return user;
+          const cards = [...(user.cards ?? [])];
+          const index = cards.findIndex((item) => item.id === action.card.id);
+          if (index >= 0) cards[index] = action.card;
+          else cards.push(action.card);
+          return {
+            ...user,
+            cards,
+            defaultCardId: action.setDefault || !user.defaultCardId ? action.card.id : user.defaultCardId,
+            preferredPayment: "card",
+          };
+        }),
+      };
+    }
+    case "deleteCard": {
+      if (!state.sessionUserId) return state;
+      return {
+        ...state,
+        users: state.users.map((user) => {
+          if (user.id !== state.sessionUserId) return user;
+          const cards = (user.cards ?? []).filter((item) => item.id !== action.cardId);
+          return {
+            ...user,
+            cards,
+            defaultCardId: user.defaultCardId === action.cardId ? cards[0]?.id : user.defaultCardId,
+          };
+        }),
+      };
+    }
+    case "setDefaultCard": {
+      if (!state.sessionUserId) return state;
+      return {
+        ...state,
+        users: state.users.map((user) =>
+          user.id === state.sessionUserId ? { ...user, defaultCardId: action.cardId, preferredPayment: "card" } : user,
+        ),
+      };
+    }
+    case "setPaymentPrefs": {
+      if (!state.sessionUserId) return state;
+      return {
+        ...state,
+        users: state.users.map((user) =>
+          user.id === state.sessionUserId
+            ? {
+                ...user,
+                preferredPayment: action.preferredPayment ?? user.preferredPayment,
+                savedUpiId: action.savedUpiId ?? user.savedUpiId,
+              }
+            : user,
+        ),
+      };
+    }
     case "setViewShop":
       return { ...state, viewShopId: action.shopId };
     case "setViewProduct":
@@ -387,6 +580,23 @@ function reducer(state: AppState, action: Action): AppState {
         viewProductId: action.productId,
         viewPreferShopId: action.preferShopId ?? null,
         viewShopId: action.preferShopId ?? state.viewShopId,
+      };
+    case "setApi":
+      return {
+        ...state,
+        apiStatus: action.status,
+        apiShopCount: action.shopCount ?? state.apiShopCount,
+      };
+    case "loadCatalog":
+      return {
+        ...state,
+        shops: action.shops,
+        catalog: action.catalog,
+        listings: action.listings,
+        advertisements: action.advertisements,
+        settings: action.settings,
+        apiStatus: "online",
+        apiShopCount: action.shopCount,
       };
     default:
       return state;
@@ -406,7 +616,8 @@ type AppContextValue = {
   shopById: (id: string) => Shop | undefined;
   listingById: (id: string) => Listing | undefined;
   catalogById: (id: string) => CatalogProduct | undefined;
-  login: (email: string, password: string) => User | null;
+  login: (email: string, password: string) => Promise<User | null>;
+  loginWithPhone: (phone: string, name?: string) => User;
   logout: () => void;
   switchRole: (role: Role) => void;
   selectShop: (shopId: string) => void;
@@ -430,13 +641,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ...initialState,
             ...parsed,
             settings: { ...defaultSettings, ...parsed.settings },
-            users: (parsed.users ?? initialState.users).map((u) => ({
-              ...u,
-              password: u.password || DEMO_PASSWORD,
-              shopRadiusKm: clampShopRadiusKm(
-                u.shopRadiusKm ?? defaultSettings.deliveryRadiusKm,
-              ),
-            })),
+            users: (parsed.users ?? initialState.users).map((u) => {
+              const seed = seedUsers.find((item) => item.id === u.id);
+              return {
+                ...u,
+                password: u.password || DEMO_PASSWORD,
+                addresses: u.addresses?.length ? u.addresses : (seed?.addresses ?? []),
+                defaultAddressId: u.defaultAddressId ?? seed?.defaultAddressId,
+                cards: u.cards?.length ? u.cards : (seed?.cards ?? []),
+                defaultCardId: u.defaultCardId ?? seed?.defaultCardId,
+                shopRadiusKm: clampShopRadiusKm(
+                  u.shopRadiusKm ?? defaultSettings.deliveryRadiusKm,
+                ),
+              };
+            }),
+            orders: (parsed.orders ?? initialState.orders).map(migrateOrder),
             advertisements: parsed.advertisements ?? seedAds,
             sessionUserId: parsed.sessionUserId ?? null,
             wishlist: parsed.wishlist ?? [],
@@ -459,6 +678,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
     });
   }, []);
+
+  useEffect(() => {
+    if (!state.hydrated) return;
+    let cancelled = false;
+    loadStorefront()
+      .then((payload) => {
+        if (cancelled) return;
+        dispatch({
+          type: "loadCatalog",
+          shops: payload.shops,
+          catalog: payload.catalog,
+          listings: payload.listings,
+          advertisements: payload.advertisements,
+          settings: payload.settings,
+          shopCount: payload.health.shopCount ?? payload.shops.length,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) dispatch({ type: "setApi", status: "offline" });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [state.hydrated]);
 
   useEffect(() => {
     if (!state.hydrated) return;
@@ -503,12 +746,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
     const cartTotal = cartSummary(shipments).total;
 
-    const login = (email: string, password: string) => {
-      const found = authenticate(state.users, email, password);
-      if (found) dispatch({ type: "login", userId: found.id });
-      return found;
+    const login = async (email: string, password: string) => {
+      try {
+        const res = await loginRequest(email, password);
+        setToken(res.token);
+        const existing = state.users.find((u) => u.id === res.user.id);
+        const user = mapApiUser(res.user, {
+          password,
+          dob: existing?.dob,
+          pinCode: existing?.pinCode,
+          shopRadiusKm: existing?.shopRadiusKm,
+        });
+        dispatch({ type: "upsertUser", user });
+        dispatch({ type: "login", userId: user.id });
+        return user;
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) return null;
+        const found = authenticate(state.users, email, password);
+        if (found) dispatch({ type: "login", userId: found.id });
+        return found ?? null;
+      }
     };
-    const logout = () => dispatch({ type: "logout" });
+    const loginWithPhone = (phone: string, name?: string) => {
+      const result = loginOrCreateByPhone(state.users, phone, name);
+      if (result.created) dispatch({ type: "upsertUser", user: result.user });
+      dispatch({ type: "login", userId: result.user.id });
+      return result.user;
+    };
+    const logout = () => {
+      setToken(null);
+      dispatch({ type: "logout" });
+    };
 
     const switchRole = (role: Role) => {
       const next = state.users.find((u) => u.role === role);
@@ -547,6 +815,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       listingById,
       catalogById,
       login,
+      loginWithPhone,
       logout,
       switchRole,
       selectShop,

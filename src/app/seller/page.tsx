@@ -34,7 +34,7 @@ export default function SellerHome() {
   const application = state.applications.find((a) => a.userId === user.id);
 
   return (
-    <div>
+    <div className="animate-fade-up">
       <h1 className="text-2xl font-semibold">Seller dashboard</h1>
       <p className="mt-1 text-sm text-stone-500">
         Demand, reviews, and catalogue health for your dukkan.

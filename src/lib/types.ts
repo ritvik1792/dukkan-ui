@@ -1,5 +1,26 @@
 export type Role = "buyer" | "seller" | "admin";
 
+export type PaymentMethod = "upi" | "card" | "cod";
+
+export type PaymentStatus = "paid" | "cod";
+
+export type SavedAddress = {
+  id: string;
+  label: string;
+  line: string;
+  pinCode: string;
+};
+
+export type CardBrand = "visa" | "mastercard" | "rupay" | "card";
+
+export type SavedCard = {
+  id: string;
+  brand: CardBrand;
+  last4: string;
+  expiry: string;
+  name: string;
+};
+
 export type DeliveryMode = "partner" | "shop";
 
 export type ApprovalStatus = "pending" | "approved" | "rejected";
@@ -15,7 +36,9 @@ export type ApplicationStatus =
 export type OrderStatus =
   | "placed"
   | "accepted"
+  | "packing"
   | "assigned"
+  | "ready_for_delivery"
   | "out_for_delivery"
   | "delivered"
   | "cancelled";
@@ -42,6 +65,12 @@ export type User = {
   dob?: string;
   pinCode?: string;
   shopRadiusKm?: number;
+  addresses?: SavedAddress[];
+  defaultAddressId?: string;
+  cards?: SavedCard[];
+  defaultCardId?: string;
+  savedUpiId?: string;
+  preferredPayment?: PaymentMethod;
 };
 
 export type Advertisement = {
@@ -105,6 +134,8 @@ export type CatalogProduct = {
   unit: string;
   imageLabel: string;
   imageHue: number;
+  imageUrl?: string;
+  galleryUrls?: string[];
 };
 
 export type ProductTag = {
@@ -152,6 +183,11 @@ export type OrderItem = {
   deliveryFee: number;
 };
 
+export type OrderEvent = {
+  status: OrderStatus;
+  at: string;
+};
+
 export type Order = {
   id: string;
   buyerId: string;
@@ -165,6 +201,12 @@ export type Order = {
   createdAt: string;
   address: string;
   partnerId?: string;
+  timeline?: OrderEvent[];
+  packingBy?: string;
+  readyBy?: string;
+  deliverBy?: string;
+  paymentMethod?: PaymentMethod;
+  paymentStatus?: PaymentStatus;
 };
 
 export type Review = {
@@ -177,6 +219,7 @@ export type Review = {
   title: string;
   body: string;
   createdAt: string;
+  orderId?: string;
   sellerReply?: { body: string; createdAt: string };
 };
 
@@ -196,6 +239,7 @@ export type Ticket = {
   shopId?: string;
   orderId?: string;
   listingId?: string;
+  assignedToUserId?: string;
   createdAt: string;
   messages: TicketMessage[];
 };

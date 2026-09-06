@@ -62,7 +62,7 @@ export function ShopCard({ shop }: { shop: NearbyShop }) {
     <Link
       href={ROUTES.shopDashboard}
       onClick={() => selectShop(shop.id)}
-      className="flex min-w-[16.5rem] flex-[1_0_18rem] snap-start flex-col overflow-hidden rounded-2xl bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] ring-1 ring-stone-200/80 transition hover:-translate-y-0.5 hover:shadow-lg sm:flex-[1_0_19rem]"
+      className="flex min-w-[16.5rem] flex-[1_0_18rem] snap-start flex-col overflow-hidden rounded-2xl bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] ring-1 ring-stone-200/80 transition duration-300 ease-out hover:-translate-y-1 hover:shadow-lg sm:flex-[1_0_19rem]"
     >
       <div className="relative">
         <ShopArt shop={shop} />

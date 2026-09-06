@@ -3,18 +3,34 @@
 import { AccountMenu } from "@/components/AccountMenu";
 import { CategoryList } from "@/components/CategoryNav";
 import { LogoMark } from "@/components/LogoMark";
+import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { useApp } from "@/context/AppContext";
 import { neighborhoods } from "@/data/seed";
+import { useMotionRouter } from "@/lib/motion";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { usePathname } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
 
 export function Header() {
   const { user, neighborhood, cartCount, dispatch, state } = useApp();
+  const { openAuth } = useAuthDialog();
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const router = useRouter();
+  const [menuShown, setMenuShown] = useState(false);
+  const [menuRender, setMenuRender] = useState(false);
+  const router = useMotionRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (menuOpen) {
+      setMenuRender(true);
+      const id = requestAnimationFrame(() => setMenuShown(true));
+      return () => cancelAnimationFrame(id);
+    }
+    setMenuShown(false);
+    const timeout = window.setTimeout(() => setMenuRender(false), 280);
+    return () => window.clearTimeout(timeout);
+  }, [menuOpen]);
 
   function onSearch(e: FormEvent) {
     e.preventDefault();
@@ -93,11 +109,15 @@ export function Header() {
             className="relative rounded-xl bg-lime px-3 py-2 font-semibold text-ink"
           >
             Cart
-            {cartCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[11px] text-ink">
-                {cartCount}
-              </span>
-            )}
+            <span
+              key={cartCount}
+              aria-hidden={cartCount === 0}
+              className={`cart-badge absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[11px] text-ink ${
+                cartCount === 0 ? "invisible" : ""
+              }`}
+            >
+              {cartCount}
+            </span>
           </Link>
           <AccountMenu />
         </nav>
@@ -133,15 +153,19 @@ export function Header() {
         </div>
       )}
 
-      {menuOpen && (
+      {menuRender && (
         <div className="fixed inset-0 z-50 flex">
           <button
             type="button"
-            className="flex-1 bg-black/40"
+            className={`drawer-scrim flex-1 bg-black/40 ${menuShown ? "opacity-100" : "opacity-0"}`}
             aria-label="Close menu"
             onClick={() => setMenuOpen(false)}
           />
-          <div className="absolute left-0 top-0 h-full w-72 overflow-y-auto bg-white p-4 text-ink shadow-xl">
+          <div
+            className={`drawer-panel absolute left-0 top-0 h-full w-72 overflow-y-auto bg-white p-4 text-ink shadow-xl ${
+              menuShown ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
             <div className="mb-4 flex items-center justify-between">
               <p className="font-semibold">Categories</p>
               <button type="button" onClick={() => setMenuOpen(false)} className="text-sm">
@@ -152,36 +176,40 @@ export function Header() {
             <div className="mt-6 space-y-2 border-t pt-4 text-sm">
               {user ? (
                 <>
-                  <Link href="/account" onClick={() => setMenuOpen(false)} className="block">
-                    Settings
+                  <Link href="/account" onClick={() => setMenuOpen(false)} className="block py-1">
+                    Profile
                   </Link>
-                  <Link href="/wishlist" onClick={() => setMenuOpen(false)} className="block">
+                  <Link href="/wishlist" onClick={() => setMenuOpen(false)} className="block py-1">
                     Wishlist
                   </Link>
-                  <Link href="/account/orders" onClick={() => setMenuOpen(false)} className="block">
+                  <Link href="/account/orders" onClick={() => setMenuOpen(false)} className="block py-1">
                     Orders
                   </Link>
-                  <Link href="/account/tickets" onClick={() => setMenuOpen(false)} className="block">
+                  <Link href="/account/tickets" onClick={() => setMenuOpen(false)} className="block py-1">
                     Support
                   </Link>
                 </>
               ) : (
                 <>
-                  <Link href="/account" onClick={() => setMenuOpen(false)} className="block">
-                    Settings
+                  <Link href="/account" onClick={() => setMenuOpen(false)} className="block py-1">
+                    Profile
                   </Link>
-                  <Link href="/wishlist" onClick={() => setMenuOpen(false)} className="block">
+                  <Link href="/wishlist" onClick={() => setMenuOpen(false)} className="block py-1">
                     Wishlist
                   </Link>
-                  <Link href="/login" onClick={() => setMenuOpen(false)} className="block">
-                    Login
-                  </Link>
-                  <Link href="/signup" onClick={() => setMenuOpen(false)} className="block">
-                    Sign up
-                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      openAuth();
+                    }}
+                    className="block py-1"
+                  >
+                    Sign in
+                  </button>
                 </>
               )}
-              <Link href="/sell" onClick={() => setMenuOpen(false)} className="block">
+              <Link href="/sell" onClick={() => setMenuOpen(false)} className="block py-1">
                 Sell on Dukkan
               </Link>
             </div>

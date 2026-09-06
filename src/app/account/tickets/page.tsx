@@ -1,24 +1,26 @@
 "use client";
 
+import { TicketThread } from "@/components/tickets/TicketThread";
 import { Field, Select, TextArea, TextInput } from "@/components/ui/Field";
-import { StatusPill } from "@/components/ui/StatCard";
 import { useApp } from "@/context/AppContext";
-import { formatDate, titleCase } from "@/lib/format";
 import { createId } from "@/lib/ids";
 import type { TicketKind } from "@/lib/types";
 import { FormEvent, useState } from "react";
 
 export default function AccountTicketsPage() {
-  const { state, user, dispatch, shopById } = useApp();
+  const { state, user, dispatch } = useApp();
   const tickets = state.tickets.filter((t) => t.buyerId === user?.id);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [kind, setKind] = useState<TicketKind>("support");
   const [shopId, setShopId] = useState(state.shops[0]?.id ?? "");
+  const [orderId, setOrderId] = useState("");
+  const relatedOrders = state.orders.filter((o) => o.buyerId === user?.id);
 
   function submit(e: FormEvent) {
     e.preventDefault();
     if (!user || !subject.trim() || !body.trim()) return;
+    const related = relatedOrders.find((o) => o.id === orderId);
     dispatch({
       type: "addTicket",
       ticket: {
@@ -27,7 +29,8 @@ export default function AccountTicketsPage() {
         status: "open",
         subject,
         buyerId: user.id,
-        shopId: shopId || undefined,
+        shopId: related?.shopId ?? (shopId || undefined),
+        orderId: orderId || undefined,
         createdAt: new Date().toISOString(),
         messages: [
           {
@@ -41,6 +44,7 @@ export default function AccountTicketsPage() {
     });
     setSubject("");
     setBody("");
+    setOrderId("");
   }
 
   return (
@@ -62,6 +66,16 @@ export default function AccountTicketsPage() {
             ))}
           </Select>
         </Field>
+        <Field label="Related order">
+          <Select value={orderId} onChange={(e) => setOrderId(e.target.value)}>
+            <option value="">None</option>
+            {relatedOrders.map((order) => (
+              <option key={order.id} value={order.id}>
+                {order.id}
+              </option>
+            ))}
+          </Select>
+        </Field>
         <Field label="Subject">
           <TextInput required value={subject} onChange={(e) => setSubject(e.target.value)} />
         </Field>
@@ -74,22 +88,8 @@ export default function AccountTicketsPage() {
       </form>
       <ul className="space-y-3">
         {tickets.map((ticket) => (
-          <li key={ticket.id} className="rounded-2xl bg-white p-4">
-            <div className="flex justify-between gap-2">
-              <p className="font-semibold">{ticket.subject}</p>
-              <StatusPill>
-                {ticket.kind} · {titleCase(ticket.status)}
-              </StatusPill>
-            </div>
-            <p className="text-xs text-stone-500">{shopById(ticket.shopId ?? "")?.name}</p>
-            <ul className="mt-3 space-y-1 text-sm">
-              {ticket.messages.map((m) => (
-                <li key={m.id}>
-                  {m.body}{" "}
-                  <span className="text-xs text-stone-400">{formatDate(m.createdAt)}</span>
-                </li>
-              ))}
-            </ul>
+          <li key={ticket.id}>
+            <TicketThread ticket={ticket} canReply />
           </li>
         ))}
         {tickets.length === 0 && <p className="text-sm text-stone-500">No tickets yet.</p>}

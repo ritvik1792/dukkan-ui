@@ -20,7 +20,7 @@ export function DeliveryPicker({
         <button
           type="button"
           onClick={() => onChange("partner")}
-          className={`rounded-2xl border p-4 text-left ${
+          className={`rounded-2xl border p-4 text-left transition-colors duration-200 ${
             value === "partner" ? "border-ink bg-ink text-white" : "border-stone-200 bg-white"
           }`}
         >
@@ -35,7 +35,7 @@ export function DeliveryPicker({
         <button
           type="button"
           onClick={() => onChange("shop")}
-          className={`rounded-2xl border p-4 text-left ${
+          className={`rounded-2xl border p-4 text-left transition-colors duration-200 ${
             value === "shop" ? "border-ink bg-ink text-white" : "border-stone-200 bg-white"
           }`}
         >

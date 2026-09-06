@@ -6,12 +6,12 @@ import { useApp } from "@/context/AppContext";
 import { categories, neighborhoods } from "@/data/seed";
 import { createId } from "@/lib/ids";
 import type { SellerApplication, Shop } from "@/lib/types";
-import { useRouter } from "next/navigation";
+import { useMotionRouter } from "@/lib/motion";
 import { FormEvent, useEffect, useState } from "react";
 
 function SellForm() {
   const { user, state, dispatch } = useApp();
-  const router = useRouter();
+  const router = useMotionRouter();
   const existing = state.applications.find((a) => a.userId === user?.id);
 
   const [ownerName, setOwnerName] = useState(user?.name ?? "");

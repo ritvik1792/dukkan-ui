@@ -9,7 +9,7 @@ export const BRAND = {
   tagline: "Nearby shops. Fast delivery.",
 };
 
-export const STORAGE_KEY = "dukkan-frontend-state-v4";
+export const STORAGE_KEY = "dukkan-frontend-state-v5";
 
 export const CATEGORY_HUES: Record<string, number> = {
   grocery: 32,
@@ -26,6 +26,9 @@ export const VIEW_STORAGE_KEY = "dukkan-view-selection-v1";
 
 /** Shared password for seeded demo accounts until Spring Boot auth. */
 export const DEMO_PASSWORD = "dukkan123";
+
+/** Demo OTP shown in the phone sign-in popup. */
+export const DEMO_OTP = "1234";
 
 export const TAG_KIND_LABELS: Record<string, string> = {
   sale: "Sale",

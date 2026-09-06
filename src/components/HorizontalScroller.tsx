@@ -55,7 +55,7 @@ export function HorizontalScroller({
   }
 
   return (
-    <section>
+    <section className="animate-fade-up">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold tracking-tight text-ink md:text-[22px]">{title}</h2>
         <div className="flex shrink-0 gap-2">
@@ -64,7 +64,7 @@ export function HorizontalScroller({
             aria-label="Scroll left"
             disabled={!canLeft}
             onClick={() => scrollByDir(-1)}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white text-ink shadow-sm disabled:opacity-30"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white text-ink shadow-sm transition duration-200 hover:bg-stone-50 disabled:opacity-30"
           >
             <Chevron dir="left" />
           </button>
@@ -73,7 +73,7 @@ export function HorizontalScroller({
             aria-label="Scroll right"
             disabled={!canRight}
             onClick={() => scrollByDir(1)}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white text-ink shadow-sm disabled:opacity-30"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white text-ink shadow-sm transition duration-200 hover:bg-stone-50 disabled:opacity-30"
           >
             <Chevron dir="right" />
           </button>

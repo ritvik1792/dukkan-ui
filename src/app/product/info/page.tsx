@@ -3,6 +3,7 @@
 import { DeliveryPicker } from "@/components/DeliveryPicker";
 import { WishlistButton } from "@/components/CatalogProductCard";
 import { ProductArt } from "@/components/ProductArt";
+import { QtyControl } from "@/components/QtyControl";
 import { TagBadge } from "@/components/TagBadge";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
@@ -10,16 +11,17 @@ import { formatInr, percentOff } from "@/lib/format";
 import { formatDistance } from "@/lib/geo";
 import { ROUTES } from "@/lib/routes";
 import type { CatalogProduct, DeliveryMode, Listing, Review } from "@/lib/types";
+import { listingCartQty, listingMaxQty } from "@/services/cart";
 import { cheapestLanded, deliveryFeeFor, shopDeliveryModes } from "@/services/pricing";
 import { fetchProduct } from "@/services/storefront";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useMotionRouter } from "@/lib/motion";
 import { useEffect, useMemo, useState } from "react";
 
 export default function ProductInfoPage() {
   const { state, nearbyShops, shopById, dispatch, selectShop } = useApp();
   const { showAlert } = useAlert();
-  const router = useRouter();
+  const router = useMotionRouter();
   const productId = state.viewProductId;
   const preferShopId = state.viewPreferShopId;
 
@@ -29,7 +31,7 @@ export default function ProductInfoPage() {
   const [loading, setLoading] = useState(true);
   const [listingId, setListingId] = useState<string | undefined>(undefined);
   const [mode, setMode] = useState<DeliveryMode>("partner");
-  const [qty, setQty] = useState(1);
+  const [activePhoto, setActivePhoto] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!state.hydrated) return;
@@ -54,6 +56,7 @@ export default function ProductInfoPage() {
       setListings(payload?.listings ?? []);
       setReviews(payload?.reviews ?? []);
       setListingId(undefined);
+      setActivePhoto(undefined);
       setLoading(false);
     });
 
@@ -132,51 +135,84 @@ export default function ProductInfoPage() {
   }
 
   const inStock = listing.stock > 0;
-  const maxQty = Math.max(listing.moq, Math.min(Math.max(listing.stock, 0), 10));
-  const qtyOptions = inStock
-    ? Array.from({ length: maxQty - listing.moq + 1 }, (_, i) => listing.moq + i)
-    : [];
-  const safeQty = qtyOptions.includes(qty) ? qty : (qtyOptions[0] ?? listing.moq);
+  const maxQty = listingMaxQty(listing);
+  const cartQty = listingCartQty(state.cart, listing.id);
+  const displayQty = cartQty > 0 ? cartQty : listing.moq;
 
-  function addToCart() {
-    dispatch({
-      type: "addToCart",
-      item: {
-        listingId: listing.id,
-        quantity: safeQty,
-        deliveryMode: activeMode,
-      },
-    });
-    showAlert({
-      tone: "success",
-      title: "Added to cart successfully",
-      message: `${safeQty} × ${productName}`,
-      action: { href: "/cart", label: "View cart" },
-    });
+  function addOrIncrease() {
+    if (!inStock || cartQty >= maxQty) return;
+    if (cartQty === 0) {
+      dispatch({
+        type: "addToCart",
+        item: {
+          listingId: listing.id,
+          quantity: listing.moq,
+          deliveryMode: activeMode,
+        },
+      });
+      showAlert({
+        tone: "success",
+        title: "Added to cart",
+        message: `${listing.moq} × ${productName}`,
+        action: { href: "/cart", label: "View cart" },
+      });
+      return;
+    }
+    dispatch({ type: "setQty", listingId: listing.id, quantity: cartQty + 1 });
+  }
+
+  function decrease() {
+    if (cartQty <= 0) return;
+    dispatch({ type: "setQty", listingId: listing.id, quantity: cartQty - 1 });
   }
 
   function buyNow() {
-    dispatch({
-      type: "addToCart",
-      item: {
-        listingId: listing.id,
-        quantity: safeQty,
-        deliveryMode: activeMode,
-      },
-    });
+    if (cartQty === 0) {
+      dispatch({
+        type: "addToCart",
+        item: {
+          listingId: listing.id,
+          quantity: listing.moq,
+          deliveryMode: activeMode,
+        },
+      });
+    }
     router.push("/checkout");
   }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="grid gap-8 lg:grid-cols-[0.85fr_1fr_280px]">
-        <div className="relative">
-          <ProductArt
-            hue={product.imageHue}
-            label={product.imageLabel}
-            className="h-80 lg:min-h-80 lg:h-full"
-          />
-          <WishlistButton catalogProductId={product.id} className="absolute right-3 top-3 z-10" />
+        <div>
+          <div className="relative">
+            <ProductArt
+              hue={product.imageHue}
+              label={product.imageLabel}
+              imageUrl={activePhoto ?? product.imageUrl}
+              className="h-80 lg:min-h-80 lg:h-full"
+            />
+            <WishlistButton catalogProductId={product.id} className="absolute right-3 top-3 z-10" />
+          </div>
+          {product.galleryUrls && product.galleryUrls.length > 0 && (
+            <div className="mt-3 flex gap-2 overflow-x-auto">
+              {[product.imageUrl, ...product.galleryUrls]
+                .filter((src): src is string => Boolean(src))
+                .filter((src, index, all) => all.indexOf(src) === index)
+                .map((src) => (
+                  <button
+                    key={src.slice(0, 48)}
+                    type="button"
+                    className={`h-16 w-16 overflow-hidden rounded-xl ring-1 transition duration-200 ${
+                      (activePhoto ?? product.imageUrl) === src ? "ring-ink" : "ring-stone-200"
+                    }`}
+                    onClick={() => setActivePhoto(src)}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+            </div>
+          )}
         </div>
         <div>
           <p className="text-xs uppercase tracking-wider text-stone-500">
@@ -227,42 +263,31 @@ export default function ProductInfoPage() {
         </div>
 
         <aside className="h-fit rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-          <label className="block text-sm">
-            Quantity
-            <select
-              value={safeQty}
+          <p className="text-sm font-semibold">Quantity</p>
+          <div className="mt-2">
+            <QtyControl
+              qty={cartQty}
+              max={maxQty}
               disabled={!inStock}
-              onChange={(e) => setQty(Number(e.target.value))}
-              className="mt-1 w-full rounded-xl border border-stone-200 bg-cream px-3 py-2"
-            >
-              {qtyOptions.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
+              onIncrease={addOrIncrease}
+              onDecrease={decrease}
+              size="wide"
+              addLabel="Add to cart"
+            />
+          </div>
 
           <p className="mt-3 flex items-baseline justify-between text-sm">
             <span className="text-stone-500">Total incl. delivery</span>
             <span className="text-lg font-bold">
-              {formatInr(listing.sellerPrice * safeQty + fee)}
+              {formatInr(listing.sellerPrice * displayQty + fee)}
             </span>
           </p>
 
           <button
             type="button"
             disabled={!inStock}
-            onClick={addToCart}
-            className="mt-4 w-full rounded-full bg-[#ffd814] px-4 py-3 text-sm font-semibold text-ink hover:bg-[#f7ca00] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Add to cart
-          </button>
-          <button
-            type="button"
-            disabled={!inStock}
             onClick={buyNow}
-            className="mt-2 w-full rounded-full bg-[#ffa41c] px-4 py-3 text-sm font-semibold text-ink hover:bg-[#fa8900] disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-4 w-full rounded-full bg-[#ffa41c] px-4 py-3 text-sm font-semibold text-ink hover:bg-[#fa8900] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Buy now
           </button>

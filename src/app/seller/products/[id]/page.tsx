@@ -2,12 +2,13 @@
 
 import { ListingForm, listingToForm, type ListingFormValue } from "@/components/seller/ListingForm";
 import { useApp } from "@/context/AppContext";
-import { useParams, useRouter } from "next/navigation";
+import { useMotionRouter } from "@/lib/motion";
+import { useParams } from "next/navigation";
 
 export default function EditProductPage() {
   const params = useParams<{ id: string }>();
   const { listingById, catalogById, dispatch } = useApp();
-  const router = useRouter();
+  const router = useMotionRouter();
   const listing = listingById(params.id);
   const product = listing ? catalogById(listing.catalogProductId) : undefined;
 
@@ -26,6 +27,8 @@ export default function EditProductPage() {
         categoryId: form.categoryId,
         description: form.description,
         unit: form.unit,
+        imageUrl: form.mainImage || undefined,
+        galleryUrls: form.gallery,
       },
     });
     dispatch({

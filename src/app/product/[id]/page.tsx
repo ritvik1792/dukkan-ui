@@ -2,13 +2,14 @@
 
 import { useApp } from "@/context/AppContext";
 import { ROUTES } from "@/lib/routes";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useMotionRouter } from "@/lib/motion";
+import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 
 function LegacyProductRedirect() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const router = useMotionRouter();
   const { selectProduct, state } = useApp();
   const shop = searchParams.get("shop");
 

@@ -1,9 +1,10 @@
 "use client";
 
+import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { useApp } from "@/context/AppContext";
 import { categories } from "@/data/seed";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useMotionRouter } from "@/lib/motion";
 import { useEffect, useRef, useState } from "react";
 
 function AccountIcon({ className }: { className?: string }) {
@@ -42,10 +43,11 @@ function MenuLink({
 
 export function AccountMenu() {
   const { user, isAuthenticated, logout } = useApp();
+  const { openAuth } = useAuthDialog();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<number>(0);
-  const router = useRouter();
+  const router = useMotionRouter();
 
   function cancelClose() {
     window.clearTimeout(closeTimer.current);
@@ -105,23 +107,26 @@ export function AccountMenu() {
       {open && !isAuthenticated && (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-56 overflow-visible rounded-md bg-white p-4 text-ink shadow-[0_4px_16px_rgba(0,0,0,0.18)]"
+          className="animate-pop-in absolute right-0 z-50 mt-2 w-56 origin-top-right overflow-visible rounded-md bg-white p-4 text-ink shadow-[0_4px_16px_rgba(0,0,0,0.18)]"
         >
           <div className="absolute -top-2 right-6 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-white" />
-          <Link
-            href="/login"
-            onClick={close}
+          <button
+            type="button"
+            onClick={() => {
+              close();
+              openAuth();
+            }}
             className="block w-full rounded-full bg-[#ffd814] py-2 text-center text-sm font-semibold text-ink hover:bg-[#f7ca00]"
           >
             Sign in
-          </Link>
+          </button>
         </div>
       )}
 
       {open && isAuthenticated && user && (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-[min(calc(100vw-1.5rem),34rem)] overflow-visible rounded-md bg-white text-ink shadow-[0_4px_16px_rgba(0,0,0,0.18)]"
+          className="animate-pop-in absolute right-0 z-50 mt-2 w-[min(calc(100vw-1.5rem),34rem)] origin-top-right overflow-visible rounded-md bg-white text-ink shadow-[0_4px_16px_rgba(0,0,0,0.18)]"
         >
           <div className="absolute -top-2 right-6 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-white" />
 
@@ -174,7 +179,7 @@ export function AccountMenu() {
                   onClick={() => {
                     logout();
                     close();
-                    router.push("/login");
+                    openAuth();
                   }}
                 >
                   Switch accounts
@@ -192,9 +197,9 @@ export function AccountMenu() {
                 </button>
               </div>
               <div className="my-3 border-t border-stone-200" />
-              <MenuLink href="/account" onClick={close}>
-                Your Account
-              </MenuLink>
+                <MenuLink href="/account" onClick={close}>
+                  Your Profile
+                </MenuLink>
               <MenuLink href="/wishlist" onClick={close}>
                 Your Wishlist
               </MenuLink>
@@ -205,7 +210,7 @@ export function AccountMenu() {
                 Support tickets
               </MenuLink>
               <MenuLink href="/account" onClick={close}>
-                Shop radius &amp; profile
+                Profile, addresses &amp; cards
               </MenuLink>
               <MenuLink href="/search" onClick={close}>
                 Keep shopping for

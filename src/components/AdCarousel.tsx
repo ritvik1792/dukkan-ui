@@ -25,7 +25,7 @@ export function AdCarousel({ ads }: { ads: Advertisement[] }) {
   const productHref = Boolean(ad.catalogProductId && ad.href.startsWith("/product"));
 
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-ink text-white">
+    <section className="relative overflow-hidden rounded-3xl bg-ink text-white animate-fade-up">
       <div
         className="absolute inset-0 opacity-40"
         style={{

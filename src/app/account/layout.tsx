@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 const links = [
-  { href: "/account", label: "Settings" },
+  { href: "/account", label: "Profile" },
   { href: "/account/orders", label: "Orders" },
   { href: "/wishlist", label: "Wishlist" },
   { href: "/account/tickets", label: "Support" },
@@ -30,13 +30,13 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
     <div className="mx-auto max-w-4xl px-4 py-8">
       <p className="text-xs uppercase tracking-wider text-stone-400">Account</p>
       <h1 className="text-2xl font-semibold">{user.name}</h1>
-      <div className="mt-4 mb-6 flex gap-2">
+      <div className="account-nav mt-4 mb-6 flex gap-2">
         {links.map((l) => (
           <Link
             key={l.href}
             href={l.href}
             className={`rounded-full px-4 py-2 text-sm ${
-              pathname === l.href ? "bg-ink text-lime" : "bg-white"
+              pathname === l.href ? "bg-ink text-lime" : "bg-white hover:bg-stone-100"
             }`}
           >
             {l.label}

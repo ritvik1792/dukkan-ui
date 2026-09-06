@@ -7,12 +7,13 @@ import { ShopCard } from "@/components/ShopCard";
 import { Field, Select } from "@/components/ui/Field";
 import { useApp, useUniqueOffers } from "@/context/AppContext";
 import { categories } from "@/data/seed";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useMotionRouter } from "@/lib/motion";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 
 function SearchResults() {
   const params = useSearchParams();
-  const router = useRouter();
+  const router = useMotionRouter();
   const q = params.get("q") ?? "";
   const categoryId = params.get("category") ?? "";
   const { nearbyShops, state } = useApp();

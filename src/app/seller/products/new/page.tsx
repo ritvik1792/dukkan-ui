@@ -4,11 +4,11 @@ import { ListingForm, type ListingFormValue } from "@/components/seller/ListingF
 import { useApp } from "@/context/AppContext";
 import { findCatalogByName } from "@/services/catalog";
 import { createId } from "@/lib/ids";
-import { useRouter } from "next/navigation";
+import { useMotionRouter } from "@/lib/motion";
 
 export default function NewProductPage() {
   const { user, state, dispatch } = useApp();
-  const router = useRouter();
+  const router = useMotionRouter();
   if (!user) return null;
   const shop =
     state.shops.find((s) => s.id === user.shopId) ??
@@ -30,6 +30,8 @@ export default function NewProductPage() {
           unit: form.unit,
           imageLabel: form.name.slice(0, 8),
           imageHue: Math.floor(Math.random() * 360),
+          imageUrl: form.mainImage || undefined,
+          galleryUrls: form.gallery,
         },
       });
     }

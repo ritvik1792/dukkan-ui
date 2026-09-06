@@ -32,6 +32,16 @@ export type CartLookups = {
   catalogById: (id: string) => CatalogProduct | undefined;
 };
 
+export function listingCartQty(cart: CartItem[], listingId: string) {
+  return cart
+    .filter((item) => item.listingId === listingId)
+    .reduce((sum, item) => sum + item.quantity, 0);
+}
+
+export function listingMaxQty(listing: Listing) {
+  return Math.max(listing.moq, Math.min(Math.max(listing.stock, 0), 10));
+}
+
 export function cartShipments({
   cart,
   listingById,

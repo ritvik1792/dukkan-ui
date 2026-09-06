@@ -16,7 +16,7 @@ export function CategoryList({
       <Link
         href="/search"
         onClick={onSelect}
-        className={`block rounded-xl px-3 py-2 text-sm ${
+        className={`block rounded-xl px-3 py-2 text-sm transition duration-200 ${
           !activeId ? "bg-ink text-lime" : "hover:bg-stone-100"
         }`}
       >
@@ -27,7 +27,7 @@ export function CategoryList({
           key={c.id}
           href={`/search?category=${c.id}`}
           onClick={onSelect}
-          className={`block rounded-xl px-3 py-2 text-sm ${
+          className={`block rounded-xl px-3 py-2 text-sm transition duration-200 ${
             activeId === c.id ? "bg-ink text-lime" : "hover:bg-stone-100"
           }`}
         >
@@ -47,8 +47,8 @@ export function CategoryChips({
     <div className="flex gap-2 overflow-x-auto pb-1">
       <Link
         href="/"
-        className={`shrink-0 rounded-full px-4 py-2 text-sm ${
-          !activeId ? "bg-ink text-white" : "bg-white text-ink"
+        className={`shrink-0 rounded-full px-4 py-2 text-sm transition duration-200 ${
+          !activeId ? "bg-ink text-white" : "bg-white text-ink hover:bg-stone-100"
         }`}
       >
         All
@@ -57,8 +57,8 @@ export function CategoryChips({
         <Link
           key={c.id}
           href={`/search?category=${c.id}`}
-          className={`shrink-0 rounded-full px-4 py-2 text-sm ${
-            activeId === c.id ? "bg-ink text-white" : "bg-white text-ink"
+          className={`shrink-0 rounded-full px-4 py-2 text-sm transition duration-200 ${
+            activeId === c.id ? "bg-ink text-white" : "bg-white text-ink hover:bg-stone-100"
           }`}
         >
           {c.emoji} {c.name}
@@ -75,7 +75,7 @@ export function CategoryCircles() {
         <Link
           key={c.id}
           href={`/search?category=${c.id}`}
-          className="flex min-w-[5.75rem] flex-1 snap-start flex-col items-center text-center"
+          className="flex min-w-[5.75rem] flex-1 snap-start flex-col items-center text-center transition duration-200 hover:-translate-y-0.5"
         >
           <div
             className="flex h-[84px] w-[84px] items-center justify-center rounded-full shadow-inner sm:h-24 sm:w-24"

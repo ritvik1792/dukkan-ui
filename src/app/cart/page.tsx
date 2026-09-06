@@ -2,11 +2,12 @@
 
 import { DeliveryPicker } from "@/components/DeliveryPicker";
 import { ProductArt } from "@/components/ProductArt";
+import { QtyControl } from "@/components/QtyControl";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
 import { formatInr, percentOff } from "@/lib/format";
 import type { DeliveryMode } from "@/lib/types";
-import { cartShipments, cartSummary, deliveryCountLabel } from "@/services/cart";
+import { cartShipments, cartSummary, deliveryCountLabel, listingMaxQty } from "@/services/cart";
 import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -34,7 +35,7 @@ export default function CartPage() {
         <p className="mt-2 text-sm text-stone-500">Search a product, then pick a nearby seller.</p>
         <Link
           href="/search"
-          className="mt-6 inline-block rounded-full bg-ink px-5 py-2 text-sm text-lime"
+          className="mt-6 inline-block rounded-full bg-ink px-5 py-2 text-sm text-lime hover:opacity-90"
         >
           Browse products
         </Link>
@@ -131,6 +132,7 @@ export default function CartPage() {
                             <ProductArt
                               hue={product.imageHue}
                               label={product.imageLabel}
+                              imageUrl={product.imageUrl}
                               className="h-24 w-full"
                             />
                           </Link>
@@ -169,32 +171,19 @@ export default function CartPage() {
                             </div>
 
                             <div className="mt-3 flex flex-wrap items-center gap-3">
-                              <div className="flex items-center gap-1 rounded-full border border-stone-300 px-1 py-0.5">
-                                <button
-                                  type="button"
-                                  aria-label={`Decrease quantity of ${product.name}`}
-                                  onClick={() =>
-                                    item.quantity <= listing.moq
-                                      ? removeLine(listing.id, product.name)
-                                      : setQuantity(listing.id, item.quantity - 1)
-                                  }
-                                  className="h-7 w-7 rounded-full text-sm font-semibold hover:bg-stone-100"
-                                >
-                                  −
-                                </button>
-                                <span className="min-w-6 text-center text-sm font-semibold">
-                                  {item.quantity}
-                                </span>
-                                <button
-                                  type="button"
-                                  aria-label={`Increase quantity of ${product.name}`}
-                                  disabled={item.quantity >= listing.stock}
-                                  onClick={() => setQuantity(listing.id, item.quantity + 1)}
-                                  className="h-7 w-7 rounded-full text-sm font-semibold hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                  +
-                                </button>
-                              </div>
+                              <QtyControl
+                                qty={item.quantity}
+                                max={Math.min(listing.stock, listingMaxQty(listing))}
+                                onIncrease={() => setQuantity(listing.id, item.quantity + 1)}
+                                onDecrease={() =>
+                                  item.quantity <= listing.moq
+                                    ? removeLine(listing.id, product.name)
+                                    : setQuantity(listing.id, item.quantity - 1)
+                                }
+                                variant="stepper"
+                                decreaseLabel={`Decrease quantity of ${product.name}`}
+                                increaseLabel={`Increase quantity of ${product.name}`}
+                              />
                               <button
                                 type="button"
                                 onClick={() => removeLine(listing.id, product.name)}

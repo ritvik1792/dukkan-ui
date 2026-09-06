@@ -1,12 +1,14 @@
 "use client";
 
+import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { useApp } from "@/context/AppContext";
 import Link from "next/link";
 
 export function Footer() {
-  const { state } = useApp();
+  const { state, isAuthenticated } = useApp();
+  const { openAuth } = useAuthDialog();
   return (
-    <footer className="mt-auto border-t border-stone-200 bg-white">
+    <footer className="site-footer mt-auto border-t border-stone-200 bg-white">
       <div className="page-shell grid gap-8 py-10 text-sm text-stone-600 md:grid-cols-4">
         <div>
           <p className="text-base font-semibold text-ink">Dukkan</p>
@@ -14,7 +16,7 @@ export function Footer() {
             Nearby shops like IndiaMART, product pages like Amazon, and quick delivery like
             Zepto. Change how far to look in{" "}
             <Link href="/account" className="underline">
-              Settings
+              Profile
             </Link>{" "}
             (ops default {state.settings.deliveryRadiusKm} km).
           </p>
@@ -23,41 +25,61 @@ export function Footer() {
           <p className="font-semibold text-ink">Buyers</p>
           <ul className="mt-2 space-y-1">
             <li>
-              <Link href="/search">Search products</Link>
+              <Link href="/search" className="hover:text-ink">
+                Search products
+              </Link>
             </li>
             <li>
-              <Link href="/wishlist">Wishlist</Link>
+              <Link href="/wishlist" className="hover:text-ink">
+                Wishlist
+              </Link>
             </li>
             <li>
-              <Link href="/account">Settings</Link>
+              <Link href="/account" className="hover:text-ink">
+                Profile
+              </Link>
             </li>
             <li>
-              <Link href="/account/orders">Orders</Link>
+              <Link href="/account/orders" className="hover:text-ink">
+                Orders
+              </Link>
             </li>
-            <li>
-              <Link href="/login">Login</Link>
-            </li>
-            <li>
-              <Link href="/signup">Sign up</Link>
-            </li>
+            {!isAuthenticated && (
+              <li>
+                <button type="button" onClick={() => openAuth()} className="hover:text-ink">
+                  Sign in
+                </button>
+              </li>
+            )}
           </ul>
         </div>
         <div>
           <p className="font-semibold text-ink">Sellers</p>
           <ul className="mt-2 space-y-1">
             <li>
-              <Link href="/sell">Join as a dukkan</Link>
+              <Link href="/sell" className="hover:text-ink">
+                Join as a dukkan
+              </Link>
             </li>
             <li>
-              <Link href="/seller">Seller hub</Link>
+              <Link href="/seller" className="hover:text-ink">
+                Seller hub
+              </Link>
             </li>
           </ul>
         </div>
         <div>
-          <p className="font-semibold text-ink">Backend later</p>
+          <p className="font-semibold text-ink">API</p>
           <p className="mt-2">
-            Spring Boot APIs will persist catalogue, reviews, tickets, and orders. This build
-            uses the same service shapes on mock data.
+            {state.apiStatus === "online" && (
+              <>
+                Connected to Spring Boot / Postgres
+                {state.apiShopCount != null ? ` · ${state.apiShopCount} shops` : ""}.
+              </>
+            )}
+            {state.apiStatus === "offline" &&
+              "API offline — showing local catalogue until the backend is reachable."}
+            {state.apiStatus === "connecting" && "Connecting to the Dukkan API…"}
           </p>
         </div>
       </div>

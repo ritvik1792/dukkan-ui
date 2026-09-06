@@ -6,8 +6,9 @@ import { ROUTES } from "@/lib/routes";
 import type { Listing } from "@/lib/types";
 import type { UniqueOffer } from "@/services/catalog";
 import { cheapestLanded } from "@/services/pricing";
+import { listingCartQty, listingMaxQty } from "@/services/cart";
 import Link from "next/link";
-import type { MouseEvent } from "react";
+import { QtyControl } from "./QtyControl";
 import { ProductArt } from "./ProductArt";
 import { TagBadge } from "./TagBadge";
 
@@ -45,24 +46,22 @@ export function WishlistButton({
         e.stopPropagation();
         dispatch({ type: "toggleWishlist", catalogProductId });
       }}
-      className={`flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm ${
+      className={`flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm transition-colors duration-200 ${
         saved ? "text-amber-500" : "text-stone-500 hover:text-amber-500"
       } ${className}`}
     >
-      <StarIcon filled={saved} />
+      <span className={`flex transition-transform duration-200 ${saved ? "scale-110" : "scale-100"}`}>
+        <StarIcon filled={saved} />
+      </span>
     </button>
   );
 }
 
 function CartQtyStepper({ listing }: { listing: Listing }) {
   const { state, dispatch, shopById } = useApp();
-  const qty = state.cart
-    .filter((item) => item.listingId === listing.id)
-    .reduce((sum, item) => sum + item.quantity, 0);
+  const qty = listingCartQty(state.cart, listing.id);
   const inStock = listing.stock > 0;
-  const maxQty = Math.max(listing.moq, Math.min(Math.max(listing.stock, 0), 10));
-  const canIncrease = inStock && qty < maxQty;
-  const canDecrease = qty > 0;
+  const maxQty = listingMaxQty(listing);
 
   function deliveryMode() {
     const shop = shopById(listing.shopId);
@@ -70,13 +69,8 @@ function CartQtyStepper({ listing }: { listing: Listing }) {
     return cheapestLanded(listing, shop)?.mode ?? "partner";
   }
 
-  function stop(e: MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-
   function increase() {
-    if (!canIncrease) return;
+    if (!inStock || qty >= maxQty) return;
     if (qty === 0) {
       dispatch({
         type: "addToCart",
@@ -92,57 +86,25 @@ function CartQtyStepper({ listing }: { listing: Listing }) {
   }
 
   function decrease() {
-    if (!canDecrease) return;
+    if (qty <= 0) return;
     dispatch({ type: "setQty", listingId: listing.id, quantity: qty - 1 });
   }
 
   if (!inStock) {
-    return <p className="shrink-0 text-xs font-semibold text-red-700">Out of stock</p>;
-  }
-
-  if (qty === 0) {
     return (
-      <button
-        type="button"
-        aria-label="Add to cart"
-        onClick={(e) => {
-          stop(e);
-          increase();
-        }}
-        className="shrink-0 rounded-lg border border-teal-700 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-teal-700 hover:bg-teal-50"
-      >
-        ADD
-      </button>
+      <p className="flex h-8 w-24 shrink-0 items-center justify-center text-center text-xs font-semibold text-red-700">
+        Out of stock
+      </p>
     );
   }
 
   return (
-    <div className="inline-flex shrink-0 items-center rounded-lg border border-teal-700 bg-teal-700 text-white">
-      <button
-        type="button"
-        aria-label="Decrease quantity"
-        onClick={(e) => {
-          stop(e);
-          decrease();
-        }}
-        className="flex h-8 w-8 items-center justify-center text-lg font-semibold"
-      >
-        −
-      </button>
-      <span className="min-w-5 text-center text-sm font-bold tabular-nums">{qty}</span>
-      <button
-        type="button"
-        aria-label="Increase quantity"
-        disabled={!canIncrease}
-        onClick={(e) => {
-          stop(e);
-          increase();
-        }}
-        className="flex h-8 w-8 items-center justify-center text-lg font-semibold disabled:opacity-40"
-      >
-        +
-      </button>
-    </div>
+    <QtyControl
+      qty={qty}
+      max={maxQty}
+      onIncrease={increase}
+      onDecrease={decrease}
+    />
   );
 }
 
@@ -163,10 +125,10 @@ export function CatalogProductCard({
   }
 
   return (
-    <article className="relative flex flex-col rounded-2xl border border-stone-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <article className="relative flex flex-col rounded-2xl border border-stone-200 bg-white p-3 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <div className="relative">
         <Link href={ROUTES.productInfo} onClick={openProduct} className="block">
-          <ProductArt hue={offer.product.imageHue} label={offer.product.imageLabel} />
+          <ProductArt hue={offer.product.imageHue} label={offer.product.imageLabel} imageUrl={offer.product.imageUrl} />
         </Link>
         <WishlistButton
           catalogProductId={offer.product.id}

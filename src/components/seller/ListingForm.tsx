@@ -4,6 +4,7 @@ import { Field, Select, TextArea, TextInput } from "@/components/ui/Field";
 import type { CatalogProduct, Listing, ProductTag, TagKind } from "@/lib/types";
 import { categories } from "@/data/seed";
 import { createId } from "@/lib/ids";
+import { fileToDataUrl } from "@/lib/images";
 import { useState } from "react";
 
 export type ListingFormValue = {
@@ -19,6 +20,8 @@ export type ListingFormValue = {
   color: string;
   quality: string;
   tags: ProductTag[];
+  mainImage: string;
+  gallery: string[];
 };
 
 export function listingToForm(listing: Listing, product: CatalogProduct): ListingFormValue {
@@ -35,6 +38,8 @@ export function listingToForm(listing: Listing, product: CatalogProduct): Listin
     color: listing.color ?? "",
     quality: listing.quality ?? "",
     tags: listing.tags,
+    mainImage: product.imageUrl ?? "",
+    gallery: product.galleryUrls ?? [],
   };
 }
 
@@ -51,15 +56,27 @@ const emptyForm: ListingFormValue = {
   color: "",
   quality: "",
   tags: [],
+  mainImage: "",
+  gallery: [],
 };
+
+export function blankListingForm(categoryId = "grocery"): ListingFormValue {
+  return { ...emptyForm, categoryId };
+}
 
 export function ListingForm({
   initial,
   submitLabel,
+  compact,
+  hideCategory,
+  lockedCategoryId,
   onSubmit,
 }: {
   initial?: ListingFormValue;
   submitLabel: string;
+  compact?: boolean;
+  hideCategory?: boolean;
+  lockedCategoryId?: string;
   onSubmit: (value: ListingFormValue) => void;
 }) {
   const [form, setForm] = useState<ListingFormValue>(initial ?? emptyForm);
@@ -72,29 +89,90 @@ export function ListingForm({
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  async function onMainFile(files: FileList | null) {
+    const file = files?.[0];
+    if (!file) return;
+    const url = await fileToDataUrl(file);
+    set("mainImage", url);
+  }
+
+  async function onGalleryFiles(files: FileList | null) {
+    if (!files?.length) return;
+    const next: string[] = [];
+    for (const file of Array.from(files).slice(0, 6)) {
+      next.push(await fileToDataUrl(file));
+    }
+    setForm((f) => ({ ...f, gallery: [...f.gallery, ...next].slice(0, 8) }));
+  }
+
+  const tagBox = compact ? "rounded-2xl border border-stone-200 p-3" : "rounded-2xl bg-white p-4";
+
   return (
     <form
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit(form);
+        onSubmit(
+          lockedCategoryId ? { ...form, categoryId: lockedCategoryId } : form,
+        );
       }}
     >
+      <Field label="Main picture">
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => void onMainFile(e.target.files)}
+          className="w-full text-sm"
+        />
+        {form.mainImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={form.mainImage} alt="" className="mt-2 h-28 w-full rounded-xl object-cover" />
+        )}
+      </Field>
+      <Field label="Other pictures" hint="up to 8">
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => void onGalleryFiles(e.target.files)}
+          className="w-full text-sm"
+        />
+        {form.gallery.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {form.gallery.map((src, index) => (
+              <button
+                key={`${src.slice(0, 24)}-${index}`}
+                type="button"
+                className="relative h-16 w-16 overflow-hidden rounded-xl"
+                onClick={() =>
+                  setForm((f) => ({ ...f, gallery: f.gallery.filter((_, i) => i !== index) }))
+                }
+                aria-label="Remove picture"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="" className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </Field>
       <Field label="Product name">
         <TextInput required value={form.name} onChange={(e) => set("name", e.target.value)} />
       </Field>
       <Field label="Brand">
         <TextInput value={form.brand} onChange={(e) => set("brand", e.target.value)} />
       </Field>
-      <Field label="Category">
-        <Select value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </Select>
-      </Field>
+      {!hideCategory && (
+        <Field label="Category">
+          <Select value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      )}
       <Field label="Description">
         <TextArea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} />
       </Field>
@@ -130,9 +208,9 @@ export function ListingForm({
           <TextInput value={form.quality} onChange={(e) => set("quality", e.target.value)} />
         </Field>
       </div>
-      <div className="rounded-2xl bg-white p-4">
+      <div className={tagBox}>
         <p className="text-sm font-semibold">Tags / sale / coupon</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-4">
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <TextInput
             placeholder="Label"
             value={tagLabel}

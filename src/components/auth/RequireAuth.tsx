@@ -1,9 +1,9 @@
 "use client";
 
+import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { useApp } from "@/context/AppContext";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 export function RequireAuth({
   children,
@@ -13,31 +13,31 @@ export function RequireAuth({
   roles?: Array<"buyer" | "seller" | "admin">;
 }) {
   const { user, isAuthenticated, state } = useApp();
-  const pathname = usePathname();
+  const { openAuth } = useAuthDialog();
+
+  useEffect(() => {
+    if (!state.hydrated) return;
+    if (!isAuthenticated) openAuth();
+  }, [state.hydrated, isAuthenticated, openAuth]);
 
   if (!state.hydrated) {
     return <p className="p-8 text-sm text-stone-500">Loading…</p>;
   }
 
   if (!isAuthenticated || !user) {
-    const next = encodeURIComponent(pathname);
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
-        <h1 className="text-xl font-semibold">Login required</h1>
+        <h1 className="text-xl font-semibold">Sign in to continue</h1>
         <p className="mt-2 text-sm text-stone-500">
-          Sign in to open this page. New here? Create an account.
+          Use your phone number. New numbers create a buyer account.
         </p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Link
-            href={`/login?next=${next}`}
-            className="rounded-full bg-ink px-5 py-2 text-sm text-lime"
-          >
-            Login
-          </Link>
-          <Link href={`/signup?next=${next}`} className="rounded-full border px-5 py-2 text-sm">
-            Sign up
-          </Link>
-        </div>
+        <button
+          type="button"
+          onClick={() => openAuth()}
+          className="mt-6 rounded-full bg-ink px-5 py-2 text-sm text-lime hover:opacity-90"
+        >
+          Sign in with phone
+        </button>
       </div>
     );
   }

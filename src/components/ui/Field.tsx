@@ -1,5 +1,8 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 
+const fieldClass =
+  "w-full rounded-xl border border-stone-200 px-3 py-2 transition duration-200 focus:border-ink focus:outline-none focus:ring-2 focus:ring-lime/40";
+
 export function Field({
   label,
   hint,
@@ -19,28 +22,13 @@ export function Field({
 }
 
 export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className={`w-full rounded-xl border border-stone-200 px-3 py-2 ${props.className ?? ""}`}
-    />
-  );
+  return <input {...props} className={`${fieldClass} ${props.className ?? ""}`} />;
 }
 
 export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <textarea
-      {...props}
-      className={`w-full rounded-xl border border-stone-200 px-3 py-2 ${props.className ?? ""}`}
-    />
-  );
+  return <textarea {...props} className={`${fieldClass} ${props.className ?? ""}`} />;
 }
 
 export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      {...props}
-      className={`w-full rounded-xl border border-stone-200 px-3 py-2 ${props.className ?? ""}`}
-    />
-  );
+  return <select {...props} className={`${fieldClass} ${props.className ?? ""}`} />;
 }
