@@ -7,6 +7,7 @@ import { BlockingLoader } from "@/components/ui/Loader";
 import { Field, Select, TextInput } from "@/components/ui/Field";
 import { useApp } from "@/context/AppContext";
 import { cardBrandLabel, createPaymentRefId, formatInr, paymentMethodLabel } from "@/lib/format";
+import { mapOrder, placeOrderRequest } from "@/lib/api";
 import { createId } from "@/lib/ids";
 import { useMotionRouter } from "@/lib/motion";
 import {
@@ -19,7 +20,9 @@ import {
 import type { PaymentMethod, SavedCard } from "@/lib/types";
 import { cardBrandFromNumber, formatAddressLine, maskCardNumber, validatePinCode } from "@/services/auth";
 import { cartShipments, cartSummary, deliveryCountLabel } from "@/services/cart";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
+import { clearOfferCheckout, readOfferCheckout } from "@/lib/offerCheckout";
 
 const METHODS: { id: PaymentMethod; title: string; hint: string }[] = [
   { id: "upi", title: "UPI", hint: "GPay, PhonePe, Paytm" },
@@ -45,6 +48,10 @@ function CheckoutForm() {
   const { state, user, neighborhood, listingById, shopById, catalogById, dispatch } = useApp();
   const { showAlert } = useAlert();
   const router = useMotionRouter();
+  const searchParams = useSearchParams();
+  const pendingOffer = readOfferCheckout();
+  const requestId = searchParams.get("requestId") ?? pendingOffer?.requestId ?? undefined;
+  const offerId = searchParams.get("offerId") ?? pendingOffer?.offerId ?? undefined;
   const addresses = user?.addresses ?? [];
   const defaultId = user?.defaultAddressId ?? addresses[0]?.id ?? "new";
   const [addressId, setAddressId] = useState(addresses.length ? defaultId : "new");
@@ -185,6 +192,7 @@ function CheckoutForm() {
           label: draft.label.trim() || "Home",
           line: draft.line.trim(),
           pinCode: draft.pinCode.trim(),
+          coordinates: draft.coordinates,
         },
       });
     }
@@ -211,38 +219,61 @@ function CheckoutForm() {
     }
 
     const address = deliveryAddress();
+    const addressCoordinates = selectedAddress?.coordinates ?? draft.coordinates;
     for (const row of priced) {
       const shipment = row.shipment;
-      dispatch({
-        type: "placeOrder",
-        order: {
-          id: createId("ORD").toUpperCase(),
-          buyerId: user.id,
-          shopId: shipment.shop.id,
-          items: shipment.lines.map(({ item, listing }, index) => ({
-            listingId: listing.id,
-            catalogProductId: listing.catalogProductId,
-            quantity: item.quantity,
-            unitPrice: listing.sellerPrice,
-            deliveryMode: shipment.deliveryMode,
-            deliveryFee: index === 0 ? shipment.deliveryFee : 0,
-            warranty: listing.warranty,
-          })),
+      const local = {
+        id: createId("ORD").toUpperCase(),
+        buyerId: user.id,
+        shopId: shipment.shop.id,
+        items: shipment.lines.map(({ item, listing }, index) => ({
+          listingId: listing.id,
+          catalogProductId: listing.catalogProductId,
+          quantity: item.quantity,
+          unitPrice: listing.sellerPrice,
           deliveryMode: shipment.deliveryMode,
-          status: "placed",
-          subtotal: row.subtotal,
-          deliveryFee: shipment.deliveryFee,
-          total: row.total,
-          createdAt: new Date().toISOString(),
+          deliveryFee: index === 0 ? shipment.deliveryFee : 0,
+          warranty: listing.warranty,
+        })),
+        deliveryMode: shipment.deliveryMode,
+        status: "placed" as const,
+        subtotal: row.subtotal,
+        deliveryFee: shipment.deliveryFee,
+        total: row.total,
+        createdAt: new Date().toISOString(),
+        address,
+        addressCoordinates,
+        timeline: [{ status: "placed" as const, at: new Date().toISOString() }],
+        paymentMethod: method,
+        paymentStatus: method === "cod" ? ("cod" as const) : ("paid" as const),
+        paymentRefId: createPaymentRefId(method),
+        discount: row.saleOff + row.couponOff,
+        couponCode: row.couponCode,
+      };
+      try {
+        const created = await placeOrderRequest({
+          items: shipment.lines.map(({ item, listing }) => ({
+            listingId: listing.id,
+            quantity: item.quantity,
+            deliveryMode: shipment.deliveryMode,
+          })),
           address,
-          timeline: [{ status: "placed", at: new Date().toISOString() }],
           paymentMethod: method,
-          paymentStatus: method === "cod" ? "cod" : "paid",
-          paymentRefId: createPaymentRefId(method),
-          discount: row.saleOff + row.couponOff,
-          couponCode: row.couponCode,
-        },
-      });
+          paymentStatus: local.paymentStatus,
+          paymentRefId: local.paymentRefId,
+          discount: local.discount,
+          couponCode: local.couponCode,
+          requestId,
+          offerId,
+        });
+        dispatch({
+          type: "placeOrder",
+          order: { ...mapOrder(created), addressCoordinates },
+        });
+        if (requestId && offerId) clearOfferCheckout();
+      } catch {
+        dispatch({ type: "placeOrder", order: local });
+      }
     }
     showAlert({
       tone: "success",
@@ -541,7 +572,9 @@ function CheckoutForm() {
 export default function CheckoutPage() {
   return (
     <RequireAuth>
-      <CheckoutForm />
+      <Suspense fallback={<p className="p-8 text-sm text-stone-500">Loading checkout…</p>}>
+        <CheckoutForm />
+      </Suspense>
     </RequireAuth>
   );
 }

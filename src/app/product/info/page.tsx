@@ -9,10 +9,11 @@ import { WriteReviewForm } from "@/components/reviews/WriteReviewForm";
 import { TagBadge } from "@/components/TagBadge";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
-import { formatInr, percentOff } from "@/lib/format";
+import { createProductRequest, mapProductRequest } from "@/lib/api";
+import { formatInr, formatRelativeAgo, percentOff } from "@/lib/format";
 import { visibleListingTags } from "@/lib/tags";
 import { formatDistance } from "@/lib/geo";
-import { ROUTES } from "@/lib/routes";
+import { requestPath, ROUTES } from "@/lib/routes";
 import type { CatalogProduct, DeliveryMode, Listing, Review } from "@/lib/types";
 import { listingCartQty, listingMaxQty } from "@/services/cart";
 import { cheapestLanded, deliveryFeeFor, shopDeliveryModes } from "@/services/pricing";
@@ -36,6 +37,7 @@ export default function ProductInfoPage() {
   const [listingId, setListingId] = useState<string | undefined>(undefined);
   const [mode, setMode] = useState<DeliveryMode>("partner");
   const [activePhoto, setActivePhoto] = useState<string | undefined>(undefined);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!state.hydrated) return;
@@ -182,6 +184,53 @@ export default function ProductInfoPage() {
       });
     }
     router.push("/checkout");
+  }
+
+  async function confirmAvailability(target: Listing) {
+    if (!user) {
+      showAlert({
+        tone: "warning",
+        title: "Sign in required",
+        message: "Sign in as a buyer to ask nearby sellers to confirm availability.",
+        action: { href: "/login", label: "Sign in" },
+      });
+      return;
+    }
+    const coords = state.location?.coordinates;
+    if (!coords) {
+      showAlert({
+        tone: "warning",
+        title: "Location needed",
+        message: "Set your delivery location so we can reach nearby sellers.",
+      });
+      return;
+    }
+    setConfirmingId(target.id);
+    try {
+      const payload = await createProductRequest({
+        catalogProductId: product!.id,
+        listingId: target.id,
+        queryText: product!.name,
+        buyerLat: coords.lat,
+        buyerLng: coords.lng,
+      });
+      const request = mapProductRequest(payload.request);
+      showAlert({
+        tone: "success",
+        title: "Sellers notified",
+        message: "Waiting for availability confirmations.",
+        action: { href: requestPath(request.id), label: "View status" },
+      });
+      router.push(requestPath(request.id));
+    } catch (err) {
+      showAlert({
+        tone: "warning",
+        title: "Could not start request",
+        message: err instanceof Error ? err.message : "Try again in a moment.",
+      });
+    } finally {
+      setConfirmingId(null);
+    }
   }
 
   return (
@@ -333,6 +382,9 @@ export default function ProductInfoPage() {
                     {l.quality ? ` · ${l.quality}` : ""}
                     {l.warranty ? ` · ${l.warranty}` : ""}
                   </p>
+                  <p className="mt-1 text-xs text-stone-500">
+                    {formatRelativeAgo(l.availabilityConfirmedAt)}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="font-bold">{formatInr(l.sellerPrice)}</p>
@@ -342,16 +394,29 @@ export default function ProductInfoPage() {
                   </p>
                 </div>
               </div>
-              <Link
-                href={ROUTES.shopDashboard}
-                className="mt-2 inline-block text-xs underline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  selectShop(s.id);
-                }}
-              >
-                View dukkan
-              </Link>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={confirmingId === l.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void confirmAvailability(l);
+                  }}
+                  className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-lime disabled:opacity-50"
+                >
+                  {confirmingId === l.id ? "Asking sellers…" : "Confirm availability"}
+                </button>
+                <Link
+                  href={ROUTES.shopDashboard}
+                  className="text-xs underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    selectShop(s.id);
+                  }}
+                >
+                  View dukkan
+                </Link>
+              </div>
             </button>
           ))}
         </div>

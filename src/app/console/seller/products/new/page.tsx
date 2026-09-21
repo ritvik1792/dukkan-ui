@@ -3,8 +3,10 @@
 import { ListingForm, type ListingFormValue } from "@/components/seller/ListingForm";
 import { useApp } from "@/context/AppContext";
 import { findCatalogByName } from "@/services/catalog";
+import { mapCatalogProduct, mapListing, upsertCatalogRequest, upsertListingRequest } from "@/lib/api";
 import { createId } from "@/lib/ids";
 import { useMotionRouter } from "@/lib/motion";
+import { sellerConsolePath } from "@/lib/routes";
 
 export default function NewProductPage() {
   const { user, state, dispatch } = useApp();
@@ -14,45 +16,68 @@ export default function NewProductPage() {
     state.shops.find((s) => s.id === user.shopId) ??
     state.shops.find((s) => s.ownerUserId === user.id);
 
-  function save(form: ListingFormValue) {
+  async function save(form: ListingFormValue) {
     if (!shop) return;
     const existing = findCatalogByName(state.catalog, form.name, form.brand || "Unbranded");
-    const catalogId = existing?.id ?? createId("cat");
-    if (!existing) {
+    const catalogPayload = {
+      name: form.name,
+      brand: form.brand || "Unbranded",
+      categoryId: form.categoryId,
+      description: form.description,
+      unit: form.unit,
+      imageLabel: form.name.slice(0, 8),
+      imageHue: existing?.imageHue ?? Math.floor(Math.random() * 360),
+      imageUrl: form.mainImage || undefined,
+      galleryUrls: form.gallery,
+    };
+    try {
+      const product = mapCatalogProduct(
+        await upsertCatalogRequest(catalogPayload, existing?.id),
+      );
+      const listing = mapListing(
+        await upsertListingRequest({
+          catalogProductId: product.id,
+          shopId: shop.id,
+          basePrice: form.basePrice,
+          sellerPrice: form.sellerPrice,
+          stock: form.stock,
+          moq: form.moq,
+          color: form.color || undefined,
+          quality: form.quality || undefined,
+          warranty: form.warranty || undefined,
+          status: "approved",
+          tags: form.tags,
+        }),
+      );
+      dispatch({ type: "upsertCatalog", product });
+      dispatch({ type: "upsertListing", listing });
+    } catch {
+      const catalogId = existing?.id ?? createId("cat");
+      if (!existing) {
+        dispatch({
+          type: "upsertCatalog",
+          product: { id: catalogId, ...catalogPayload, imageHue: catalogPayload.imageHue },
+        });
+      }
       dispatch({
-        type: "upsertCatalog",
-        product: {
-          id: catalogId,
-          name: form.name,
-          brand: form.brand || "Unbranded",
-          categoryId: form.categoryId,
-          description: form.description,
-          unit: form.unit,
-          imageLabel: form.name.slice(0, 8),
-          imageHue: Math.floor(Math.random() * 360),
-          imageUrl: form.mainImage || undefined,
-          galleryUrls: form.gallery,
+        type: "upsertListing",
+        listing: {
+          id: createId("l"),
+          catalogProductId: catalogId,
+          shopId: shop.id,
+          basePrice: form.basePrice,
+          sellerPrice: form.sellerPrice,
+          stock: form.stock,
+          moq: form.moq,
+          color: form.color || undefined,
+          quality: form.quality || undefined,
+          warranty: form.warranty || undefined,
+          tags: form.tags,
+          status: "approved",
         },
       });
     }
-    dispatch({
-      type: "upsertListing",
-      listing: {
-        id: createId("l"),
-        catalogProductId: catalogId,
-        shopId: shop.id,
-        basePrice: form.basePrice,
-        sellerPrice: form.sellerPrice,
-        stock: form.stock,
-        moq: form.moq,
-        color: form.color || undefined,
-        quality: form.quality || undefined,
-        warranty: form.warranty || undefined,
-        tags: form.tags,
-        status: "approved",
-      },
-    });
-    router.push("/seller/products");
+    router.push(sellerConsolePath("/products"));
   }
 
   return (
@@ -63,7 +88,7 @@ export default function NewProductPage() {
         see one product and can choose you as a seller.
       </p>
       <div className="mt-6">
-        <ListingForm shopId={shop?.id} submitLabel="Save product" onSubmit={save} />
+        <ListingForm shopId={shop?.id} submitLabel="Save product" onSubmit={(form) => void save(form)} />
       </div>
     </div>
   );

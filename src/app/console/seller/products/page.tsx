@@ -8,9 +8,11 @@ import {
 } from "@/components/seller/ListingForm";
 import { TagBadge } from "@/components/TagBadge";
 import { Field, Select, TextInput } from "@/components/ui/Field";
+import { DataTable, type Column } from "@/components/ui/DataTable";
+import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
-import { categories } from "@/data/seed";
+import { deleteListingRequest, mapCatalogProduct, mapListing, upsertCatalogRequest, upsertListingRequest } from "@/lib/api";
 import { formatInr } from "@/lib/format";
 import { createId } from "@/lib/ids";
 import type { Listing, ProductTag } from "@/lib/types";
@@ -47,6 +49,27 @@ function TrashIcon() {
 
 type Panel = { mode: "create" } | { mode: "edit"; listingId: string };
 
+type InventoryRow = {
+  listing: Listing;
+  productName: string;
+  brand: string;
+  category: string;
+  unit: string;
+  imageUrl?: string;
+  imageHue: number;
+  imageLabel: string;
+  status: string;
+  availability: string;
+  tags: string;
+  variant: string;
+};
+
+function visibilityLabel(status: Listing["status"]) {
+  if (status === "approved") return "Live";
+  if (status === "rejected") return "Hidden by admin";
+  return "Pending";
+}
+
 export default function SellerProducts() {
   const { user, state, catalogById, dispatch } = useApp();
   const { showAlert } = useAlert();
@@ -56,10 +79,6 @@ export default function SellerProducts() {
   const [createStep, setCreateStep] = useState<"category" | "details">("category");
   const [chosenCategory, setChosenCategory] = useState("grocery");
   const [categoryQuery, setCategoryQuery] = useState("");
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [stockFilter, setStockFilter] = useState<"all" | "in" | "out">("all");
   const [bulkOpen, setBulkOpen] = useState(false);
 
   const shopIds = useMemo(
@@ -75,22 +94,32 @@ export default function SellerProducts() {
   const shop =
     state.shops.find((s) => s.id === user?.shopId) ??
     state.shops.find((s) => s.ownerUserId === user?.id);
+  const categories = state.categories;
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return products.filter((listing) => {
-      const product = catalogById(listing.catalogProductId);
-      if (categoryFilter && product?.categoryId !== categoryFilter) return false;
-      if (statusFilter && listing.status !== statusFilter) return false;
-      if (stockFilter === "in" && listing.stock <= 0) return false;
-      if (stockFilter === "out" && listing.stock > 0) return false;
-      if (!q) return true;
-      const hay = `${product?.name ?? ""} ${product?.brand ?? ""} ${listing.tags.map((t) => t.label).join(" ")}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [products, catalogById, categoryFilter, statusFilter, stockFilter, search]);
+  const rows = useMemo<InventoryRow[]>(
+    () =>
+      products.map((listing) => {
+        const product = catalogById(listing.catalogProductId);
+        const category = categories.find((item) => item.id === product?.categoryId);
+        const variant = [listing.color, listing.quality, listing.warranty].filter(Boolean).join(" · ");
+        return {
+          listing,
+          productName: product?.name ?? "Unknown product",
+          brand: product?.brand ?? "—",
+          category: category ? `${category.emoji} ${category.name}` : "—",
+          unit: product?.unit ?? "",
+          imageUrl: product?.imageUrl,
+          imageHue: product?.imageHue ?? 140,
+          imageLabel: product?.imageLabel ?? "",
+          status: visibilityLabel(listing.status),
+          availability: listing.stock > 0 ? "In stock" : "Out of stock",
+          tags: listing.tags.map((tag) => tag.label).join(" "),
+          variant,
+        };
+      }),
+    [products, catalogById, categories],
+  );
 
-  const allSelected = filtered.length > 0 && filtered.every((p) => selected.includes(p.id));
   const editing =
     panel?.mode === "edit" ? products.find((l) => l.id === panel.listingId) : undefined;
   const editingProduct = editing ? catalogById(editing.catalogProductId) : undefined;
@@ -109,7 +138,7 @@ export default function SellerProducts() {
         if (!q) return true;
         return `${row.name} ${row.id}`.toLowerCase().includes(q);
       });
-  }, [categoryQuery, products, catalogById, shop]);
+  }, [categories, categoryQuery, products, catalogById, shop]);
 
   useEffect(() => {
     if (!panel) return;
@@ -136,48 +165,68 @@ export default function SellerProducts() {
     window.setTimeout(() => setPanel(null), 320);
   }
 
-  function toggleSelect(id: string) {
-    setSelected((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
-  }
-
-  function saveForm(form: ListingFormValue, listing?: Listing) {
+  async function saveForm(form: ListingFormValue, listing?: Listing) {
     if (!shop) return;
     const existing = listing
       ? catalogById(listing.catalogProductId)
       : findCatalogByName(state.catalog, form.name, form.brand || "Unbranded");
-    const catalogId = existing?.id ?? listing?.catalogProductId ?? createId("cat");
-    dispatch({
-      type: "upsertCatalog",
-      product: {
-        id: catalogId,
-        name: form.name,
-        brand: form.brand || existing?.brand || "Unbranded",
-        categoryId: form.categoryId,
-        description: form.description,
-        unit: form.unit,
-        imageLabel: existing?.imageLabel || form.name.slice(0, 8),
-        imageHue: existing?.imageHue ?? Math.floor(Math.random() * 360),
-        imageUrl: form.mainImage || undefined,
-        galleryUrls: form.gallery,
-      },
-    });
-    dispatch({
-      type: "upsertListing",
-      listing: {
-        id: listing?.id ?? createId("l"),
-        catalogProductId: catalogId,
-        shopId: listing?.shopId ?? shop.id,
-        basePrice: form.basePrice,
-        sellerPrice: form.sellerPrice,
-        stock: form.stock,
-        moq: form.moq,
-        color: form.color || undefined,
-        quality: form.quality || undefined,
-        warranty: form.warranty || undefined,
-        tags: form.tags,
-        status: listing?.status ?? "approved",
-      },
-    });
+    const catalogPayload = {
+      name: form.name,
+      brand: form.brand || existing?.brand || "Unbranded",
+      categoryId: form.categoryId,
+      description: form.description,
+      unit: form.unit,
+      imageLabel: existing?.imageLabel || form.name.slice(0, 8),
+      imageHue: existing?.imageHue ?? Math.floor(Math.random() * 360),
+      imageUrl: form.mainImage || undefined,
+      galleryUrls: form.gallery,
+    };
+    try {
+      const product = mapCatalogProduct(await upsertCatalogRequest(catalogPayload, existing?.id));
+      const saved = mapListing(
+        await upsertListingRequest(
+          {
+            catalogProductId: product.id,
+            shopId: listing?.shopId ?? shop.id,
+            basePrice: form.basePrice,
+            sellerPrice: form.sellerPrice,
+            stock: form.stock,
+            moq: form.moq,
+            color: form.color || undefined,
+            quality: form.quality || undefined,
+            warranty: form.warranty || undefined,
+            status: listing?.status ?? "approved",
+            tags: form.tags,
+          },
+          listing?.id,
+        ),
+      );
+      dispatch({ type: "upsertCatalog", product });
+      dispatch({ type: "upsertListing", listing: saved });
+    } catch {
+      const catalogId = existing?.id ?? listing?.catalogProductId ?? createId("cat");
+      dispatch({
+        type: "upsertCatalog",
+        product: { id: catalogId, ...catalogPayload },
+      });
+      dispatch({
+        type: "upsertListing",
+        listing: {
+          id: listing?.id ?? createId("l"),
+          catalogProductId: catalogId,
+          shopId: listing?.shopId ?? shop.id,
+          basePrice: form.basePrice,
+          sellerPrice: form.sellerPrice,
+          stock: form.stock,
+          moq: form.moq,
+          color: form.color || undefined,
+          quality: form.quality || undefined,
+          warranty: form.warranty || undefined,
+          tags: form.tags,
+          status: listing?.status ?? "approved",
+        },
+      });
+    }
     showAlert({
       tone: "success",
       title: listing ? "Product saved" : "Product published",
@@ -193,6 +242,9 @@ export default function SellerProducts() {
     );
     if (!ok) return;
     dispatch({ type: "deleteListings", listingIds: ids });
+    ids.forEach((id) => {
+      void deleteListingRequest(id).catch(() => undefined);
+    });
     setSelected((cur) => cur.filter((id) => !ids.includes(id)));
     if (panel?.mode === "edit" && ids.includes(panel.listingId)) closePanel();
     showAlert({ tone: "success", title: ids.length === 1 ? "Product deleted" : "Products deleted" });
@@ -211,13 +263,157 @@ export default function SellerProducts() {
 
   const wizardOnDetails = panel?.mode === "edit" || createStep === "details";
 
+  const columns: Column<InventoryRow>[] = [
+    {
+      id: "product",
+      header: "Product",
+      value: (row) => row.productName,
+      filter: { kind: "text", placeholder: "Name contains…" },
+      render: (row) => (
+        <div className="flex items-center gap-3">
+          {row.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={row.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
+          ) : (
+            <span
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-xs font-semibold text-ink"
+              style={{ background: `hsl(${row.imageHue} 70% 88%)` }}
+            >
+              {row.imageLabel.slice(0, 2)}
+            </span>
+          )}
+          <div>
+            <p className="font-medium">{row.productName}</p>
+            <p className="text-xs text-stone-400">{row.variant || row.unit || row.brand}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "brand",
+      header: "Brand",
+      value: (row) => row.brand,
+      filter: { kind: "select" },
+      defaultHidden: true,
+    },
+    {
+      id: "category",
+      header: "Category",
+      value: (row) => row.category,
+      filter: { kind: "select" },
+    },
+    {
+      id: "base",
+      header: "Base",
+      value: (row) => row.listing.basePrice,
+      filter: { kind: "range" },
+      align: "right",
+      render: (row) => formatInr(row.listing.basePrice),
+    },
+    {
+      id: "seller",
+      header: "Seller",
+      value: (row) => row.listing.sellerPrice,
+      filter: { kind: "range" },
+      align: "right",
+      render: (row) => formatInr(row.listing.sellerPrice),
+    },
+    {
+      id: "stock",
+      header: "Stock",
+      value: (row) => row.listing.stock,
+      filter: { kind: "range" },
+      render: (row) => {
+        const inStock = row.listing.stock > 0;
+        return (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              value={row.listing.stock}
+              onChange={(event) => setStock(row.listing, Number(event.target.value))}
+              className="w-16 rounded-lg border border-stone-200 px-2 py-1"
+              aria-label={`Stock for ${row.productName}`}
+            />
+            <button
+              type="button"
+              aria-pressed={inStock}
+              onClick={() => setInStock(row.listing, !inStock)}
+              className={`rounded-full px-2 py-1 text-[11px] font-semibold transition ${
+                inStock ? "bg-teal-100 text-teal-800" : "bg-stone-200 text-stone-500"
+              }`}
+            >
+              {inStock ? "In stock" : "Out"}
+            </button>
+          </div>
+        );
+      },
+    },
+    {
+      id: "availability",
+      header: "Availability",
+      value: (row) => row.availability,
+      filter: { kind: "select" },
+      defaultHidden: true,
+    },
+    {
+      id: "tags",
+      header: "Tags",
+      value: (row) => row.tags,
+      filter: { kind: "text", placeholder: "Tag contains…" },
+      sortable: false,
+      render: (row) => (
+        <div className="flex flex-wrap gap-1">
+          {row.listing.tags.map((tag) => (
+            <TagBadge key={tag.id} tag={tag} />
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      value: (row) => row.status,
+      filter: { kind: "select" },
+      render: (row) => <StatusPill>{row.status}</StatusPill>,
+    },
+    {
+      id: "actions",
+      header: "",
+      value: () => "",
+      sortable: false,
+      searchable: false,
+      align: "right",
+      render: (row) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            aria-label="Edit product"
+            onClick={() => openEdit(row.listing.id)}
+            className="rounded-lg p-1.5 text-stone-600 transition hover:bg-stone-100"
+          >
+            <PencilIcon />
+          </button>
+          <button
+            type="button"
+            aria-label="Delete product"
+            onClick={() => deleteIds([row.listing.id])}
+            className="rounded-lg p-1.5 text-red-600 transition hover:bg-red-50"
+          >
+            <TrashIcon />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Products</h1>
+          <h1 className="text-2xl font-semibold">Inventory</h1>
           <p className="mt-1 text-sm text-stone-500">
-            Search, filter, then add a product. New listings go live immediately.
+            Search, filter, and sort your listings. New items go live immediately.
           </p>
         </div>
         <button
@@ -227,44 +423,6 @@ export default function SellerProducts() {
         >
           + Add product
         </button>
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Search">
-          <TextInput
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Name, brand, tag"
-          />
-        </Field>
-        <Field label="Category">
-          <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-            <option value="">All categories</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.emoji} {c.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Status">
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">All statuses</option>
-            <option value="approved">Live</option>
-            <option value="rejected">Hidden by admin</option>
-            <option value="pending">Pending</option>
-          </Select>
-        </Field>
-        <Field label="Stock">
-          <Select
-            value={stockFilter}
-            onChange={(e) => setStockFilter(e.target.value as typeof stockFilter)}
-          >
-            <option value="all">All</option>
-            <option value="in">In stock</option>
-            <option value="out">Out of stock</option>
-          </Select>
-        </Field>
       </div>
 
       {selected.length > 0 && (
@@ -287,149 +445,18 @@ export default function SellerProducts() {
         </div>
       )}
 
-      <div className="animate-fade-up mt-6 overflow-x-auto rounded-2xl bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b text-xs uppercase text-stone-400">
-            <tr>
-              <th className="px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={() =>
-                    setSelected(allSelected ? [] : filtered.map((p) => p.id))
-                  }
-                  aria-label="Select all visible products"
-                />
-              </th>
-              <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Base</th>
-              <th className="px-4 py-3">Seller</th>
-              <th className="px-4 py-3">Stock</th>
-              <th className="px-4 py-3">Tags</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((l) => {
-              const p = catalogById(l.catalogProductId);
-              const inStock = l.stock > 0;
-              const category = categories.find((c) => c.id === p?.categoryId);
-              return (
-                <tr key={l.id} className="border-b last:border-0 transition-colors duration-150 hover:bg-stone-50">
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(l.id)}
-                      onChange={() => toggleSelect(l.id)}
-                      aria-label={`Select ${p?.name ?? "product"}`}
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      {p?.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
-                      ) : (
-                        <span
-                          className="flex h-10 w-10 items-center justify-center rounded-lg text-xs font-semibold text-ink"
-                          style={{
-                            background: `hsl(${p?.imageHue ?? 140} 70% 88%)`,
-                          }}
-                        >
-                          {p?.imageLabel?.slice(0, 2)}
-                        </span>
-                      )}
-                      <div>
-                        <button
-                          type="button"
-                          className="text-left font-medium hover:underline"
-                          onClick={() => openEdit(l.id)}
-                        >
-                          {p?.name}
-                        </button>
-                        <p className="text-xs text-stone-400">
-                          {l.color || l.quality || l.warranty
-                            ? [l.color, l.quality, l.warranty].filter(Boolean).join(" · ")
-                            : p?.unit}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {category ? `${category.emoji} ${category.name}` : "—"}
-                  </td>
-                  <td className="px-4 py-3">{formatInr(l.basePrice)}</td>
-                  <td className="px-4 py-3">{formatInr(l.sellerPrice)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min={0}
-                        value={l.stock}
-                        onChange={(e) => setStock(l, Number(e.target.value))}
-                        className="w-16 rounded-lg border border-stone-200 px-2 py-1"
-                        aria-label={`Stock for ${p?.name ?? "product"}`}
-                      />
-                      <button
-                        type="button"
-                        aria-pressed={inStock}
-                        onClick={() => setInStock(l, !inStock)}
-                        className={`rounded-full px-2 py-1 text-[11px] font-semibold transition ${
-                          inStock ? "bg-teal-100 text-teal-800" : "bg-stone-200 text-stone-500"
-                        }`}
-                      >
-                        {inStock ? "In stock" : "Out"}
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {l.tags.map((t) => (
-                        <TagBadge key={t.id} tag={t} />
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {l.status === "approved"
-                      ? "Live"
-                      : l.status === "rejected"
-                        ? "Hidden by admin"
-                        : "Pending"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        aria-label="Edit product"
-                        onClick={() => openEdit(l.id)}
-                        className="rounded-lg p-1.5 text-stone-600 transition hover:bg-stone-100"
-                      >
-                        <PencilIcon />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Delete product"
-                        onClick={() => deleteIds([l.id])}
-                        className="rounded-lg p-1.5 text-red-600 transition hover:bg-red-50"
-                      >
-                        <TrashIcon />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-stone-500">
-                  No products match these filters.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="mt-4">
+        <DataTable
+          rows={rows}
+          columns={columns}
+          rowKey={(row) => row.listing.id}
+          onRowClick={(row) => openEdit(row.listing.id)}
+          searchPlaceholder="Search name, brand, category, tag"
+          searchText={(row) => `${row.listing.id} ${row.unit} ${row.variant}`}
+          initialSort={{ columnId: "product", dir: "asc" }}
+          emptyMessage="No products match these filters."
+          selectable={{ selected, onChange: setSelected }}
+        />
       </div>
 
       {panel && (
@@ -540,7 +567,7 @@ export default function SellerProducts() {
                       shopId={shop?.id}
                       initial={blankListingForm(chosenCategory)}
                       submitLabel="Save product"
-                      onSubmit={(form) => saveForm(form)}
+                      onSubmit={(form) => void saveForm(form)}
                     />
                   </div>
                 </div>
@@ -554,7 +581,7 @@ export default function SellerProducts() {
                     shopId={editing.shopId}
                     initial={listingToForm(editing, editingProduct)}
                     submitLabel="Save"
-                    onSubmit={(form) => saveForm(form, editing)}
+                    onSubmit={(form) => void saveForm(form, editing)}
                   />
                 </div>
               )}
@@ -665,7 +692,7 @@ function BulkEditModal({
           <Field label="Category">
             <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
               <option value="">Keep current</option>
-              {categories.map((c) => (
+              {state.categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>

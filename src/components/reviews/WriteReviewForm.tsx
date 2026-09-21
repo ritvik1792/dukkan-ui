@@ -4,7 +4,8 @@ import { Field, FileButton, TextArea, TextInput } from "@/components/ui/Field";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
 import { createId } from "@/lib/ids";
-import { fileToDataUrl } from "@/lib/images";
+import { createReviewRequest, mapReview } from "@/lib/api";
+import { persistImageFile } from "@/lib/images";
 import { useState } from "react";
 
 export function WriteReviewForm({
@@ -34,29 +35,41 @@ export function WriteReviewForm({
     setFileName(picked.map((file) => file.name).join(", "));
     const next: string[] = [];
     for (const file of picked) {
-      next.push(await fileToDataUrl(file));
+      next.push(await persistImageFile(file));
     }
     setPhotos((current) => [...current, ...next].slice(0, 8));
   }
 
-  function submit() {
+  async function submit() {
     if (!user || !body.trim()) return;
-    dispatch({
-      type: "addReview",
-      review: {
-        id: createId("r"),
+    const local = {
+      id: createId("r"),
+      catalogProductId,
+      listingId,
+      shopId,
+      buyerId: user.id,
+      rating,
+      title: title.trim() || "Review",
+      body: body.trim(),
+      createdAt: new Date().toISOString(),
+      orderId,
+      imageUrls: photos,
+    };
+    try {
+      const created = await createReviewRequest({
         catalogProductId,
         listingId,
         shopId,
-        buyerId: user.id,
-        rating,
-        title: title.trim() || "Review",
-        body: body.trim(),
-        createdAt: new Date().toISOString(),
         orderId,
+        rating,
+        title: local.title,
+        body: local.body,
         imageUrls: photos,
-      },
-    });
+      });
+      dispatch({ type: "addReview", review: mapReview(created) });
+    } catch {
+      dispatch({ type: "addReview", review: local });
+    }
     showAlert({ tone: "success", title: "Review posted" });
     setTitle("");
     setBody("");
@@ -132,7 +145,7 @@ export function WriteReviewForm({
         <button
           type="button"
           className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-lime"
-          onClick={submit}
+          onClick={() => void submit()}
         >
           Post review
         </button>

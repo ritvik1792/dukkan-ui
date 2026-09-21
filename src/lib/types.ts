@@ -24,6 +24,7 @@ export type SavedAddress = {
   label: string;
   line: string;
   pinCode: string;
+  coordinates?: Coordinates;
 };
 
 export type CardBrand = "visa" | "mastercard" | "rupay" | "card";
@@ -69,23 +70,52 @@ export type Coordinates = {
   lng: number;
 };
 
+/** How a saved location was obtained: device GPS, a preset area, or typed by hand. */
+export type LocationSource = "gps" | "area" | "manual";
+
+export type UserLocation = {
+  coordinates: Coordinates;
+  label: string;
+  area?: string;
+  source: LocationSource;
+  /** GPS accuracy radius in metres, when the browser reports one. */
+  accuracyM?: number;
+  capturedAt: string;
+};
+
 export type User = {
   id: string;
   name: string;
   email: string;
-  password: string;
+  /** Local/offline fallback only. API auth never returns this; login uses PostgreSQL + BCrypt. */
+  password?: string;
   role: Role;
   shopId?: string;
   phone?: string;
   dob?: string;
   pinCode?: string;
   shopRadiusKm?: number;
+  location?: UserLocation;
   addresses?: SavedAddress[];
   defaultAddressId?: string;
   cards?: SavedCard[];
   defaultCardId?: string;
   savedUpiId?: string;
   preferredPayment?: PaymentMethod;
+};
+
+/** A named slot ads can be booked into, with its own rotation settings. */
+export type AdPlacement = {
+  id: string;
+  label: string;
+  slug: string;
+  description: string;
+  /** Seconds each ad stays on screen before the slot rotates. */
+  rotationSeconds: number;
+  /** How many ads the slot will show before the rest are skipped. */
+  maxAds: number;
+  active: boolean;
+  createdAt: string;
 };
 
 export type Advertisement = {
@@ -98,12 +128,24 @@ export type Advertisement = {
   hue: number;
   catalogProductId?: string;
   active: boolean;
+  imageUrl?: string;
+  placementId?: string;
+  /** Higher weight wins the earlier slots in a rotation. */
+  weight?: number;
+  startsAt?: string;
+  endsAt?: string;
+  createdAt?: string;
 };
 
 export type PlatformSettings = {
   deliveryRadiusKm: number;
   partnerEtaMinutes: number;
   showDemoRoleSwitcher: boolean;
+  requestResponseWindowSeconds: number;
+  requestWaveSize: number;
+  requestMaxShops: number;
+  offerExpirySeconds: number;
+  requestMaxWaves: number;
 };
 
 export type Category = {
@@ -117,6 +159,27 @@ export type Neighborhood = {
   name: string;
   area: string;
   coordinates: Coordinates;
+};
+
+export type ShopEmployeeRole = "rider" | "packer" | "dispatcher" | "manager";
+
+export type ShopEmployee = {
+  id: string;
+  name: string;
+  role: ShopEmployeeRole;
+  phone: string;
+  available: boolean;
+};
+
+export type ShopTransportKind = "bike" | "scooter" | "cycle" | "tempo" | "van" | "truck";
+
+export type ShopTransport = {
+  id: string;
+  kind: ShopTransportKind;
+  label: string;
+  registration?: string;
+  capacityKg?: number;
+  available: boolean;
 };
 
 export type Shop = {
@@ -138,6 +201,51 @@ export type Shop = {
   partnerDeliveryFee: number;
   shopDeliveryFee: number;
   minOrderAmount: number;
+  imageUrl?: string;
+  employees: ShopEmployee[];
+  transport: ShopTransport[];
+  /** Manual open/closed. Hours still apply when open. */
+  isOpen?: boolean;
+  openTime?: string;
+  closeTime?: string;
+  notificationsEnabled?: boolean;
+  notifyOrderReceived?: boolean;
+  notifyOrderStatus?: boolean;
+  notifyStockConfirmation?: boolean;
+  alertPrefs?: ShopAlertPrefs;
+};
+
+export type ShopSlaStep = "placed" | "packing" | "ready_for_delivery" | "out_for_delivery";
+
+export type ShopSlaPref = {
+  enabled: boolean;
+  afterMinutes: number;
+};
+
+export type ShopAlertPrefs = {
+  orders: boolean;
+  reviews: boolean;
+  complaints: boolean;
+  delivered: boolean;
+  stockConfirmation: boolean;
+  sla: Record<ShopSlaStep, ShopSlaPref>;
+};
+
+export type AppNotificationKind = "order" | "review" | "complaint" | "delivered" | "order_sla";
+
+export type AppNotification = {
+  id: string;
+  userId: string;
+  shopId?: string;
+  kind: AppNotificationKind;
+  title: string;
+  message: string;
+  orderId?: string;
+  reviewId?: string;
+  ticketId?: string;
+  dedupeKey: string;
+  createdAt: string;
+  readAt?: string;
 };
 
 export type CatalogProduct = {
@@ -209,6 +317,7 @@ export type Listing = {
   warranty?: string;
   tags: ProductTag[];
   status: ApprovalStatus;
+  availabilityConfirmedAt?: string;
 };
 
 export type CartItem = {
@@ -252,6 +361,7 @@ export type Order = {
   total: number;
   createdAt: string;
   address: string;
+  addressCoordinates?: Coordinates;
   partnerId?: string;
   timeline?: OrderEvent[];
   packingBy?: string;
@@ -262,6 +372,46 @@ export type Order = {
   paymentRefId?: string;
   discount?: number;
   couponCode?: string;
+  requestId?: string;
+  offerId?: string;
+};
+
+export type ProductRequestStatus =
+  | "OPEN"
+  | "AWAITING_OFFERS"
+  | "OFFERS_READY"
+  | "SELECTED"
+  | "ORDERED"
+  | "EXPIRED"
+  | "CANCELLED";
+
+export type ProductRequest = {
+  id: string;
+  buyerId: string;
+  catalogProductId: string;
+  listingId?: string;
+  queryText?: string;
+  buyerLat: number;
+  buyerLng: number;
+  status: ProductRequestStatus;
+  waveIndex: number;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
+};
+
+export type AvailabilityOffer = {
+  id: string;
+  requestId: string;
+  requestShopId: string;
+  shopId: string;
+  listingId?: string;
+  unitPrice: number;
+  availableQty: number;
+  message?: string;
+  status: "ACTIVE" | "EXPIRED" | "WITHDRAWN" | "SELECTED" | "REJECTED";
+  createdAt: string;
+  expiresAt: string;
 };
 
 export type Review = {
@@ -303,6 +453,60 @@ export type Ticket = {
   hidden?: boolean;
 };
 
+export type ModerationAction = "hide" | "override";
+
+export type ModerationReason =
+  | "counterfeit"
+  | "pricing"
+  | "images"
+  | "description"
+  | "stock"
+  | "policy"
+  | "other";
+
+/**
+ * Where a moderated listing sits between admin and seller. `open` means the seller still has to
+ * act; `republish_requested` means they claim it is fixed and admin has to answer.
+ */
+export type ModerationCaseStatus =
+  | "open"
+  | "disputed"
+  | "republish_requested"
+  | "approved"
+  | "declined";
+
+export type ModerationEventKind =
+  | "opened"
+  | "dispute"
+  | "republish_request"
+  | "approved"
+  | "declined"
+  | "note";
+
+export type ModerationEvent = {
+  id: string;
+  kind: ModerationEventKind;
+  authorId: string;
+  authorRole: Role;
+  body: string;
+  createdAt: string;
+};
+
+export type ModerationCase = {
+  id: string;
+  listingId: string;
+  shopId: string;
+  catalogProductId: string;
+  action: ModerationAction;
+  reason: ModerationReason;
+  explanation: string;
+  openedByUserId: string;
+  status: ModerationCaseStatus;
+  createdAt: string;
+  updatedAt: string;
+  events: ModerationEvent[];
+};
+
 export type SellerApplication = {
   id: string;
   userId: string;
@@ -313,6 +517,7 @@ export type SellerApplication = {
   email: string;
   phone: string;
   address: string;
+  coordinates?: Coordinates;
   gstin: string;
   categoryIds: string[];
   notes: string;

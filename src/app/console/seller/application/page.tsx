@@ -1,13 +1,26 @@
 "use client";
 
 import { StatusPill } from "@/components/ui/StatCard";
+import { sellerShouldShowApplication } from "@/console/nav";
 import { useApp } from "@/context/AppContext";
 import { formatDate, titleCase } from "@/lib/format";
+import { useMotionRouter } from "@/lib/motion";
+import { ROUTES, storefrontUrl } from "@/lib/routes";
 import Link from "next/link";
+import { useEffect } from "react";
 
 export default function SellerApplicationPage() {
   const { user, state } = useApp();
-  if (!user) return null;
+  const router = useMotionRouter();
+  const showApplication = user
+    ? sellerShouldShowApplication(user, state.shops, state.applications)
+    : false;
+
+  useEffect(() => {
+    if (user && !showApplication) router.replace(ROUTES.consoleDashboard);
+  }, [user, showApplication, router]);
+
+  if (!user || !showApplication) return null;
   const apps = state.applications.filter(
     (a) => a.userId === user.id || user.role === "admin",
   );
@@ -17,8 +30,8 @@ export default function SellerApplicationPage() {
       <div>
         <h1 className="text-2xl font-semibold">Application</h1>
         <p className="mt-2 text-sm text-stone-500">No application on file.</p>
-        <Link href="/sell" className="mt-4 inline-block text-sm underline">
-          Apply now
+        <Link href={storefrontUrl("/sell")} className="mt-4 inline-block text-sm underline">
+          Apply on the storefront
         </Link>
       </div>
     );

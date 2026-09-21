@@ -1,7 +1,9 @@
 import {
   apiFetch,
+  fetchReviews,
   mapCatalogProduct,
   mapListing,
+  mapReview,
   mapShop,
   type RawCatalogProduct,
   type RawListing,
@@ -65,16 +67,17 @@ export type ProductInfo = {
 
 export async function fetchProduct(productId: string, db: StorefrontDb): Promise<ProductInfo | null> {
   try {
-    const [product, listings] = await Promise.all([
+    const [product, listings, reviews] = await Promise.all([
       apiFetch<RawCatalogProduct>(`/api/catalog/${productId}`).then(mapCatalogProduct),
       apiFetch<RawListing[]>("/api/listings").then((rows) => rows.map(mapListing)),
+      fetchReviews({ catalogProductId: productId }).then((rows) => rows.map(mapReview)),
     ]);
     return {
       product,
       listings: listings.filter(
         (listing) => listing.catalogProductId === productId && listing.status === "approved",
       ),
-      reviews: db.reviews.filter((review) => review.catalogProductId === productId && !review.hidden),
+      reviews: reviews.filter((review) => !review.hidden),
     };
   } catch {
     const product = db.catalog.find((item) => item.id === productId);

@@ -2,6 +2,7 @@
 
 import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { useApp } from "@/context/AppContext";
+import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
 
 export function Footer() {
@@ -30,7 +31,7 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <Link href="/wishlist" className="hover:text-ink">
+              <Link href="/account/wishlist" className="hover:text-ink">
                 Wishlist
               </Link>
             </li>
@@ -62,8 +63,8 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <Link href="/seller" className="hover:text-ink">
-                Seller hub
+              <Link href={ROUTES.consoleDashboard} className="hover:text-ink">
+                Seller console
               </Link>
             </li>
           </ul>

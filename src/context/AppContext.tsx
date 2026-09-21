@@ -10,14 +10,18 @@ import {
   type ReactNode,
 } from "react";
 import {
+  adPlacements as seedAdPlacements,
   advertisements as seedAds,
   applications as seedApplications,
   catalog as seedCatalog,
+  categories as seedCategories,
   coupons as seedCoupons,
   defaultSettings,
+  moderationCases as seedModerationCases,
+  partners as seedPartners,
   promoTags as seedPromoTags,
   listings as seedListings,
-  neighborhoods,
+  neighborhoods as seedNeighborhoods,
   reviews as seedReviews,
   seedOrders,
   shops as seedShops,
@@ -30,9 +34,20 @@ import {
   loginRequest,
   mapApiUser,
   setToken,
+  signupRequest,
 } from "@/lib/api";
-import { DEFAULT_DELIVERY_RADIUS_KM, DEMO_PASSWORD, STORAGE_KEY } from "@/lib/constants";
+import { DEFAULT_DELIVERY_RADIUS_KM, STORAGE_KEY } from "@/lib/constants";
+import { requestGeoFix } from "@/lib/geolocation";
+import { useIsHydrated } from "@/lib/hydration";
 import { appendOrderEvent, migrateOrder, normalizeOrderStatus } from "@/lib/orders";
+import {
+  mergeNotifications,
+  notificationsForDelivered,
+  notificationsForOrder,
+  notificationsForReview,
+  notificationsForTicket,
+} from "@/lib/notifications";
+import { mergeShopOps } from "@/lib/shopOps";
 import { readViewSelection, writeViewSelection } from "@/lib/view";
 import {
   detachListingsFromTags,
@@ -41,17 +56,31 @@ import {
 } from "@/lib/tags";
 import { cartShipments, cartSummary } from "@/services/cart";
 import { uniqueCatalogOffers, shopsInRadius } from "@/services/catalog";
-import { authenticate, clampShopRadiusKm, loginOrCreateByPhone } from "@/services/auth";
+import { authenticate, clampShopRadiusKm, isPlaceholderPassword, loginOrCreateByPhone } from "@/services/auth";
+import {
+  areaLocation,
+  isUsableLocation,
+  nearestNeighborhood,
+  resolveGpsLocation,
+} from "@/services/location";
 import type {
+  AdPlacement,
   Advertisement,
+  AppNotification,
   CartItem,
   CatalogProduct,
+  Category,
+  Coordinates,
   Coupon,
   DeliveryMode,
   Listing,
+  ModerationCase,
+  ModerationCaseStatus,
+  ModerationEvent,
   NearbyShop,
   Neighborhood,
   Order,
+  Partner,
   PaymentMethod,
   PlatformSettings,
   ProductTag,
@@ -66,11 +95,15 @@ import type {
   Ticket,
   TicketStatus,
   User,
+  UserLocation,
 } from "@/lib/types";
 
 export type AppState = {
   sessionUserId: string | null;
   neighborhoodId: string;
+  /** Where "nearby" is measured from. Null until the shopper picks or shares one. */
+  location: UserLocation | null;
+  locationPromptSeen: boolean;
   users: User[];
   shops: Shop[];
   catalog: CatalogProduct[];
@@ -83,8 +116,14 @@ export type AppState = {
   coupons: Coupon[];
   promoTags: PromoTag[];
   advertisements: Advertisement[];
+  adPlacements: AdPlacement[];
+  moderationCases: ModerationCase[];
+  categories: Category[];
+  neighborhoods: Neighborhood[];
+  partners: Partner[];
   settings: PlatformSettings;
   wishlist: string[];
+  notifications: AppNotification[];
   viewShopId: string | null;
   viewProductId: string | null;
   viewPreferShopId: string | null;
@@ -98,6 +137,9 @@ type Action =
   | { type: "login"; userId: string }
   | { type: "logout" }
   | { type: "setNeighborhood"; neighborhoodId: string }
+  | { type: "setLocation"; location: UserLocation }
+  | { type: "clearLocation" }
+  | { type: "dismissLocationPrompt" }
   | { type: "setSettings"; settings: PlatformSettings }
   | { type: "addToCart"; item: CartItem }
   | { type: "setQty"; listingId: string; quantity: number }
@@ -132,6 +174,9 @@ type Action =
   | { type: "setApplicationStatus"; applicationId: string; status: SellerApplication["status"] }
   | { type: "addApplication"; application: SellerApplication }
   | { type: "addTicket"; ticket: Ticket }
+  | { type: "upsertTicket"; ticket: Ticket }
+  | { type: "upsertOrder"; order: Order }
+  | { type: "replaceReview"; review: Review }
   | { type: "setTicketStatus"; ticketId: string; status: TicketStatus }
   | { type: "assignTicket"; ticketId: string; userId: string }
   | { type: "addTicketMessage"; ticketId: string; authorId: string; body: string; imageUrls?: string[] }
@@ -139,6 +184,16 @@ type Action =
   | { type: "removeShopCategory"; shopId: string; categoryId: string }
   | { type: "setListingTags"; listingId: string; tags: ProductTag[] }
   | { type: "upsertAd"; ad: Advertisement }
+  | { type: "deleteAd"; adId: string }
+  | { type: "upsertAdPlacement"; placement: AdPlacement }
+  | { type: "deleteAdPlacement"; placementId: string }
+  | { type: "openModerationCase"; moderationCase: ModerationCase }
+  | {
+      type: "addModerationEvent";
+      caseId: string;
+      event: ModerationEvent;
+      status: ModerationCaseStatus;
+    }
   | { type: "saveAddress"; address: SavedAddress; setDefault?: boolean }
   | { type: "deleteAddress"; addressId: string }
   | { type: "setDefaultAddress"; addressId: string }
@@ -146,6 +201,9 @@ type Action =
   | { type: "deleteCard"; cardId: string }
   | { type: "setDefaultCard"; cardId: string }
   | { type: "setPaymentPrefs"; preferredPayment?: PaymentMethod; savedUpiId?: string }
+  | { type: "addNotification"; notification: AppNotification }
+  | { type: "markNotificationsRead"; ids: string[] }
+  | { type: "markAllNotificationsRead"; userId: string }
   | { type: "setViewShop"; shopId: string }
   | { type: "setViewProduct"; productId: string; preferShopId?: string | null }
   | {
@@ -161,11 +219,21 @@ type Action =
       advertisements: Advertisement[];
       settings: PlatformSettings;
       shopCount: number;
+      categories?: Category[];
+      neighborhoods?: Neighborhood[];
+      partners?: Partner[];
+      reviews?: Review[];
+      orders?: Order[];
+      tickets?: Ticket[];
+      applications?: SellerApplication[];
+      coupons?: Coupon[];
     };
 
 const initialState: AppState = {
   sessionUserId: null,
   neighborhoodId: "cp",
+  location: null,
+  locationPromptSeen: false,
   users: seedUsers,
   shops: seedShops,
   catalog: seedCatalog,
@@ -178,8 +246,14 @@ const initialState: AppState = {
   coupons: seedCoupons,
   promoTags: seedPromoTags,
   advertisements: seedAds,
+  adPlacements: seedAdPlacements,
+  moderationCases: seedModerationCases,
+  categories: seedCategories,
+  neighborhoods: seedNeighborhoods,
+  partners: seedPartners,
   settings: defaultSettings,
   wishlist: [],
+  notifications: [],
   viewShopId: null,
   viewProductId: null,
   viewPreferShopId: null,
@@ -192,6 +266,8 @@ function persistable(state: AppState) {
   return {
     sessionUserId: state.sessionUserId,
     neighborhoodId: state.neighborhoodId,
+    location: state.location,
+    locationPromptSeen: state.locationPromptSeen,
     users: state.users,
     shops: state.shops,
     catalog: state.catalog,
@@ -204,8 +280,29 @@ function persistable(state: AppState) {
     coupons: state.coupons,
     promoTags: state.promoTags,
     advertisements: state.advertisements,
+    adPlacements: state.adPlacements,
+    moderationCases: state.moderationCases,
+    categories: state.categories,
+    neighborhoods: state.neighborhoods,
+    partners: state.partners,
     settings: state.settings,
     wishlist: state.wishlist,
+    notifications: state.notifications,
+  };
+}
+
+function applyLocation(state: AppState, location: UserLocation): AppState {
+  const nearest = nearestNeighborhood(location.coordinates, state.neighborhoods);
+  return {
+    ...state,
+    location,
+    locationPromptSeen: true,
+    neighborhoodId: nearest?.id ?? state.neighborhoodId,
+    users: state.sessionUserId
+      ? state.users.map((user) =>
+          user.id === state.sessionUserId ? { ...user, location } : user,
+        )
+      : state.users,
   };
 }
 
@@ -222,8 +319,25 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, sessionUserId: action.userId };
     case "logout":
       return { ...state, sessionUserId: null, cart: [] };
-    case "setNeighborhood":
-      return { ...state, neighborhoodId: action.neighborhoodId };
+    case "setNeighborhood": {
+      const picked = state.neighborhoods.find((n) => n.id === action.neighborhoodId);
+      if (!picked) return state;
+      return applyLocation(state, areaLocation(picked));
+    }
+    case "setLocation":
+      return applyLocation(state, action.location);
+    case "clearLocation": {
+      const next = { ...state, location: null, locationPromptSeen: false };
+      if (!state.sessionUserId) return next;
+      return {
+        ...next,
+        users: state.users.map((user) =>
+          user.id === state.sessionUserId ? { ...user, location: undefined } : user,
+        ),
+      };
+    }
+    case "dismissLocationPrompt":
+      return { ...state, locationPromptSeen: true };
     case "setSettings":
       return { ...state, settings: action.settings };
     case "addToCart": {
@@ -276,7 +390,15 @@ function reducer(state: AppState, action: Action): AppState {
     case "clearCart":
       return { ...state, cart: [] };
     case "placeOrder":
-      return { ...state, orders: [action.order, ...state.orders], cart: [] };
+      return {
+        ...state,
+        orders: [action.order, ...state.orders],
+        cart: [],
+        notifications: mergeNotifications(
+          state.notifications,
+          notificationsForOrder(state, action.order),
+        ),
+      };
     case "upsertUser": {
       const exists = state.users.some((u) => u.id === action.user.id);
       return {
@@ -338,19 +460,28 @@ function reducer(state: AppState, action: Action): AppState {
           s.id === action.shopId ? { ...s, status: action.status } : s,
         ),
       };
-    case "setOrderStatus":
+    case "setOrderStatus": {
+      const previous = state.orders.find((order) => order.id === action.orderId);
+      const nextStatus = normalizeOrderStatus(action.status);
+      const orders = state.orders.map((o) =>
+        o.id === action.orderId
+          ? {
+              ...o,
+              status: nextStatus,
+              timeline: appendOrderEvent(o, action.status),
+            }
+          : o,
+      );
+      const delivered =
+        nextStatus === "delivered" && previous && normalizeOrderStatus(previous.status) !== "delivered"
+          ? notificationsForDelivered(state, { ...previous, status: "delivered" })
+          : [];
       return {
         ...state,
-        orders: state.orders.map((o) =>
-          o.id === action.orderId
-            ? {
-                ...o,
-                status: normalizeOrderStatus(action.status),
-                timeline: appendOrderEvent(o, action.status),
-              }
-            : o,
-        ),
+        orders,
+        notifications: mergeNotifications(state.notifications, delivered),
       };
+    }
     case "setOrderSchedule":
       return {
         ...state,
@@ -387,7 +518,14 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       };
     case "addReview":
-      return { ...state, reviews: [action.review, ...state.reviews] };
+      return {
+        ...state,
+        reviews: [action.review, ...state.reviews],
+        notifications: mergeNotifications(
+          state.notifications,
+          notificationsForReview(state, action.review),
+        ),
+      };
     case "addReviewPhotos":
       return {
         ...state,
@@ -460,7 +598,47 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       };
     case "addTicket":
-      return { ...state, tickets: [action.ticket, ...state.tickets] };
+      return {
+        ...state,
+        tickets: [action.ticket, ...state.tickets],
+        notifications: mergeNotifications(
+          state.notifications,
+          notificationsForTicket(state, action.ticket),
+        ),
+      };
+    case "upsertTicket": {
+      const exists = state.tickets.some((ticket) => ticket.id === action.ticket.id);
+      return {
+        ...state,
+        tickets: exists
+          ? state.tickets.map((ticket) => (ticket.id === action.ticket.id ? action.ticket : ticket))
+          : [action.ticket, ...state.tickets],
+        notifications: exists
+          ? state.notifications
+          : mergeNotifications(
+              state.notifications,
+              notificationsForTicket(state, action.ticket),
+            ),
+      };
+    }
+    case "upsertOrder": {
+      const exists = state.orders.some((order) => order.id === action.order.id);
+      return {
+        ...state,
+        orders: exists
+          ? state.orders.map((order) => (order.id === action.order.id ? action.order : order))
+          : [action.order, ...state.orders],
+      };
+    }
+    case "replaceReview": {
+      const exists = state.reviews.some((review) => review.id === action.review.id);
+      return {
+        ...state,
+        reviews: exists
+          ? state.reviews.map((review) => (review.id === action.review.id ? action.review : review))
+          : [action.review, ...state.reviews],
+      };
+    }
     case "setTicketStatus":
       return {
         ...state,
@@ -542,6 +720,48 @@ function reducer(state: AppState, action: Action): AppState {
           : [action.ad, ...state.advertisements],
       };
     }
+    case "deleteAd":
+      return {
+        ...state,
+        advertisements: state.advertisements.filter((ad) => ad.id !== action.adId),
+      };
+    case "upsertAdPlacement": {
+      const exists = state.adPlacements.some((p) => p.id === action.placement.id);
+      return {
+        ...state,
+        adPlacements: exists
+          ? state.adPlacements.map((p) => (p.id === action.placement.id ? action.placement : p))
+          : [action.placement, ...state.adPlacements],
+      };
+    }
+    case "deleteAdPlacement":
+      return {
+        ...state,
+        adPlacements: state.adPlacements.filter((p) => p.id !== action.placementId),
+        // Ads keep existing but fall back to "unassigned" so nothing silently disappears.
+        advertisements: state.advertisements.map((ad) =>
+          ad.placementId === action.placementId ? { ...ad, placementId: undefined } : ad,
+        ),
+      };
+    case "openModerationCase":
+      return {
+        ...state,
+        moderationCases: [action.moderationCase, ...state.moderationCases],
+      };
+    case "addModerationEvent":
+      return {
+        ...state,
+        moderationCases: state.moderationCases.map((item) =>
+          item.id === action.caseId
+            ? {
+                ...item,
+                status: action.status,
+                updatedAt: action.event.createdAt,
+                events: [...item.events, action.event],
+              }
+            : item,
+        ),
+      };
     case "saveAddress": {
       if (!state.sessionUserId) return state;
       return {
@@ -649,6 +869,30 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       };
     }
+    case "addNotification":
+      return {
+        ...state,
+        notifications: mergeNotifications(state.notifications, [action.notification]),
+      };
+    case "markNotificationsRead": {
+      const ids = new Set(action.ids);
+      const now = new Date().toISOString();
+      return {
+        ...state,
+        notifications: state.notifications.map((item) =>
+          ids.has(item.id) && !item.readAt ? { ...item, readAt: now } : item,
+        ),
+      };
+    }
+    case "markAllNotificationsRead": {
+      const now = new Date().toISOString();
+      return {
+        ...state,
+        notifications: state.notifications.map((item) =>
+          item.userId === action.userId && !item.readAt ? { ...item, readAt: now } : item,
+        ),
+      };
+    }
     case "setViewShop":
       return { ...state, viewShopId: action.shopId };
     case "setViewProduct":
@@ -667,7 +911,11 @@ function reducer(state: AppState, action: Action): AppState {
     case "loadCatalog":
       return {
         ...state,
-        shops: action.shops,
+        shops: action.shops.map((shop) => {
+          const prev = state.shops.find((item) => item.id === shop.id);
+          const seed = seedShops.find((item) => item.id === shop.id);
+          return mergeShopOps(shop, prev ?? seed);
+        }),
         catalog: action.catalog.map((product) => {
           const prev = state.catalog.find((item) => item.id === product.id);
           return {
@@ -685,7 +933,24 @@ function reducer(state: AppState, action: Action): AppState {
             warranty: listing.warranty ?? prev?.warranty,
           };
         }),
-        advertisements: action.advertisements,
+        // The API has no concept of placements yet, so keep the local slot assignment.
+        advertisements: action.advertisements.map((ad) => {
+          const prev = state.advertisements.find((item) => item.id === ad.id);
+          return {
+            ...ad,
+            placementId: ad.placementId ?? prev?.placementId,
+            weight: ad.weight ?? prev?.weight,
+            createdAt: ad.createdAt ?? prev?.createdAt,
+          };
+        }),
+        categories: action.categories ?? state.categories,
+        neighborhoods: action.neighborhoods?.length ? action.neighborhoods : state.neighborhoods,
+        partners: action.partners ?? state.partners,
+        reviews: action.reviews ?? state.reviews,
+        orders: action.orders ?? state.orders,
+        tickets: action.tickets ?? state.tickets,
+        applications: action.applications ?? state.applications,
+        coupons: action.coupons ?? state.coupons,
         settings: action.settings,
         apiStatus: "online",
         apiShopCount: action.shopCount,
@@ -701,6 +966,11 @@ type AppContextValue = {
   user: User | null;
   isAuthenticated: boolean;
   neighborhood: Neighborhood;
+  location: UserLocation | null;
+  /** Point that `nearbyShops` distances are measured from. */
+  origin: Coordinates;
+  locationLabel: string;
+  needsLocationPrompt: boolean;
   nearbyShops: NearbyShop[];
   shopRadiusKm: number;
   cartCount: number;
@@ -709,11 +979,21 @@ type AppContextValue = {
   listingById: (id: string) => Listing | undefined;
   catalogById: (id: string) => CatalogProduct | undefined;
   login: (email: string, password: string) => Promise<User | null>;
+  signup: (input: {
+    name: string;
+    email: string;
+    phone?: string;
+    password: string;
+  }) => Promise<User>;
   loginWithPhone: (phone: string, name?: string) => User;
   logout: () => void;
   switchRole: (role: Role) => void;
   selectShop: (shopId: string) => void;
   selectProduct: (productId: string, preferShopId?: string | null) => void;
+  /** Asks the browser for a GPS fix and makes it the active location. Throws `GeoError`. */
+  detectLocation: () => Promise<UserLocation>;
+  setAreaLocation: (neighborhoodId: string) => void;
+  dismissLocationPrompt: () => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -737,7 +1017,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               const seed = seedUsers.find((item) => item.id === u.id);
               return {
                 ...u,
-                password: u.password || DEMO_PASSWORD,
+                password: isPlaceholderPassword(u.password) ? undefined : u.password,
                 addresses: u.addresses?.length ? u.addresses : (seed?.addresses ?? []),
                 defaultAddressId: u.defaultAddressId ?? seed?.defaultAddressId,
                 cards: u.cards?.length ? u.cards : (seed?.cards ?? []),
@@ -748,14 +1028,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
               };
             }),
             orders: (parsed.orders ?? initialState.orders).map(migrateOrder),
+            shops: (parsed.shops ?? initialState.shops).map((shop) => {
+              const seed = seedShops.find((item) => item.id === shop.id);
+              return mergeShopOps(shop, seed);
+            }),
+            notifications: parsed.notifications ?? [],
             reviews: (parsed.reviews ?? initialState.reviews).map((review) => {
               if (review.imageUrls?.length) return review;
               const seed = seedReviews.find((item) => item.id === review.id);
               return seed?.imageUrls?.length ? { ...review, imageUrls: seed.imageUrls } : review;
             }),
-            advertisements: parsed.advertisements ?? seedAds,
+            advertisements: (parsed.advertisements ?? seedAds).map((ad) => {
+              const seed = seedAds.find((item) => item.id === ad.id);
+              return { ...ad, placementId: ad.placementId ?? seed?.placementId };
+            }),
+            adPlacements: parsed.adPlacements?.length ? parsed.adPlacements : seedAdPlacements,
+            moderationCases: parsed.moderationCases ?? seedModerationCases,
             promoTags: parsed.promoTags?.length ? parsed.promoTags : seedPromoTags,
             sessionUserId: parsed.sessionUserId ?? null,
+            location: isUsableLocation(parsed.location) ? parsed.location : null,
+            locationPromptSeen: parsed.locationPromptSeen ?? false,
             wishlist: parsed.wishlist ?? [],
             viewShopId: view.shopId,
             viewProductId: view.productId,
@@ -789,8 +1081,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           catalog: payload.catalog,
           listings: payload.listings,
           advertisements: payload.advertisements,
-          settings: payload.settings,
+          settings: { ...defaultSettings, ...payload.settings },
           shopCount: payload.health.shopCount ?? payload.shops.length,
+          categories: payload.categories,
+          neighborhoods: payload.neighborhoods,
+          partners: payload.partners,
+          reviews: payload.reviews,
+          orders: payload.orders,
+          tickets: payload.tickets,
+          applications: payload.applications,
+          coupons: payload.coupons,
         });
       })
       .catch(() => {
@@ -799,12 +1099,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [state.hydrated]);
+  }, [state.hydrated, state.sessionUserId]);
 
   useEffect(() => {
     if (!state.hydrated) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable(state)));
   }, [state]);
+
+  // Signing in on a fresh device should restore the location saved with the account.
+  useEffect(() => {
+    if (!state.hydrated || state.location || !state.sessionUserId) return;
+    const saved = state.users.find((u) => u.id === state.sessionUserId)?.location;
+    if (isUsableLocation(saved)) dispatch({ type: "setLocation", location: saved });
+  }, [state.hydrated, state.sessionUserId, state.location, state.users]);
 
   useEffect(() => {
     if (!state.hydrated) return;
@@ -822,15 +1129,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : null;
     const isAuthenticated = Boolean(user);
     const neighborhood =
-      neighborhoods.find((n) => n.id === state.neighborhoodId) ?? neighborhoods[0];
+      state.neighborhoods.find((n) => n.id === state.neighborhoodId) ?? state.neighborhoods[0];
+    const location = state.location;
+    const origin = location?.coordinates ?? neighborhood.coordinates;
+    const locationLabel = location?.label ?? neighborhood.name;
+    const needsLocationPrompt = state.hydrated && !location && !state.locationPromptSeen;
     const shopRadiusKm = clampShopRadiusKm(
       user?.shopRadiusKm ?? state.settings.deliveryRadiusKm ?? DEFAULT_DELIVERY_RADIUS_KM,
     );
-    const nearbyShops = shopsInRadius(
-      state.shops,
-      neighborhood.coordinates,
-      shopRadiusKm,
-    );
+    const nearbyShops = shopsInRadius(state.shops, origin, shopRadiusKm);
     const shopById = (id: string) => state.shops.find((s) => s.id === id);
     const listingById = (id: string) => state.listings.find((l) => l.id === id);
     const catalogById = (id: string) => state.catalog.find((p) => p.id === id);
@@ -864,6 +1171,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (found) dispatch({ type: "login", userId: found.id });
         return found ?? null;
       }
+    };
+    const signup = async (input: {
+      name: string;
+      email: string;
+      phone?: string;
+      password: string;
+    }) => {
+      const res = await signupRequest(input);
+      setToken(res.token);
+      const user = mapApiUser(res.user, { password: input.password });
+      dispatch({ type: "upsertUser", user });
+      dispatch({ type: "login", userId: user.id });
+      return user;
     };
     const loginWithPhone = (phone: string, name?: string) => {
       const result = loginOrCreateByPhone(state.users, phone, name);
@@ -899,12 +1219,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "setViewProduct", productId, preferShopId });
     };
 
+    const detectLocation = async () => {
+      const fix = await requestGeoFix();
+      const next = await resolveGpsLocation(fix, state.neighborhoods);
+      dispatch({ type: "setLocation", location: next });
+      return next;
+    };
+
+    const setAreaLocation = (neighborhoodId: string) => {
+      dispatch({ type: "setNeighborhood", neighborhoodId });
+    };
+
+    const dismissLocationPrompt = () => dispatch({ type: "dismissLocationPrompt" });
+
     return {
       state,
       dispatch,
       user,
       isAuthenticated,
       neighborhood,
+      location,
+      origin,
+      locationLabel,
+      needsLocationPrompt,
       nearbyShops,
       shopRadiusKm,
       cartCount,
@@ -913,21 +1250,60 @@ export function AppProvider({ children }: { children: ReactNode }) {
       listingById,
       catalogById,
       login,
+      signup,
       loginWithPhone,
       logout,
       switchRole,
       selectShop,
       selectProduct,
+      detectLocation,
+      setAreaLocation,
+      dismissLocationPrompt,
     };
   }, [state]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
+/**
+ * Location, session, cart, and catalog are restored from localStorage / the API after
+ * AppProvider mounts. AppProvider sits outside the shell's Suspense boundary, so that
+ * restore can finish before a page hydrates. Returning the SSR seed snapshot until
+ * *this* consumer has hydrated keeps ShopCard promo lines and the chrome aligned with
+ * the server HTML.
+ */
+function withServerSnapshot(ctx: AppContextValue): AppContextValue {
+  const neighborhood =
+    initialState.neighborhoods.find((n) => n.id === initialState.neighborhoodId) ??
+    initialState.neighborhoods[0];
+  const shopRadiusKm = clampShopRadiusKm(
+    initialState.settings.deliveryRadiusKm ?? DEFAULT_DELIVERY_RADIUS_KM,
+  );
+  return {
+    ...ctx,
+    state: initialState,
+    user: null,
+    isAuthenticated: false,
+    neighborhood,
+    location: null,
+    origin: neighborhood.coordinates,
+    locationLabel: neighborhood.name,
+    needsLocationPrompt: false,
+    nearbyShops: shopsInRadius(initialState.shops, neighborhood.coordinates, shopRadiusKm),
+    shopRadiusKm,
+    cartCount: 0,
+    cartTotal: 0,
+    shopById: (id: string) => initialState.shops.find((s) => s.id === id),
+    listingById: (id: string) => initialState.listings.find((l) => l.id === id),
+    catalogById: (id: string) => initialState.catalog.find((p) => p.id === id),
+  };
+}
+
 export function useApp() {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error("useApp must be used within AppProvider");
-  return ctx;
+  const isHydrated = useIsHydrated();
+  return useMemo(() => (isHydrated ? ctx : withServerSnapshot(ctx)), [ctx, isHydrated]);
 }
 
 export function useUniqueOffers(query?: string, categoryId?: string) {

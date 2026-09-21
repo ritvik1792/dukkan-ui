@@ -41,9 +41,18 @@ export function formatAddressLine(address: { line: string; pinCode: string }) {
 }
 
 export function authenticate(users: User[], email: string, password: string) {
+  if (!password) return null;
   const user = findUserByEmail(users, email);
-  if (!user || user.password !== password) return null;
+  if (!user?.password || isPlaceholderPassword(user.password) || user.password !== password) {
+    return null;
+  }
   return user;
+}
+
+/** Old client seed used these; they must not work as logins. */
+export function isPlaceholderPassword(password?: string) {
+  if (!password) return true;
+  return ["dukkan123", "password", "password123", "demo"].includes(password.trim().toLowerCase());
 }
 
 export function normalizePhone(phone: string) {

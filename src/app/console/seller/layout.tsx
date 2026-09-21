@@ -1,25 +1,24 @@
 "use client";
 
-import { RequireAuth } from "@/components/auth/RequireAuth";
 import { DashboardShell } from "@/components/layout/DashboardShell";
-import type { ReactNode } from "react";
+import { RequireConsoleAuth } from "@/console/RequireAuth";
+import { sellerNavFor } from "@/console/nav";
+import { useApp } from "@/context/AppContext";
+import { Suspense, type ReactNode } from "react";
 
-const links = [
-  { href: "/seller", label: "Dashboard" },
-  { href: "/seller/application", label: "Application" },
-  { href: "/seller/categories", label: "Categories" },
-  { href: "/seller/products", label: "Products" },
-  { href: "/seller/promos", label: "Sales & coupons" },
-  { href: "/seller/orders", label: "Orders" },
-  { href: "/seller/reviews", label: "Reviews" },
-  { href: "/seller/tickets", label: "Complaints" },
-  { href: "/seller/settings", label: "Delivery" },
-];
+function SellerShell({ children }: { children: ReactNode }) {
+  const { user, state } = useApp();
+  return (
+    <DashboardShell links={sellerNavFor(user ?? undefined, state.shops, state.applications)}>
+      <Suspense fallback={<p className="text-sm text-stone-500">Loading…</p>}>{children}</Suspense>
+    </DashboardShell>
+  );
+}
 
 export default function SellerLayout({ children }: { children: ReactNode }) {
   return (
-    <RequireAuth roles={["seller", "admin"]}>
-      <DashboardShell links={links}>{children}</DashboardShell>
-    </RequireAuth>
+    <RequireConsoleAuth roles={["seller", "admin"]}>
+      <SellerShell>{children}</SellerShell>
+    </RequireConsoleAuth>
   );
 }

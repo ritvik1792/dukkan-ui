@@ -1,3 +1,14 @@
+import { uploadImage } from "@/lib/api";
+
+export async function persistImageFile(file: File): Promise<string> {
+  try {
+    const uploaded = await uploadImage(file);
+    return uploaded.url;
+  } catch {
+    return fileToDataUrl(file);
+  }
+}
+
 export async function fileToDataUrl(file: File, maxSize = 720): Promise<string> {
   try {
     const bitmap = await createImageBitmap(file);

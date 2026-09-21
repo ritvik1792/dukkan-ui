@@ -1,0 +1,38 @@
+# Template for `gcloud run services replace`. Substitute PROJECT_ID, REGION,
+# IMAGE, and the live API URL. NEXT_PUBLIC_API_URL is baked in at Docker build
+# time — rebuild the UI image if the API URL changes.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: dukkan-ui
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "4"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 60
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/dukkan/dukkan-ui:latest
+          ports:
+            - containerPort: 3000
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          env:
+            - name: HOSTNAME
+              value: "0.0.0.0"
+            - name: PORT
+              value: "3000"
+          startupProbe:
+            httpGet:
+              path: /
+            periodSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /
+            periodSeconds: 30

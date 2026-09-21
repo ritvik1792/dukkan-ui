@@ -9,16 +9,33 @@ import {
   paymentStatusLabel,
 } from "@/lib/format";
 import type { Order } from "@/lib/types";
+import Link from "next/link";
 
 export function OrderIdButton({
   orderId,
   onOpen,
+  href,
+  openInNewWindow = false,
   className = "font-medium underline decoration-stone-300 hover:decoration-ink",
 }: {
   orderId: string;
   onOpen?: (orderId: string) => void;
+  href?: string;
+  openInNewWindow?: boolean;
   className?: string;
 }) {
+  if (href) {
+    return (
+      <Link
+        href={href}
+        target={openInNewWindow ? "_blank" : undefined}
+        rel={openInNewWindow ? "noopener noreferrer" : undefined}
+        className={className}
+      >
+        {orderId}
+      </Link>
+    );
+  }
   if (!onOpen) return <span className={className}>{orderId}</span>;
   return (
     <button type="button" className={className} onClick={() => onOpen(orderId)}>

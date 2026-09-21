@@ -2,22 +2,36 @@
 
 import { useApp } from "@/context/AppContext";
 import type { Advertisement } from "@/lib/types";
+import { adsForPlacement, placementBySlug, rotationMs } from "@/lib/ads";
 import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-export function AdCarousel({ ads }: { ads: Advertisement[] }) {
-  const { selectProduct } = useApp();
-  const slides = ads.filter((a) => a.active);
+export function AdCarousel({
+  ads,
+  placementSlug = "home-hero",
+}: {
+  ads: Advertisement[];
+  placementSlug?: string;
+}) {
+  const { state, selectProduct } = useApp();
   const [index, setIndex] = useState(0);
+
+  const placement = placementBySlug(state.adPlacements, placementSlug);
+  const slides = useMemo(() => {
+    const booked = adsForPlacement(ads, placement);
+    // Older ads have no placement yet, so fall back to every active ad rather than an empty slot.
+    return booked.length ? booked : ads.filter((ad) => ad.active);
+  }, [ads, placement]);
+  const interval = rotationMs(placement);
 
   useEffect(() => {
     if (slides.length < 2) return;
     const id = window.setInterval(() => {
       setIndex((i) => (i + 1) % slides.length);
-    }, 5500);
+    }, interval);
     return () => window.clearInterval(id);
-  }, [slides.length]);
+  }, [slides.length, interval]);
 
   if (slides.length === 0) return null;
 
@@ -52,10 +66,19 @@ export function AdCarousel({ ads }: { ads: Advertisement[] }) {
           </Link>
         </div>
         <div className="hidden items-center justify-center md:flex">
-          <div
-            className="h-40 w-40 rounded-full opacity-80"
-            style={{ background: `hsl(${ad.hue} 80% 60%)` }}
-          />
+          {ad.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={ad.imageUrl}
+              alt=""
+              className="h-40 w-full rounded-2xl object-cover"
+            />
+          ) : (
+            <div
+              className="h-40 w-40 rounded-full opacity-80"
+              style={{ background: `hsl(${ad.hue} 80% 60%)` }}
+            />
+          )}
         </div>
       </div>
       {slides.length > 1 && (

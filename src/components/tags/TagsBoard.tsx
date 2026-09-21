@@ -1,27 +1,32 @@
 "use client";
 
+import { ShopNameButton } from "@/components/shops/ShopPeek";
 import { TagForm, formToTag, tagToForm, type TagFormValue } from "@/components/tags/TagForm";
 import { TagBadge } from "@/components/TagBadge";
-import { Field, Select, TextInput } from "@/components/ui/Field";
+import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
 import { afterPaint } from "@/lib/drawer";
-import { titleCase } from "@/lib/format";
+import { formatDate, titleCase } from "@/lib/format";
 import { createId } from "@/lib/ids";
 import { snapshotTag, tagRuleSummary } from "@/lib/tags";
-import type { PromoTag, TagKind } from "@/lib/types";
+import type { PromoTag } from "@/lib/types";
 import { useEffect, useMemo, useState } from "react";
 
 type Panel = { mode: "create" } | { mode: "edit"; tagId: string };
 
+type Row = {
+  tag: PromoTag;
+  ownerName: string;
+  kind: string;
+  rule: string;
+  status: string;
+};
+
 export function TagsBoard({ mode }: { mode: "seller" | "admin" }) {
   const { user, state, dispatch, shopById } = useApp();
   const { showAlert } = useAlert();
-  const [search, setSearch] = useState("");
-  const [kindFilter, setKindFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [shopFilter, setShopFilter] = useState("");
   const [panel, setPanel] = useState<Panel | null>(null);
   const [drawerShown, setDrawerShown] = useState(false);
 
@@ -29,24 +34,26 @@ export function TagsBoard({ mode }: { mode: "seller" | "admin" }) {
     state.shops.find((shop) => shop.id === user?.shopId) ??
     state.shops.find((shop) => shop.ownerUserId === user?.id);
 
-  const tags = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return state.promoTags.filter((tag) => {
-      if (mode === "seller") {
-        const own = sellerShop && tag.shopId === sellerShop.id;
-        const platform = tag.owner === "admin";
-        if (!own && !platform) return false;
-      }
-      if (kindFilter && tag.kind !== kindFilter) return false;
-      if (statusFilter && tag.status !== statusFilter) return false;
-      if (shopFilter && tag.shopId !== shopFilter) return false;
-      if (!q) return true;
-      const shop = tag.shopId ? shopById(tag.shopId)?.name ?? "" : "platform";
-      return `${tag.label} ${tag.code ?? ""} ${tag.kind} ${shop} ${tagRuleSummary(tag)}`
-        .toLowerCase()
-        .includes(q);
-    });
-  }, [state.promoTags, mode, sellerShop, kindFilter, statusFilter, shopFilter, search, shopById]);
+  const rows = useMemo<Row[]>(
+    () =>
+      state.promoTags
+        .filter((tag) => {
+          if (mode === "admin") return true;
+          const own = sellerShop && tag.shopId === sellerShop.id;
+          return Boolean(own) || tag.owner === "admin";
+        })
+        .map((tag) => ({
+          tag,
+          ownerName:
+            tag.owner === "admin"
+              ? "Platform"
+              : (tag.shopId ? shopById(tag.shopId)?.name : undefined) ?? "Seller",
+          kind: titleCase(tag.kind),
+          rule: tagRuleSummary(tag),
+          status: titleCase(tag.status),
+        })),
+    [state.promoTags, mode, sellerShop, shopById],
+  );
 
   const editing = panel?.mode === "edit" ? state.promoTags.find((tag) => tag.id === panel.tagId) : undefined;
 
@@ -115,6 +122,96 @@ export function TagsBoard({ mode }: { mode: "seller" | "admin" }) {
     });
   }
 
+  const columns: Column<Row>[] = [
+    {
+      id: "tag",
+      header: "Tag",
+      value: (row) => row.tag.label,
+      filter: { kind: "text", placeholder: "Label contains…" },
+      render: (row) => (
+        <div>
+          <TagBadge tag={snapshotTag(row.tag)} />
+          {row.tag.code && <p className="mt-1 text-xs text-stone-400">{row.tag.code}</p>}
+        </div>
+      ),
+    },
+    {
+      id: "code",
+      header: "Code",
+      value: (row) => row.tag.code ?? "",
+      filter: { kind: "text", placeholder: "Code contains…" },
+      defaultHidden: true,
+      render: (row) => row.tag.code ?? "—",
+    },
+    { id: "kind", header: "Type", value: (row) => row.kind, filter: { kind: "select" } },
+    {
+      id: "owner",
+      header: "Owner",
+      value: (row) => row.ownerName,
+      filter: { kind: "select" },
+      render: (row) =>
+        row.tag.owner === "admin" ? (
+          row.ownerName
+        ) : (
+          <ShopNameButton shopId={row.tag.shopId}>{row.ownerName}</ShopNameButton>
+        ),
+    },
+    {
+      id: "rule",
+      header: "Rule",
+      value: (row) => row.rule,
+      sortable: false,
+      render: (row) => <span className="text-xs text-stone-600">{row.rule}</span>,
+    },
+    {
+      id: "products",
+      header: "Products",
+      value: (row) => row.tag.listingIds.length,
+      filter: { kind: "range" },
+      align: "right",
+    },
+    {
+      id: "status",
+      header: "Status",
+      value: (row) => row.status,
+      filter: { kind: "select" },
+      render: (row) => <StatusPill>{row.status}</StatusPill>,
+    },
+    {
+      id: "created",
+      header: "Created",
+      value: (row) => row.tag.createdAt,
+      defaultHidden: true,
+      render: (row) => (
+        <span className="text-xs text-stone-500">{formatDate(row.tag.createdAt)}</span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "",
+      value: () => "",
+      sortable: false,
+      searchable: false,
+      align: "right",
+      render: (row) => (
+        <div className="flex justify-end gap-2" onClick={(event) => event.stopPropagation()}>
+          <button
+            type="button"
+            className="text-xs underline"
+            onClick={() => setPanel({ mode: "edit", tagId: row.tag.id })}
+          >
+            Open
+          </button>
+          {mode === "admin" && (
+            <button type="button" className="text-xs underline" onClick={() => takeDown(row.tag)}>
+              {row.tag.status === "taken_down" ? "Restore" : "Take down"}
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   if (!user) return null;
 
   return (
@@ -139,103 +236,17 @@ export function TagsBoard({ mode }: { mode: "seller" | "admin" }) {
         </button>
       </div>
 
-      <div className={`mt-4 grid gap-3 ${mode === "admin" ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-3"}`}>
-        <Field label="Search">
-          <TextInput
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Name, code, shop"
-          />
-        </Field>
-        <Field label="Type">
-          <Select value={kindFilter} onChange={(event) => setKindFilter(event.target.value)}>
-            <option value="">All types</option>
-            {(["sale", "coupon", "offer", "badge"] as TagKind[]).map((kind) => (
-              <option key={kind} value={kind}>
-                {titleCase(kind)}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Status">
-          <Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="taken_down">Taken down</option>
-          </Select>
-        </Field>
-        {mode === "admin" && (
-          <Field label="Dukkan">
-            <Select value={shopFilter} onChange={(event) => setShopFilter(event.target.value)}>
-              <option value="">All shops</option>
-              {state.shops.map((shop) => (
-                <option key={shop.id} value={shop.id}>
-                  {shop.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        )}
-      </div>
-
-      <div className="mt-6 overflow-x-auto rounded-2xl bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b text-xs uppercase text-stone-400">
-            <tr>
-              <th className="px-4 py-3">Tag</th>
-              <th className="px-4 py-3">Owner</th>
-              <th className="px-4 py-3">Rule</th>
-              <th className="px-4 py-3">Products</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {tags.map((tag) => {
-              const shop = tag.shopId ? shopById(tag.shopId) : undefined;
-              return (
-                <tr key={tag.id} className="border-b last:border-0">
-                  <td className="px-4 py-3">
-                    <TagBadge tag={snapshotTag(tag)} />
-                    {tag.code && <p className="mt-1 text-xs text-stone-400">{tag.code}</p>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium">{tag.owner === "admin" ? "Platform" : shop?.name ?? "Seller"}</p>
-                    <p className="text-xs text-stone-400">{titleCase(tag.kind)}</p>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-stone-600">{tagRuleSummary(tag)}</td>
-                  <td className="px-4 py-3">{tag.listingIds.length}</td>
-                  <td className="px-4 py-3">
-                    <StatusPill>{titleCase(tag.status)}</StatusPill>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        className="text-xs underline"
-                        onClick={() => setPanel({ mode: "edit", tagId: tag.id })}
-                      >
-                        Open
-                      </button>
-                      {mode === "admin" && (
-                        <button type="button" className="text-xs underline" onClick={() => takeDown(tag)}>
-                          {tag.status === "taken_down" ? "Restore" : "Take down"}
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {tags.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-stone-500">
-                  No tags match these filters.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="mt-4">
+        <DataTable
+          rows={rows}
+          columns={columns}
+          rowKey={(row) => row.tag.id}
+          onRowClick={(row) => setPanel({ mode: "edit", tagId: row.tag.id })}
+          searchPlaceholder="Search label, code, type, dukkan, rule"
+          searchText={(row) => `${row.tag.id} ${row.rule}`}
+          initialSort={{ columnId: "created", dir: "desc" }}
+          emptyMessage="No tags match these filters."
+        />
       </div>
 
       {panel && (

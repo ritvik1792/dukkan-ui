@@ -9,12 +9,13 @@ import { formatDistance } from "@/lib/geo";
 import type { Shop } from "@/lib/types";
 import type { UniqueOffer } from "@/services/catalog";
 import { shopDeliveryModes } from "@/services/pricing";
+import { isShopOpenNow, shopHoursLabel } from "@/lib/shopOps";
 import { fetchShop, fetchShopCatalog } from "@/services/storefront";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function ShopDashboardPage() {
-  const { state, nearbyShops, neighborhood } = useApp();
+  const { state, nearbyShops, locationLabel } = useApp();
   const shopId = state.viewShopId;
   const [shop, setShop] = useState<Shop | null>(null);
   const [offers, setOffers] = useState<UniqueOffer[]>([]);
@@ -121,7 +122,7 @@ export default function ShopDashboardPage() {
             </span>
             {nearby && (
               <span className="rounded-full bg-white/10 px-3 py-1">
-                {formatDistance(nearby.distanceKm)} from {neighborhood.name}
+                {formatDistance(nearby.distanceKm)} from {locationLabel}
               </span>
             )}
             {shop.gstin && (
@@ -129,6 +130,9 @@ export default function ShopDashboardPage() {
             )}
             <span className="rounded-full bg-lime px-3 py-1 text-ink">
               {modes.map((m) => (m === "partner" ? "Partner" : "Shop delivery")).join(" + ")}
+            </span>
+            <span className={`rounded-full px-3 py-1 ${isShopOpenNow(shop) ? "bg-white/10" : "bg-white text-ink"}`}>
+              {isShopOpenNow(shop) ? `Open · ${shopHoursLabel(shop)}` : "Closed"}
             </span>
           </div>
           <p className="mt-4 text-sm text-white/60">{shop.address}</p>

@@ -2,7 +2,7 @@
 
 Neighbourhood marketplace frontend: Amazon-style product pages, IndiaMART-like seller cards, and Zepto-style hyperlocal delivery.
 
-Built with **Next.js (App Router)**, **React**, and **Tailwind CSS** on the Vercel Next.js stack. Backend is intentionally deferred — Spring Boot will own auth, catalogue, geo, and orders later. UI state lives in the browser (`localStorage`) with mock data.
+Built with **Next.js (App Router)**, **React**, and **Tailwind CSS**. Auth, catalogue, and orders are served by the Spring Boot API in `dukkan` (PostgreSQL). `src/data/seed.ts` is catalogue fixture data only — it does not create login accounts.
 
 ## What it does
 
@@ -26,7 +26,13 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Use the **Demo role** chips in the header, or `/login`, to switch buyer / seller / admin.
+Open [http://localhost:3000](http://localhost:3000). Create the first account at `/signup` (email + password). Phone OTP is `/login`. Sellers and admins use `/console/login` after signup (buyers cannot open the console until you set `role` to `ADMIN` or `SELLER` in PostgreSQL).
+
+The API (`dukkan`) must be running on http://localhost:8080. See that repo’s README for Postgres and Flyway. There is no `DUKKAN_SEED_*` password — do not put login passwords in env or Secret Manager.
+
+## Google Cloud
+
+See **[DEPLOY.md](DEPLOY.md)**. Short version: Cloud Run for this UI, Cloud Run for the API, Secret Manager for JWT + **database** credentials, one Cloud SQL instance with database `dukkan`. After deploy, sign up on the live `/signup` page, then `UPDATE app_users SET role='ADMIN' WHERE email='...'`.
 
 ## Demo notes
 

@@ -1,16 +1,21 @@
 "use client";
 
 import { RequireAuth } from "@/components/auth/RequireAuth";
+import { LocationCapture } from "@/components/location/LocationCapture";
 import { Field, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { useApp } from "@/context/AppContext";
-import { categories, neighborhoods } from "@/data/seed";
+import { createApplicationRequest, mapApplication, mapShop } from "@/lib/api";
 import { createId } from "@/lib/ids";
-import type { SellerApplication, Shop } from "@/lib/types";
+import type { Coordinates, SellerApplication, Shop } from "@/lib/types";
 import { useMotionRouter } from "@/lib/motion";
-import { FormEvent, useEffect, useState } from "react";
+import { ROUTES } from "@/lib/routes";
+import Link from "next/link";
+import { FormEvent, useState } from "react";
 
 function SellForm() {
-  const { user, state, dispatch } = useApp();
+  const { user, state, dispatch, origin: shopperOrigin, locationLabel } = useApp();
+  const categories = state.categories;
+  const neighborhoods = state.neighborhoods;
   const router = useMotionRouter();
   const existing = state.applications.find((a) => a.userId === user?.id);
 
@@ -24,17 +29,15 @@ function SellForm() {
   const [notes, setNotes] = useState("");
   const [partner, setPartner] = useState(true);
   const [shopDelivery, setShopDelivery] = useState(true);
+  const [pin, setPin] = useState<{ coordinates: Coordinates; accuracyM?: number } | null>(null);
 
-  useEffect(() => {
-    if (user?.role === "seller" && user.shopId) {
-      router.replace("/seller/application");
-    }
-  }, [user, router]);
-
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     if (!user) return;
     const shopId = createId("shop");
+    // Prefer the pin the seller dropped at the shop; fall back to wherever they are browsing from.
+    const origin =
+      pin?.coordinates ?? shopperOrigin ?? neighborhoods[0]?.coordinates ?? { lat: 28.6328, lng: 77.2197 };
     const shop: Shop = {
       id: shopId,
       name: businessName,
@@ -42,7 +45,7 @@ function SellForm() {
       categoryIds: [categoryId],
       description: notes || `${businessName} on Dukkan`,
       address,
-      coordinates: neighborhoods[0].coordinates,
+      coordinates: origin,
       rating: 0,
       reviews: 0,
       verified: Boolean(gstin),
@@ -54,6 +57,8 @@ function SellForm() {
       partnerDeliveryFee: 25,
       shopDeliveryFee: 15,
       minOrderAmount: 99,
+      employees: [],
+      transport: [],
     };
     const application: SellerApplication = {
       id: createId("app"),
@@ -65,33 +70,63 @@ function SellForm() {
       email,
       phone,
       address,
+      coordinates: origin,
       gstin,
       categoryIds: [categoryId],
       notes,
       submittedAt: new Date().toISOString(),
     };
-    dispatch({
-      type: "upsertUser",
-      user: { ...user, name: ownerName, email, phone, role: "seller", shopId },
-    });
-    dispatch({ type: "upsertShop", shop });
-    dispatch({ type: "addApplication", application });
-    router.push("/seller/application");
+    try {
+      const created = await createApplicationRequest({
+        businessName,
+        ownerName,
+        email,
+        phone,
+        address,
+        gstin,
+        categoryIds: [categoryId],
+        notes,
+        partnerDeliveryEnabled: partner,
+        shopDeliveryEnabled: shopDelivery,
+        lat: origin.lat,
+        lng: origin.lng,
+      });
+      dispatch({ type: "upsertShop", shop: mapShop(created.shop) });
+      dispatch({ type: "addApplication", application: mapApplication(created.application) });
+      dispatch({
+        type: "upsertUser",
+        user: {
+          ...user,
+          name: ownerName,
+          email,
+          phone,
+          role: "seller",
+          shopId: created.shop.id,
+        },
+      });
+    } catch {
+      dispatch({
+        type: "upsertUser",
+        user: { ...user, name: ownerName, email, phone, role: "seller", shopId },
+      });
+      dispatch({ type: "upsertShop", shop });
+      dispatch({ type: "addApplication", application });
+    }
+    router.push(ROUTES.consoleDashboard);
   }
 
   return (
     <div className="mx-auto max-w-xl px-4 py-10">
       <h1 className="text-3xl font-semibold">Open a dukkan</h1>
       <p className="mt-2 text-sm text-stone-500">
-        Apply once. We create a seller profile and you can track the application until ops
-        approve it.
+        Apply once. We create a seller profile. Track approval from the console.
       </p>
       {existing && (
         <p className="mt-3 text-sm">
           You already applied.{" "}
-          <button type="button" className="underline" onClick={() => router.push("/seller/application")}>
-            Track status
-          </button>
+          <Link href={ROUTES.consoleDashboard} className="underline">
+            Track status in Console
+          </Link>
         </p>
       )}
       <form onSubmit={submit} className="mt-8 space-y-4">
@@ -109,6 +144,22 @@ function SellForm() {
         </Field>
         <Field label="Address">
           <TextArea required value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
+        </Field>
+        <Field
+          label="Shop location"
+          hint={pin ? "GPS pinned" : `defaults to ${locationLabel}`}
+        >
+          <LocationCapture
+            label="Stand at your shop and pin it"
+            hint="Buyers only see dukkans inside their delivery radius, so an accurate pin brings you more orders."
+            value={pin?.coordinates}
+            accuracyM={pin?.accuracyM}
+            onCapture={(coordinates, accuracyM, resolved) => {
+              setPin({ coordinates, accuracyM });
+              if (resolved?.formattedAddress) setAddress(resolved.formattedAddress);
+            }}
+            onClear={() => setPin(null)}
+          />
         </Field>
         <Field label="GSTIN" hint="optional">
           <TextInput value={gstin} onChange={(e) => setGstin(e.target.value)} />

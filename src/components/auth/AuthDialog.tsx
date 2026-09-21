@@ -3,6 +3,7 @@
 import { LogoMark } from "@/components/LogoMark";
 import { useApp } from "@/context/AppContext";
 import { afterPaint } from "@/lib/drawer";
+import { requestOtp, setToken, verifyOtp, mapApiUser, updateProfileRequest } from "@/lib/api";
 import { DEMO_OTP } from "@/lib/constants";
 import { formatPhone } from "@/lib/format";
 import { findUserByPhone, needsProfileSetup, validateEmail, validateMobile } from "@/services/auth";
@@ -91,6 +92,8 @@ function PhoneAuthDialog({
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [shown, setShown] = useState(false);
+  const [hint, setHint] = useState(DEMO_OTP);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const cancel = afterPaint(() => setShown(true));
@@ -108,7 +111,7 @@ function PhoneAuthDialog({
   const existing = findUserByPhone(state.users, phone);
   const copy = STEP_COPY[step];
 
-  function sendCode() {
+  async function sendCode() {
     const invalid = validateMobile(phone);
     if (invalid) {
       setError(invalid);
@@ -116,26 +119,55 @@ function PhoneAuthDialog({
     }
     setError("");
     setOtp("");
-    setStep("otp");
+    setBusy(true);
+    try {
+      const sent = await requestOtp({ phone, purpose: "login" });
+      setHint(sent.devCode || DEMO_OTP);
+      setStep("otp");
+    } catch {
+      setHint(DEMO_OTP);
+      setStep("otp");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function verifyPhone() {
-    if (otp.trim() !== DEMO_OTP) {
-      setError("Enter the 4-digit OTP sent to your phone.");
-      return;
-    }
-    const signedIn = loginWithPhone(phone);
+  async function verifyPhone() {
+    setBusy(true);
     setError("");
-    if (needsProfileSetup(signedIn)) {
-      setName(/^User \d{4}$/.test(signedIn.name) ? "" : signedIn.name);
-      setEmail(signedIn.email.endsWith("@phone.dukkan") ? "" : signedIn.email);
-      setStep("profile");
-      return;
+    try {
+      const res = await verifyOtp({ phone, code: otp.trim(), purpose: "login" });
+      setToken(res.token);
+      const existing = state.users.find((item) => item.id === res.user.id);
+      const signedIn = mapApiUser(res.user, existing);
+      dispatch({ type: "upsertUser", user: signedIn });
+      dispatch({ type: "login", userId: signedIn.id });
+      if (needsProfileSetup(signedIn)) {
+        setName(/^User \d{4}$/.test(signedIn.name) ? "" : signedIn.name);
+        setEmail(signedIn.email.endsWith("@phone.dukkan") ? "" : signedIn.email);
+        setStep("profile");
+        return;
+      }
+      onSignedIn();
+    } catch {
+      if (otp.trim() !== hint && otp.trim() !== DEMO_OTP) {
+        setError("Enter the 4-digit OTP sent to your phone.");
+        return;
+      }
+      const signedIn = loginWithPhone(phone);
+      if (needsProfileSetup(signedIn)) {
+        setName(/^User \d{4}$/.test(signedIn.name) ? "" : signedIn.name);
+        setEmail(signedIn.email.endsWith("@phone.dukkan") ? "" : signedIn.email);
+        setStep("profile");
+        return;
+      }
+      onSignedIn();
+    } finally {
+      setBusy(false);
     }
-    onSignedIn();
   }
 
-  function saveProfile() {
+  async function saveProfile() {
     if (name.trim().length < 2) {
       setError("Enter your name.");
       return;
@@ -146,14 +178,18 @@ function PhoneAuthDialog({
       return;
     }
     if (!user) return;
-    dispatch({
-      type: "upsertUser",
-      user: {
-        ...user,
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-      },
-    });
+    const next = {
+      ...user,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+    };
+    dispatch({ type: "upsertUser", user: next });
+    try {
+      const updated = await updateProfileRequest({ name: next.name, email: next.email, phone: next.phone });
+      dispatch({ type: "upsertUser", user: mapApiUser(updated, next) });
+    } catch {
+      /* keep local profile */
+    }
     onSignedIn();
   }
 
@@ -201,7 +237,7 @@ function PhoneAuthDialog({
                   className="mt-5 space-y-4"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    sendCode();
+                    void sendCode();
                   }}
                 >
                   <IconField icon="phone">
@@ -228,7 +264,7 @@ function PhoneAuthDialog({
                   className="mt-5 space-y-4"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    verifyPhone();
+                    void verifyPhone();
                   }}
                 >
                   <p className="text-center text-sm text-stone-500">
@@ -249,7 +285,9 @@ function PhoneAuthDialog({
                   >
                     Use a different number
                   </button>
-                  <p className="text-center text-[11px] text-stone-400">Demo OTP is {DEMO_OTP}</p>
+                  <p className="text-center text-[11px] text-stone-400">
+                    {busy ? "Checking…" : `Dev OTP is ${hint}`}
+                  </p>
                 </form>
               )}
 
@@ -258,7 +296,7 @@ function PhoneAuthDialog({
                   className="mt-5 space-y-3"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    saveProfile();
+                    void saveProfile();
                   }}
                 >
                   <IconField icon="user">

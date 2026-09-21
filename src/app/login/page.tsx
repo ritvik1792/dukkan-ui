@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 
 function PhoneAuthRedirect() {
-  const { isAuthenticated, user, state } = useApp();
+  const { isAuthenticated, state } = useApp();
   const { openAuth } = useAuthDialog();
   const router = useMotionRouter();
   const params = useSearchParams();
@@ -16,11 +16,11 @@ function PhoneAuthRedirect() {
   useEffect(() => {
     if (!state.hydrated) return;
     if (isAuthenticated) {
-      router.replace(next || defaultHome(user?.role));
+      router.replace(next || "/");
       return;
     }
     openAuth();
-  }, [state.hydrated, isAuthenticated, openAuth, router, next, user?.role]);
+  }, [state.hydrated, isAuthenticated, openAuth, router, next]);
 
   return (
     <div className="mx-auto max-w-sm px-4 py-16 text-center">
@@ -37,12 +37,6 @@ function PhoneAuthRedirect() {
       </button>
     </div>
   );
-}
-
-function defaultHome(role?: string) {
-  if (role === "seller") return "/seller";
-  if (role === "admin") return "/admin";
-  return "/";
 }
 
 export default function LoginPage() {

@@ -3,11 +3,13 @@ import {
   DEFAULT_PARTNER_ETA_MINUTES,
 } from "@/lib/constants";
 import type {
+  AdPlacement,
   Advertisement,
   CatalogProduct,
   Category,
   Coupon,
   Listing,
+  ModerationCase,
   PromoTag,
   Neighborhood,
   Order,
@@ -19,12 +21,17 @@ import type {
   Ticket,
   User,
 } from "@/lib/types";
-import { DEMO_PASSWORD } from "@/lib/constants";
 
+/** Frontend catalogue fixtures. Login accounts are created in Postgres by the API seeder, not here. */
 export const defaultSettings: PlatformSettings = {
   deliveryRadiusKm: DEFAULT_DELIVERY_RADIUS_KM,
   partnerEtaMinutes: DEFAULT_PARTNER_ETA_MINUTES,
   showDemoRoleSwitcher: false,
+  requestResponseWindowSeconds: 120,
+  requestWaveSize: 5,
+  requestMaxShops: 20,
+  offerExpirySeconds: 900,
+  requestMaxWaves: 3,
 };
 
 export const neighborhoods: Neighborhood[] = [
@@ -65,12 +72,12 @@ export const categories: Category[] = [
   { id: "apparel", name: "Apparel", emoji: "👕" },
 ];
 
+/** Catalog fixture people (IDs used by mock orders). Not login accounts — passwords live in Postgres. */
 export const users: User[] = [
   {
     id: "u-buyer",
     name: "Priya Sharma",
     email: "priya@example.com",
-    password: DEMO_PASSWORD,
     role: "buyer",
     phone: "9876543210",
     dob: "1994-03-12",
@@ -100,7 +107,6 @@ export const users: User[] = [
     id: "u-gupta",
     name: "Ramesh Gupta",
     email: "gupta@dukkan.shop",
-    password: DEMO_PASSWORD,
     role: "seller",
     shopId: "shop-gupta",
     phone: "9810000001",
@@ -112,7 +118,6 @@ export const users: User[] = [
     id: "u-fresh",
     name: "Ananya Fresh",
     email: "ananya@freshdaily.shop",
-    password: DEMO_PASSWORD,
     role: "seller",
     shopId: "shop-fresh",
     phone: "9810000002",
@@ -124,7 +129,6 @@ export const users: User[] = [
     id: "u-steel",
     name: "Vikram Metals",
     email: "vikram@metals.shop",
-    password: DEMO_PASSWORD,
     role: "seller",
     shopId: "shop-steel",
     phone: "9810000003",
@@ -136,7 +140,6 @@ export const users: User[] = [
     id: "u-admin",
     name: "Dukkan Ops",
     email: "ops@dukkan.in",
-    password: DEMO_PASSWORD,
     role: "admin",
     phone: "9810000000",
     dob: "1988-08-08",
@@ -166,6 +169,16 @@ export const shops: Shop[] = [
     partnerDeliveryFee: 19,
     shopDeliveryFee: 10,
     minOrderAmount: 99,
+    employees: [
+      { id: "emp-gupta-1", name: "Amit Yadav", role: "rider", phone: "9811100101", available: true },
+      { id: "emp-gupta-2", name: "Suresh Pal", role: "rider", phone: "9811100102", available: true },
+      { id: "emp-gupta-3", name: "Pooja Devi", role: "packer", phone: "9811100103", available: true },
+    ],
+    transport: [
+      { id: "veh-gupta-1", kind: "bike", label: "Hero Splendor", registration: "DL 1S AB 4412", capacityKg: 15, available: true },
+      { id: "veh-gupta-2", kind: "bike", label: "Bajaj Platina", registration: "DL 1S AB 4413", capacityKg: 12, available: true },
+      { id: "veh-gupta-3", kind: "cycle", label: "Shop cycle", capacityKg: 8, available: true },
+    ],
   },
   {
     id: "shop-fresh",
@@ -186,6 +199,14 @@ export const shops: Shop[] = [
     partnerDeliveryFee: 25,
     shopDeliveryFee: 15,
     minOrderAmount: 80,
+    employees: [
+      { id: "emp-fresh-1", name: "Karan Mehra", role: "rider", phone: "9811100201", available: true },
+      { id: "emp-fresh-2", name: "Meena Joshi", role: "rider", phone: "9811100202", available: false },
+    ],
+    transport: [
+      { id: "veh-fresh-1", kind: "scooter", label: "Activa 6G", registration: "DL 1S CD 8821", capacityKg: 20, available: true },
+      { id: "veh-fresh-2", kind: "bike", label: "TVS Radeon", registration: "DL 1S CD 8822", capacityKg: 18, available: true },
+    ],
   },
   {
     id: "shop-milk",
@@ -205,6 +226,8 @@ export const shops: Shop[] = [
     partnerDeliveryFee: 15,
     shopDeliveryFee: 0,
     minOrderAmount: 30,
+    employees: [],
+    transport: [],
   },
   {
     id: "shop-steel",
@@ -225,6 +248,14 @@ export const shops: Shop[] = [
     partnerDeliveryFee: 0,
     shopDeliveryFee: 120,
     minOrderAmount: 500,
+    employees: [
+      { id: "emp-steel-1", name: "Deepak Chauhan", role: "dispatcher", phone: "9811100301", available: true },
+      { id: "emp-steel-2", name: "Imran Khan", role: "rider", phone: "9811100302", available: true },
+    ],
+    transport: [
+      { id: "veh-steel-1", kind: "tempo", label: "Tata Ace", registration: "DL 1C EF 2201", capacityKg: 750, available: true },
+      { id: "veh-steel-2", kind: "truck", label: "Ashok Leyland pickup", registration: "DL 1C EF 2202", capacityKg: 2000, available: false },
+    ],
   },
   {
     id: "shop-noida",
@@ -244,6 +275,12 @@ export const shops: Shop[] = [
     partnerDeliveryFee: 29,
     shopDeliveryFee: 20,
     minOrderAmount: 149,
+    employees: [
+      { id: "emp-noida-1", name: "Rohit Verma", role: "rider", phone: "9811100401", available: true },
+    ],
+    transport: [
+      { id: "veh-noida-1", kind: "scooter", label: "Access 125", registration: "UP 16 GH 5511", capacityKg: 15, available: true },
+    ],
   },
   {
     id: "shop-palika",
@@ -264,6 +301,12 @@ export const shops: Shop[] = [
     partnerDeliveryFee: 29,
     shopDeliveryFee: 20,
     minOrderAmount: 199,
+    employees: [
+      { id: "emp-palika-1", name: "Naveen Das", role: "rider", phone: "9811100501", available: true },
+    ],
+    transport: [
+      { id: "veh-palika-1", kind: "bike", label: "Honda Shine", registration: "DL 1S JK 1190", capacityKg: 10, available: true },
+    ],
   },
   {
     id: "shop-janpath",
@@ -283,6 +326,8 @@ export const shops: Shop[] = [
     partnerDeliveryFee: 25,
     shopDeliveryFee: 0,
     minOrderAmount: 249,
+    employees: [],
+    transport: [],
   },
   {
     id: "shop-snacks",
@@ -302,6 +347,12 @@ export const shops: Shop[] = [
     partnerDeliveryFee: 19,
     shopDeliveryFee: 12,
     minOrderAmount: 79,
+    employees: [
+      { id: "emp-snacks-1", name: "Raju Kumar", role: "rider", phone: "9811100601", available: true },
+    ],
+    transport: [
+      { id: "veh-snacks-1", kind: "cycle", label: "Night-run cycle", capacityKg: 8, available: true },
+    ],
   },
   {
     id: "shop-home",
@@ -322,6 +373,12 @@ export const shops: Shop[] = [
     partnerDeliveryFee: 22,
     shopDeliveryFee: 15,
     minOrderAmount: 129,
+    employees: [
+      { id: "emp-home-1", name: "Sunil Rawat", role: "rider", phone: "9811100701", available: true },
+    ],
+    transport: [
+      { id: "veh-home-1", kind: "bike", label: "Hero HF Deluxe", registration: "DL 1S LM 3344", capacityKg: 20, available: true },
+    ],
   },
   {
     id: "shop-pending",
@@ -341,6 +398,8 @@ export const shops: Shop[] = [
     partnerDeliveryFee: 39,
     shopDeliveryFee: 25,
     minOrderAmount: 199,
+    employees: [],
+    transport: [],
   },
 ];
 
@@ -696,7 +755,8 @@ export const listings: Listing[] = [
       { id: "t6", label: "Gadget drop", kind: "sale", discountPercent: 25 },
       { id: "cpn-palika", label: "10% off on accessories", kind: "coupon", code: "GADGET10", discountPercent: 10 },
     ],
-    status: "approved",
+    // Hidden by moderation case mod-1001, which the seller has disputed.
+    status: "rejected",
   },
   {
     id: "l-janpath-tee",
@@ -1410,6 +1470,39 @@ export const coupons: Coupon[] = [
   },
 ];
 
+export const adPlacements: AdPlacement[] = [
+  {
+    id: "plc-home-hero",
+    label: "Home hero",
+    slug: "home-hero",
+    description: "Big rotating banner at the top of the buyer dashboard.",
+    rotationSeconds: 6,
+    maxAds: 5,
+    active: true,
+    createdAt: "2026-07-01T09:00:00.000Z",
+  },
+  {
+    id: "plc-search-inline",
+    label: "Search inline",
+    slug: "search-inline",
+    description: "Sponsored strip between search result rows.",
+    rotationSeconds: 10,
+    maxAds: 3,
+    active: true,
+    createdAt: "2026-07-04T09:00:00.000Z",
+  },
+  {
+    id: "plc-seller-promo",
+    label: "Seller promo",
+    slug: "seller-promo",
+    description: "Recruitment banner shown to shoppers who are not selling yet.",
+    rotationSeconds: 12,
+    maxAds: 2,
+    active: true,
+    createdAt: "2026-07-11T09:00:00.000Z",
+  },
+];
+
 export const advertisements: Advertisement[] = [
   {
     id: "ad-atta",
@@ -1421,6 +1514,9 @@ export const advertisements: Advertisement[] = [
     hue: 32,
     catalogProductId: "cat-atta",
     active: true,
+    placementId: "plc-home-hero",
+    weight: 10,
+    createdAt: "2026-07-15T09:00:00.000Z",
   },
   {
     id: "ad-fresh",
@@ -1432,6 +1528,9 @@ export const advertisements: Advertisement[] = [
     hue: 128,
     catalogProductId: "cat-tomato",
     active: true,
+    placementId: "plc-home-hero",
+    weight: 8,
+    createdAt: "2026-07-16T09:00:00.000Z",
   },
   {
     id: "ad-dairy",
@@ -1443,6 +1542,9 @@ export const advertisements: Advertisement[] = [
     hue: 200,
     catalogProductId: "cat-milk",
     active: true,
+    placementId: "plc-search-inline",
+    weight: 5,
+    createdAt: "2026-07-18T09:00:00.000Z",
   },
   {
     id: "ad-sell",
@@ -1453,5 +1555,75 @@ export const advertisements: Advertisement[] = [
     badge: "For shops",
     hue: 260,
     active: true,
+    placementId: "plc-seller-promo",
+    weight: 3,
+    createdAt: "2026-07-20T09:00:00.000Z",
+  },
+];
+
+export const moderationCases: ModerationCase[] = [
+  {
+    id: "mod-1001",
+    listingId: "l-palika-charger",
+    shopId: "shop-palika",
+    catalogProductId: "cat-charger",
+    action: "hide",
+    reason: "counterfeit",
+    explanation:
+      "Brand name on the listing does not match the photos. Upload an invoice or rename the listing to the generic brand.",
+    openedByUserId: "u-admin",
+    status: "disputed",
+    createdAt: "2026-08-28T11:00:00.000Z",
+    updatedAt: "2026-08-29T07:30:00.000Z",
+    events: [
+      {
+        id: "mev-1",
+        kind: "opened",
+        authorId: "u-admin",
+        authorRole: "admin",
+        body: "Brand name on the listing does not match the photos. Upload an invoice or rename the listing to the generic brand.",
+        createdAt: "2026-08-28T11:00:00.000Z",
+      },
+      {
+        id: "mev-2",
+        kind: "dispute",
+        authorId: "u-steel",
+        authorRole: "seller",
+        body: "The charger is genuine, we buy from the authorised distributor. Invoice is attached to our application.",
+        createdAt: "2026-08-29T07:30:00.000Z",
+      },
+    ],
+  },
+  {
+    id: "mod-1002",
+    listingId: "l-steel-sheet",
+    shopId: "shop-steel",
+    catalogProductId: "cat-sheet",
+    action: "override",
+    reason: "description",
+    explanation:
+      "Thickness and grade were missing from the description, so the price looked wrong next to other sellers. Admin filled them in.",
+    openedByUserId: "u-admin",
+    status: "republish_requested",
+    createdAt: "2026-08-30T09:15:00.000Z",
+    updatedAt: "2026-09-02T06:00:00.000Z",
+    events: [
+      {
+        id: "mev-3",
+        kind: "opened",
+        authorId: "u-admin",
+        authorRole: "admin",
+        body: "Thickness and grade were missing from the description, so the price looked wrong next to other sellers. Admin filled them in.",
+        createdAt: "2026-08-30T09:15:00.000Z",
+      },
+      {
+        id: "mev-4",
+        kind: "republish_request",
+        authorId: "u-steel",
+        authorRole: "seller",
+        body: "Added grade, thickness, and a cut-size chart to the description. Please put it back live.",
+        createdAt: "2026-09-02T06:00:00.000Z",
+      },
+    ],
   },
 ];

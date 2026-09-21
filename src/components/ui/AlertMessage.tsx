@@ -16,6 +16,7 @@ export type AlertTone = "success" | "error" | "info" | "warning";
 export type AlertAction = {
   href: string;
   label: string;
+  onClick?: () => void;
 };
 
 const toneStyles: Record<AlertTone, string> = {
@@ -57,20 +58,32 @@ export function AlertMessage({
         aria-hidden
         className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${toneDot[tone]}`}
       />
-      <div className="min-w-0 flex-1">
-        <p id={titleId} className="text-sm font-semibold">
-          {title}
-        </p>
-        {message && <p className="mt-0.5 text-sm opacity-80">{message}</p>}
         {action && (
           <Link
             href={action.href}
-            className="mt-2 inline-block text-sm font-semibold underline underline-offset-2"
+            onClick={() => {
+              action.onClick?.();
+              onClose?.();
+            }}
+            className="mt-0.5 block min-w-0 flex-1"
           >
-            {action.label}
+            <p id={titleId} className="text-sm font-semibold">
+              {title}
+            </p>
+            {message && <p className="mt-0.5 text-sm opacity-80">{message}</p>}
+            <span className="mt-2 inline-block text-sm font-semibold underline underline-offset-2">
+              {action.label}
+            </span>
           </Link>
         )}
-      </div>
+        {!action && (
+          <div className="min-w-0 flex-1">
+            <p id={titleId} className="text-sm font-semibold">
+              {title}
+            </p>
+            {message && <p className="mt-0.5 text-sm opacity-80">{message}</p>}
+          </div>
+        )}
       {onClose && (
         <button
           type="button"

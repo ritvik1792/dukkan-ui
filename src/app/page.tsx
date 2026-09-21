@@ -4,11 +4,12 @@ import { AdCarousel } from "@/components/AdCarousel";
 import { CategoryCircles } from "@/components/CategoryNav";
 import { HorizontalScroller } from "@/components/HorizontalScroller";
 import { ShopCard } from "@/components/ShopCard";
+import { useLocationDialog } from "@/components/location/LocationDialog";
 import { useApp } from "@/context/AppContext";
 import { useMemo } from "react";
 
 export default function HomePage() {
-  const { nearbyShops, neighborhood, shopRadiusKm, state } = useApp();
+  const { nearbyShops, locationLabel, shopRadiusKm, state } = useApp();
 
   const topRated = useMemo(
     () => [...nearbyShops].sort((a, b) => b.rating - a.rating || a.distanceKm - b.distanceKm),
@@ -22,14 +23,12 @@ export default function HomePage() {
           <CategoryCircles />
         </HorizontalScroller>
 
-        <HorizontalScroller title={`Discover best shops near ${neighborhood.name}`}>
+        <HorizontalScroller title={`Discover best shops near ${locationLabel}`}>
           {nearbyShops.map((shop) => (
             <ShopCard key={shop.id} shop={shop} />
           ))}
           {nearbyShops.length === 0 && (
-            <p className="rounded-2xl bg-stone-50 p-6 text-sm text-stone-500">
-              No dukkans within {shopRadiusKm} km of {neighborhood.name}.
-            </p>
+            <NoShopsNearby label={locationLabel} radiusKm={shopRadiusKm} />
           )}
         </HorizontalScroller>
 
@@ -43,6 +42,24 @@ export default function HomePage() {
           </HorizontalScroller>
         )}
       </div>
+    </div>
+  );
+}
+
+function NoShopsNearby({ label, radiusKm }: { label: string; radiusKm: number }) {
+  const { openLocation } = useLocationDialog();
+  return (
+    <div className="space-y-3 rounded-2xl bg-stone-50 p-6 text-sm text-stone-500">
+      <p>
+        No dukkans within {radiusKm} km of {label}.
+      </p>
+      <button
+        type="button"
+        onClick={openLocation}
+        className="rounded-full bg-ink px-4 py-2 text-xs font-semibold text-lime"
+      >
+        Change location
+      </button>
     </div>
   );
 }

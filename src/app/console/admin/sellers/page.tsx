@@ -1,5 +1,6 @@
 "use client";
 
+import { ShopNameButton, useShopPeek } from "@/components/shops/ShopPeek";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
@@ -8,6 +9,7 @@ import { titleCase } from "@/lib/format";
 export default function AdminSellers() {
   const { state, dispatch } = useApp();
   const { showAlert } = useAlert();
+  const peek = useShopPeek();
 
   return (
     <div>
@@ -19,13 +21,16 @@ export default function AdminSellers() {
         {state.shops.map((shop) => (
           <div
             key={shop.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-4"
+            className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-4 transition-colors duration-150 hover:bg-stone-50"
+            onClick={() => peek?.openShop(shop.id)}
           >
             <div>
-              <p className="font-semibold">{shop.name}</p>
+              <ShopNameButton shopId={shop.id} className="font-semibold underline decoration-stone-300 hover:decoration-ink">
+                {shop.name}
+              </ShopNameButton>
               <p className="text-xs text-stone-500">{shop.address}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2" onClick={(event) => event.stopPropagation()}>
               <StatusPill>{titleCase(shop.status)}</StatusPill>
               <button
                 type="button"

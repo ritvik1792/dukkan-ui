@@ -1,5 +1,7 @@
 "use client";
 
-import LoginPage from "../login/page";
+import { SignupForm } from "@/components/auth/SignupForm";
 
-export default LoginPage;
+export default function SignupPage() {
+  return <SignupForm />;
+}

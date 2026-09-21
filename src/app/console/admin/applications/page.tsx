@@ -1,9 +1,11 @@
 "use client";
 
+import { ShopNameButton, useShopPeek } from "@/components/shops/ShopPeek";
 import { Field, Select } from "@/components/ui/Field";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
+import { mapApplication, patchApplicationRequest } from "@/lib/api";
 import { formatDate, titleCase } from "@/lib/format";
 import type { ApplicationStatus } from "@/lib/types";
 import { useMemo, useState } from "react";
@@ -11,6 +13,7 @@ import { useMemo, useState } from "react";
 export default function AdminApplications() {
   const { state, dispatch, shopById } = useApp();
   const { showAlert } = useAlert();
+  const peek = useShopPeek();
   const [statusFilter, setStatusFilter] = useState("");
 
   const applications = useMemo(() => {
@@ -30,14 +33,21 @@ export default function AdminApplications() {
         title: "Shop approved",
         message: "This dukkan is live. Their products can appear to buyers.",
       });
-      return;
-    }
-    if (status === "rejected") {
+    } else if (status === "rejected") {
       dispatch({ type: "setShopStatus", shopId, status: "pending" });
       showAlert({ tone: "info", title: "Application rejected" });
-      return;
+    } else {
+      showAlert({ tone: "info", title: "Marked under review" });
     }
-    showAlert({ tone: "info", title: "Marked under review" });
+    void patchApplicationRequest(applicationId, status)
+      .then((updated) =>
+        dispatch({
+          type: "setApplicationStatus",
+          applicationId: updated.id,
+          status: mapApplication(updated).status,
+        }),
+      )
+      .catch(() => undefined);
   }
 
   return (
@@ -65,10 +75,19 @@ export default function AdminApplications() {
         {applications.map((app) => {
           const shop = shopById(app.shopId);
           return (
-            <li key={app.id} className="rounded-2xl bg-white p-4">
+            <li
+              key={app.id}
+              className={`rounded-2xl bg-white p-4 ${shop ? "cursor-pointer transition-colors duration-150 hover:bg-stone-50" : ""}`}
+              onClick={shop ? () => peek?.openShop(shop.id) : undefined}
+            >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold">{app.businessName}</p>
+                  <ShopNameButton
+                    shopId={shop?.id}
+                    className="font-semibold underline decoration-stone-300 hover:decoration-ink"
+                  >
+                    {app.businessName}
+                  </ShopNameButton>
                   <p className="text-sm text-stone-500">
                     {app.ownerName} · {app.email} · {app.phone}
                   </p>
@@ -84,7 +103,7 @@ export default function AdminApplications() {
                 </div>
                 <StatusPill>{titleCase(app.status)}</StatusPill>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2" onClick={(event) => event.stopPropagation()}>
                 <button
                   type="button"
                   className="rounded-full bg-ink px-3 py-1 text-xs text-lime"

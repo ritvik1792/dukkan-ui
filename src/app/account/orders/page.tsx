@@ -3,7 +3,6 @@
 import { OrderDetailSheet } from "@/components/orders/OrderDetailSheet";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useApp } from "@/context/AppContext";
-import { partners } from "@/data/seed";
 import { formatDate, formatInr, paymentMethodLabel } from "@/lib/format";
 import { normalizeOrderStatus, orderStatusLabel } from "@/lib/orders";
 import { afterPaint } from "@/lib/drawer";
@@ -47,7 +46,7 @@ export default function AccountOrdersPage() {
       <ul className="space-y-4">
         {orders.map((order) => {
           const shop = shopById(order.shopId);
-          const partner = partners.find((p) => p.id === order.partnerId);
+          const partner = state.partners.find((p) => p.id === order.partnerId);
           const status = normalizeOrderStatus(order.status);
           return (
             <li key={order.id}>

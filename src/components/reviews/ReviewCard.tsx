@@ -4,7 +4,8 @@ import { OrderIdButton } from "@/components/orders/OrderFacts";
 import { FileButton } from "@/components/ui/Field";
 import { useApp } from "@/context/AppContext";
 import { formatDate } from "@/lib/format";
-import { fileToDataUrl } from "@/lib/images";
+import { mapReview, patchReviewRequest } from "@/lib/api";
+import { persistImageFile } from "@/lib/images";
 import type { Review } from "@/lib/types";
 import type { ReactNode } from "react";
 import { ReviewPhotos } from "./ReviewPhotos";
@@ -34,9 +35,12 @@ export function ReviewCard({
     if (!files?.length) return;
     const urls: string[] = [];
     for (const file of Array.from(files).slice(0, 6)) {
-      urls.push(await fileToDataUrl(file));
+      urls.push(await persistImageFile(file));
     }
     dispatch({ type: "addReviewPhotos", reviewId: review.id, imageUrls: urls });
+    void patchReviewRequest(review.id, { imageUrls: urls })
+      .then((updated) => dispatch({ type: "replaceReview", review: mapReview(updated) }))
+      .catch(() => undefined);
   }
 
   return (

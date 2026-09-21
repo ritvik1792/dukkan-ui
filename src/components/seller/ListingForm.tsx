@@ -3,8 +3,7 @@
 import { Field, FileButton, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { useApp } from "@/context/AppContext";
 import type { CatalogProduct, Listing, ProductTag } from "@/lib/types";
-import { categories } from "@/data/seed";
-import { fileToDataUrl } from "@/lib/images";
+import { persistImageFile } from "@/lib/images";
 import { eligiblePromoTags, snapshotTag, tagRuleSummary } from "@/lib/tags";
 import { useMemo, useState } from "react";
 
@@ -86,6 +85,7 @@ export function ListingForm({
   onSubmit: (value: ListingFormValue) => void;
 }) {
   const { state } = useApp();
+  const categories = state.categories;
   const [form, setForm] = useState<ListingFormValue>(initial ?? emptyForm);
   const [mainFileName, setMainFileName] = useState("");
   const [galleryFileName, setGalleryFileName] = useState("");
@@ -102,7 +102,7 @@ export function ListingForm({
     const file = files?.[0];
     if (!file) return;
     setMainFileName(file.name);
-    const url = await fileToDataUrl(file);
+    const url = await persistImageFile(file);
     set("mainImage", url);
   }
 
@@ -112,7 +112,7 @@ export function ListingForm({
     setGalleryFileName(picked.map((file) => file.name).join(", "));
     const next: string[] = [];
     for (const file of picked) {
-      next.push(await fileToDataUrl(file));
+      next.push(await persistImageFile(file));
     }
     setForm((f) => ({ ...f, gallery: [...f.gallery, ...next].slice(0, 8) }));
   }

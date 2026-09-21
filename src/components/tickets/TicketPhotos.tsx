@@ -1,7 +1,7 @@
 "use client";
 
 import { FileButton } from "@/components/ui/Field";
-import { fileToDataUrl } from "@/lib/images";
+import { persistImageFile } from "@/lib/images";
 import { useState } from "react";
 
 const MAX_PHOTOS = 4;
@@ -56,7 +56,7 @@ export function useTicketPhotos() {
     setFileName(picked.map((file) => file.name).join(", "));
     const next: string[] = [];
     for (const file of picked) {
-      next.push(await fileToDataUrl(file));
+      next.push(await persistImageFile(file));
     }
     setUrls((current) => [...current, ...next].slice(0, MAX_PHOTOS));
   }

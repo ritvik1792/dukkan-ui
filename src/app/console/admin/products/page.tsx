@@ -1,49 +1,87 @@
 "use client";
 
+import { ModerationDialog } from "@/components/moderation/ModerationDialog";
 import {
   ListingForm,
   listingToForm,
   type ListingFormValue,
 } from "@/components/seller/ListingForm";
-import { Field, Select, TextInput } from "@/components/ui/Field";
+import { ShopNameButton } from "@/components/shops/ShopPeek";
+import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
 import { formatInr } from "@/lib/format";
 import { afterPaint } from "@/lib/drawer";
+import { adminConsolePath } from "@/lib/routes";
 import { findCatalogByName } from "@/services/catalog";
+import { activeCaseForListing, caseStatusLabel } from "@/services/moderation";
+import { reviewStats } from "@/services/reviews";
 import { createId } from "@/lib/ids";
-import type { ApprovalStatus } from "@/lib/types";
+import type { Listing, ModerationAction, ModerationReason } from "@/lib/types";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-function visibilityLabel(status: ApprovalStatus) {
+type Row = {
+  listing: Listing;
+  productName: string;
+  brand: string;
+  category: string;
+  shopName: string;
+  visibility: string;
+  rating: number;
+  reviewCount: number;
+  caseStatus: string;
+};
+
+function visibilityLabel(status: Listing["status"]) {
   if (status === "approved") return "Live";
   if (status === "rejected") return "Hidden";
   return "Pending";
 }
 
 export default function AdminProducts() {
-  const { state, dispatch, shopById, catalogById } = useApp();
+  const { user, state, dispatch, shopById, catalogById } = useApp();
   const { showAlert } = useAlert();
-  const [search, setSearch] = useState("");
-  const [shopFilter, setShopFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const router = useRouter();
+  const [pendingAction, setPendingAction] = useState<{
+    listingId: string;
+    action: ModerationAction;
+  } | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [sheetShown, setSheetShown] = useState(false);
 
-  const listings = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return state.listings.filter((listing) => {
-      if (shopFilter && listing.shopId !== shopFilter) return false;
-      if (statusFilter && listing.status !== statusFilter) return false;
-      if (!q) return true;
-      const product = catalogById(listing.catalogProductId);
-      const shop = shopById(listing.shopId);
-      return `${product?.name ?? ""} ${product?.brand ?? ""} ${shop?.name ?? ""}`
-        .toLowerCase()
-        .includes(q);
-    });
-  }, [state.listings, search, shopFilter, statusFilter, catalogById, shopById]);
+  const rows = useMemo<Row[]>(
+    () =>
+      state.listings.map((listing) => {
+        const product = catalogById(listing.catalogProductId);
+        const shop = shopById(listing.shopId);
+        const stats = reviewStats(
+          state.reviews.filter((review) => review.catalogProductId === listing.catalogProductId),
+        );
+        const openCase = activeCaseForListing(state.moderationCases, listing.id);
+        return {
+          listing,
+          productName: product?.name ?? "Unknown product",
+          brand: product?.brand ?? "—",
+          category:
+            state.categories.find((item) => item.id === product?.categoryId)?.name ?? "—",
+          shopName: shop?.name ?? "—",
+          visibility: visibilityLabel(listing.status),
+          rating: stats.average,
+          reviewCount: stats.count,
+          caseStatus: openCase ? caseStatusLabel(openCase.status) : "—",
+        };
+      }),
+    [
+      state.listings,
+      state.reviews,
+      state.categories,
+      state.moderationCases,
+      catalogById,
+      shopById,
+    ],
+  );
 
   const editing = state.listings.find((l) => l.id === editId);
   const editingProduct = editing ? catalogById(editing.catalogProductId) : undefined;
@@ -59,15 +97,66 @@ export default function AdminProducts() {
     window.setTimeout(() => setEditId(null), 320);
   }
 
-  function setVisibility(listingId: string, status: ApprovalStatus) {
-    dispatch({ type: "setListingStatus", listingId, status });
+  function openCase(
+    listing: Listing,
+    action: ModerationAction,
+    reason: ModerationReason,
+    explanation: string,
+  ) {
+    if (!user) return;
+    const now = new Date().toISOString();
+    dispatch({
+      type: "openModerationCase",
+      moderationCase: {
+        id: createId("mod"),
+        listingId: listing.id,
+        shopId: listing.shopId,
+        catalogProductId: listing.catalogProductId,
+        action,
+        reason,
+        explanation,
+        openedByUserId: user.id,
+        status: "open",
+        createdAt: now,
+        updatedAt: now,
+        events: [
+          {
+            id: createId("mev"),
+            kind: "opened",
+            authorId: user.id,
+            authorRole: "admin",
+            body: explanation,
+            createdAt: now,
+          },
+        ],
+      },
+    });
+  }
+
+  function confirmModeration(input: { reason: ModerationReason; explanation: string }) {
+    if (!pendingAction) return;
+    const listing = state.listings.find((item) => item.id === pendingAction.listingId);
+    if (!listing) return;
+    openCase(listing, pendingAction.action, input.reason, input.explanation);
+    if (pendingAction.action === "hide") {
+      dispatch({ type: "setListingStatus", listingId: listing.id, status: "rejected" });
+      showAlert({
+        tone: "success",
+        title: "Product hidden",
+        message: "The seller can dispute this or apply to republish once fixed.",
+      });
+    } else {
+      setEditId(listing.id);
+    }
+    setPendingAction(null);
+  }
+
+  function makeLive(listing: Listing) {
+    dispatch({ type: "setListingStatus", listingId: listing.id, status: "approved" });
     showAlert({
       tone: "success",
-      title: status === "approved" ? "Product is live" : "Product hidden",
-      message:
-        status === "approved"
-          ? "Buyers can see this listing again."
-          : "Removed from the storefront. The seller can still see it.",
+      title: "Product is live",
+      message: "Buyers can see this listing again.",
     });
   }
 
@@ -107,115 +196,177 @@ export default function AdminProducts() {
         tags: form.tags,
       },
     });
-    showAlert({ tone: "success", title: "Product overridden" });
+    showAlert({
+      tone: "success",
+      title: "Product overridden",
+      message: "The seller has your explanation and can dispute or reapply.",
+    });
     closeSheet();
   }
+
+  const columns: Column<Row>[] = [
+    {
+      id: "product",
+      header: "Product",
+      value: (row) => row.productName,
+      filter: { kind: "text", placeholder: "Name contains…" },
+      render: (row) => (
+        <div>
+          <p className="font-medium">{row.productName}</p>
+          <p className="text-xs text-stone-400">{row.brand}</p>
+        </div>
+      ),
+    },
+    {
+      id: "brand",
+      header: "Brand",
+      value: (row) => row.brand,
+      filter: { kind: "select" },
+      defaultHidden: true,
+    },
+    {
+      id: "category",
+      header: "Category",
+      value: (row) => row.category,
+      filter: { kind: "select" },
+      defaultHidden: true,
+    },
+    {
+      id: "shop",
+      header: "Dukkan",
+      value: (row) => row.shopName,
+      filter: { kind: "select" },
+      render: (row) => (
+        <ShopNameButton shopId={row.listing.shopId}>{row.shopName}</ShopNameButton>
+      ),
+    },
+    {
+      id: "price",
+      header: "Price",
+      value: (row) => row.listing.sellerPrice,
+      filter: { kind: "range" },
+      align: "right",
+      render: (row) => formatInr(row.listing.sellerPrice),
+    },
+    {
+      id: "stock",
+      header: "Stock",
+      value: (row) => row.listing.stock,
+      filter: { kind: "range" },
+      align: "right",
+    },
+    {
+      id: "rating",
+      header: "Rating",
+      value: (row) => row.rating,
+      filter: { kind: "range", step: 0.1 },
+      align: "right",
+      render: (row) =>
+        row.reviewCount ? (
+          <span>
+            {row.rating} ★{" "}
+            <span className="text-xs text-stone-400">({row.reviewCount})</span>
+          </span>
+        ) : (
+          <span className="text-xs text-stone-400">No reviews</span>
+        ),
+    },
+    {
+      id: "visibility",
+      header: "Visibility",
+      value: (row) => row.visibility,
+      filter: { kind: "select" },
+      render: (row) => <StatusPill>{row.visibility}</StatusPill>,
+    },
+    {
+      id: "case",
+      header: "Moderation",
+      value: (row) => row.caseStatus,
+      filter: { kind: "select" },
+      render: (row) =>
+        row.caseStatus === "—" ? (
+          <span className="text-xs text-stone-400">—</span>
+        ) : (
+          <span className="text-xs text-amber-700">{row.caseStatus}</span>
+        ),
+    },
+    {
+      id: "actions",
+      header: "",
+      value: () => "",
+      sortable: false,
+      searchable: false,
+      align: "right",
+      render: (row) => (
+        <div
+          className="flex flex-wrap justify-end gap-2"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              setPendingAction({ listingId: row.listing.id, action: "override" })
+            }
+            className="rounded-full border px-3 py-1 text-xs"
+          >
+            Override
+          </button>
+          {row.listing.status === "approved" ? (
+            <button
+              type="button"
+              onClick={() => setPendingAction({ listingId: row.listing.id, action: "hide" })}
+              className="rounded-full border px-3 py-1 text-xs"
+            >
+              Hide
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => makeLive(row.listing)}
+              className="rounded-full bg-ink px-3 py-1 text-xs text-lime"
+            >
+              Make live
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  const pending = pendingAction
+    ? state.listings.find((item) => item.id === pendingAction.listingId)
+    : undefined;
 
   return (
     <div>
       <h1 className="text-2xl font-semibold">Products</h1>
       <p className="mt-1 text-sm text-stone-500">
-        Shops publish without approval. Override a listing if you need to edit, hide, or restore
-        it.
+        Shops publish without approval. Open a row for product details and reviews, or hide and
+        override a listing with an explanation the seller can answer.
       </p>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <Field label="Search">
-          <TextInput
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Product, brand, dukkan"
-          />
-        </Field>
-        <Field label="Dukkan">
-          <Select value={shopFilter} onChange={(e) => setShopFilter(e.target.value)}>
-            <option value="">All dukkans</option>
-            {state.shops.map((shop) => (
-              <option key={shop.id} value={shop.id}>
-                {shop.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Visibility">
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">All</option>
-            <option value="approved">Live</option>
-            <option value="rejected">Hidden</option>
-            <option value="pending">Pending</option>
-          </Select>
-        </Field>
+      <div className="mt-4">
+        <DataTable
+          rows={rows}
+          columns={columns}
+          rowKey={(row) => row.listing.id}
+          onRowClick={(row) => router.push(adminConsolePath(`/products/${row.listing.id}`))}
+          searchPlaceholder="Search product, brand, dukkan, category"
+          searchText={(row) => `${row.listing.id} ${row.listing.color ?? ""} ${row.listing.quality ?? ""}`}
+          initialSort={{ columnId: "product", dir: "asc" }}
+          emptyMessage="No products match these filters."
+        />
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-2xl bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b text-xs uppercase text-stone-400">
-            <tr>
-              <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">Dukkan</th>
-              <th className="px-4 py-3">Price</th>
-              <th className="px-4 py-3">Stock</th>
-              <th className="px-4 py-3">Visibility</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {listings.map((listing) => {
-              const product = catalogById(listing.catalogProductId);
-              const shop = shopById(listing.shopId);
-              return (
-                <tr key={listing.id} className="border-b last:border-0">
-                  <td className="px-4 py-3">
-                    <p className="font-medium">{product?.name}</p>
-                    <p className="text-xs text-stone-400">{product?.brand}</p>
-                  </td>
-                  <td className="px-4 py-3">{shop?.name}</td>
-                  <td className="px-4 py-3">{formatInr(listing.sellerPrice)}</td>
-                  <td className="px-4 py-3">{listing.stock}</td>
-                  <td className="px-4 py-3">
-                    <StatusPill>{visibilityLabel(listing.status)}</StatusPill>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setEditId(listing.id)}
-                        className="rounded-full border px-3 py-1 text-xs"
-                      >
-                        Override
-                      </button>
-                      {listing.status === "approved" ? (
-                        <button
-                          type="button"
-                          onClick={() => setVisibility(listing.id, "rejected")}
-                          className="rounded-full border px-3 py-1 text-xs"
-                        >
-                          Hide
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setVisibility(listing.id, "approved")}
-                          className="rounded-full bg-ink px-3 py-1 text-xs text-lime"
-                        >
-                          Make live
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {listings.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-stone-500">
-                  No products match these filters.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {pending && pendingAction && (
+        <ModerationDialog
+          action={pendingAction.action}
+          productName={catalogById(pending.catalogProductId)?.name ?? "Product"}
+          shopName={shopById(pending.shopId)?.name ?? "Dukkan"}
+          onCancel={() => setPendingAction(null)}
+          onConfirm={confirmModeration}
+        />
+      )}
 
       {editing && editingProduct && (
         <div className="fixed inset-0 z-50">

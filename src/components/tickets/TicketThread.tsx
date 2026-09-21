@@ -4,6 +4,7 @@ import { TicketPhotoGrid, TicketPhotoPicker, useTicketPhotos } from "@/component
 import { Field, Select, TextArea } from "@/components/ui/Field";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useApp } from "@/context/AppContext";
+import { addTicketMessageRequest, mapTicket, patchTicketRequest } from "@/lib/api";
 import { formatDate, titleCase } from "@/lib/format";
 import { shopStaff } from "@/lib/orders";
 import type { Ticket } from "@/lib/types";
@@ -32,16 +33,24 @@ export function TicketThread({
     ? state.orders.find((order) => order.id === ticket.orderId)
     : undefined;
 
-  function send() {
+  async function send() {
     const body = draft.trim();
     if (!user || (!body && photos.urls.length === 0)) return;
-    dispatch({
-      type: "addTicketMessage",
-      ticketId: ticket.id,
-      authorId: user.id,
-      body,
-      imageUrls: photos.urls.length ? photos.urls : undefined,
-    });
+    try {
+      const updated = await addTicketMessageRequest(ticket.id, {
+        body,
+        imageUrls: photos.urls,
+      });
+      dispatch({ type: "upsertTicket", ticket: mapTicket(updated) });
+    } catch {
+      dispatch({
+        type: "addTicketMessage",
+        ticketId: ticket.id,
+        authorId: user.id,
+        body,
+        imageUrls: photos.urls.length ? photos.urls : undefined,
+      });
+    }
     setDraft("");
     photos.clear();
   }
@@ -87,13 +96,13 @@ export function TicketThread({
           <Field label="Assign to">
             <Select
               value={ticket.assignedToUserId ?? ""}
-              onChange={(e) =>
-                dispatch({
-                  type: "assignTicket",
-                  ticketId: ticket.id,
-                  userId: e.target.value,
-                })
-              }
+              onChange={(e) => {
+                const userId = e.target.value;
+                dispatch({ type: "assignTicket", ticketId: ticket.id, userId });
+                void patchTicketRequest(ticket.id, { assignedToUserId: userId }).then((updated) =>
+                  dispatch({ type: "upsertTicket", ticket: mapTicket(updated) }),
+                ).catch(() => undefined);
+              }}
             >
               <option value="">Unassigned</option>
               {assignees.map((person) => (
@@ -143,7 +152,7 @@ export function TicketThread({
             <button
               type="button"
               className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-lime"
-              onClick={send}
+              onClick={() => void send()}
             >
               Send
             </button>
@@ -151,13 +160,16 @@ export function TicketThread({
               <button
                 type="button"
                 className="rounded-full border border-stone-200 px-3 py-1.5 text-xs"
-                onClick={() =>
+                onClick={() => {
                   dispatch({
                     type: "setTicketStatus",
                     ticketId: ticket.id,
                     status: "resolved",
-                  })
-                }
+                  });
+                  void patchTicketRequest(ticket.id, { status: "resolved" }).then((updated) =>
+                    dispatch({ type: "upsertTicket", ticket: mapTicket(updated) }),
+                  ).catch(() => undefined);
+                }}
               >
                 Resolve
               </button>
@@ -166,13 +178,16 @@ export function TicketThread({
               <button
                 type="button"
                 className="rounded-full border border-stone-200 px-3 py-1.5 text-xs"
-                onClick={() =>
+                onClick={() => {
                   dispatch({
                     type: "setTicketHidden",
                     ticketId: ticket.id,
                     hidden: !ticket.hidden,
-                  })
-                }
+                  });
+                  void patchTicketRequest(ticket.id, { hidden: !ticket.hidden }).then((updated) =>
+                    dispatch({ type: "upsertTicket", ticket: mapTicket(updated) }),
+                  ).catch(() => undefined);
+                }}
               >
                 {ticket.hidden ? "Restore" : "Take down"}
               </button>

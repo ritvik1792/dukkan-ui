@@ -11,6 +11,21 @@ export function formatDate(iso: string) {
   });
 }
 
+export function formatRelativeAgo(iso?: string | null) {
+  if (!iso) return "Not confirmed yet";
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return "Not confirmed yet";
+  const diffMs = Date.now() - then;
+  if (diffMs < 0) return "Just now";
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return "Confirmed just now";
+  if (minutes < 60) return `Confirmed ${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 48) return `Confirmed ${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `Confirmed ${days}d ago`;
+}
+
 export function percentOff(base: number, price: number) {
   if (base <= 0 || price >= base) return 0;
   return Math.round(((base - price) / base) * 100);

@@ -1,16 +1,16 @@
 "use client";
 
-import { OrderDetailSheet } from "@/components/orders/OrderDetailSheet";
+import { ShopNameButton } from "@/components/shops/ShopPeek";
 import { OrderIdButton, OrderLineItems, OrderPaymentFacts } from "@/components/orders/OrderFacts";
 import { TicketPhotoGrid } from "@/components/tickets/TicketPhotos";
 import { TicketThread } from "@/components/tickets/TicketThread";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useApp } from "@/context/AppContext";
-import { afterPaint } from "@/lib/drawer";
 import { formatDate, formatInr, titleCase } from "@/lib/format";
 import { normalizeOrderStatus, orderStatusLabel } from "@/lib/orders";
+import { orderDetailPath } from "@/lib/routes";
 import type { Ticket } from "@/lib/types";
-import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export function TicketDetailSheet({
   ticket,
@@ -33,24 +33,7 @@ export function TicketDetailSheet({
   const order = ticket.orderId
     ? state.orders.find((item) => item.id === ticket.orderId)
     : undefined;
-  const [orderOpen, setOrderOpen] = useState(false);
-  const [orderShown, setOrderShown] = useState(false);
-
-  useEffect(() => {
-    if (!orderOpen) return;
-    setOrderShown(false);
-    return afterPaint(() => setOrderShown(true));
-  }, [orderOpen]);
-
-  function openOrder() {
-    if (!order) return;
-    setOrderOpen(true);
-  }
-
-  function closeOrder() {
-    setOrderShown(false);
-    window.setTimeout(() => setOrderOpen(false), 320);
-  }
+  const orderHref = order ? orderDetailPath(order.id, user?.role) : undefined;
 
   return (
     <div className="fixed inset-0 z-50">
@@ -75,7 +58,8 @@ export function TicketDetailSheet({
               {ticket.orderId && (
                 <OrderIdButton
                   orderId={ticket.orderId}
-                  onOpen={order ? () => openOrder() : undefined}
+                  href={orderHref}
+                  openInNewWindow
                 />
               )}
               {order?.paymentRefId ? ` · ${order.paymentRefId}` : ""}
@@ -117,7 +101,9 @@ export function TicketDetailSheet({
               </div>
               <div>
                 <dt className="text-xs text-stone-400">Dukkan</dt>
-                <dd>{shop?.name ?? "—"}</dd>
+                <dd>
+                  <ShopNameButton shopId={shop?.id}>{shop?.name ?? "—"}</ShopNameButton>
+                </dd>
               </div>
               <div>
                 <dt className="text-xs text-stone-400">Assigned to</dt>
@@ -133,7 +119,8 @@ export function TicketDetailSheet({
                   <dd>
                     <OrderIdButton
                       orderId={ticket.orderId}
-                      onOpen={order ? () => openOrder() : undefined}
+                      href={orderHref}
+                      openInNewWindow
                     />
                   </dd>
                 </div>
@@ -153,19 +140,22 @@ export function TicketDetailSheet({
                 <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">
                   Linked order
                 </p>
-                <button
-                  type="button"
-                  className="text-xs underline decoration-stone-300 hover:decoration-ink"
-                  onClick={openOrder}
-                >
-                  Open full order
-                </button>
+                {orderHref && (
+                  <Link
+                    href={orderHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs underline decoration-stone-300 hover:decoration-ink"
+                  >
+                    Open full order
+                  </Link>
+                )}
               </div>
               <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="text-xs text-stone-400">Order ID</dt>
                   <dd>
-                    <OrderIdButton orderId={order.id} onOpen={() => openOrder()} />
+                    <OrderIdButton orderId={order.id} href={orderHref} openInNewWindow />
                   </dd>
                 </div>
                 <div>
@@ -203,22 +193,10 @@ export function TicketDetailSheet({
               canAssign={canAssign}
               canReply
               variant="plain"
-              onOpenOrder={order ? () => openOrder() : undefined}
             />
           </section>
         </div>
       </aside>
-
-      {order && orderOpen && (
-        <div className="relative z-[60]">
-          <OrderDetailSheet
-            order={order}
-            mode={user?.role === "buyer" ? "buyer" : "seller"}
-            shown={orderShown}
-            onClose={closeOrder}
-          />
-        </div>
-      )}
     </div>
   );
 }

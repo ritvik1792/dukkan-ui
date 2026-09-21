@@ -5,7 +5,7 @@ import { Field, Select, TextInput } from "@/components/ui/Field";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
-import { partners } from "@/data/seed";
+import { mapOrder, patchOrderRequest } from "@/lib/api";
 import { formatDate, formatInr, paymentMethodLabel } from "@/lib/format";
 import {
   nextOrderAdvance,
@@ -112,6 +112,9 @@ export default function SellerOrders() {
       return;
     }
     dispatch({ type: "setOrderStatus", orderId: order.id, status: next.status });
+    void patchOrderRequest(order.id, { status: next.status })
+      .then((updated) => dispatch({ type: "upsertOrder", order: mapOrder(updated) }))
+      .catch(() => undefined);
   }
 
   return (
@@ -190,7 +193,7 @@ export default function SellerOrders() {
             {filtered.map((order) => {
               const shop = shopById(order.shopId);
               const buyer = state.users.find((u) => u.id === order.buyerId);
-              const partner = partners.find((p) => p.id === order.partnerId);
+              const partner = state.partners.find((p) => p.id === order.partnerId);
               const status = normalizeOrderStatus(order.status);
               const next = nextOrderAdvance(status);
               const itemLabel = order.items

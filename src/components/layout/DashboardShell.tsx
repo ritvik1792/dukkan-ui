@@ -1,8 +1,15 @@
 "use client";
 
+import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+
+const CONSOLE_HOMES = new Set<string>([
+  ROUTES.consoleDashboard,
+  ROUTES.adminConsole,
+  ROUTES.sellerConsole,
+]);
 
 export type NavLink = { href: string; label: string };
 
@@ -12,8 +19,12 @@ export function DashboardNav({ links }: { links: NavLink[] }) {
     <aside className="dash-nav w-full shrink-0 md:w-52">
       <nav className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible">
         {links.map((l) => {
-          const active =
-            l.href === "/seller" || l.href === "/admin"
+          const exactOnly = links.some(
+            (other) => other.href !== l.href && other.href.startsWith(`${l.href}/`),
+          );
+          const active = CONSOLE_HOMES.has(l.href)
+            ? CONSOLE_HOMES.has(pathname)
+            : exactOnly
               ? pathname === l.href
               : pathname === l.href || pathname.startsWith(`${l.href}/`);
           return (

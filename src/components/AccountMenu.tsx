@@ -3,6 +3,7 @@
 import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { useApp } from "@/context/AppContext";
 import { categories } from "@/data/seed";
+import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
 import { useMotionRouter } from "@/lib/motion";
 import { useEffect, useRef, useState } from "react";
@@ -120,6 +121,13 @@ export function AccountMenu() {
           >
             Sign in
           </button>
+          <Link
+            href={ROUTES.consoleDashboard}
+            onClick={close}
+            className="mt-3 block w-full text-center text-[13px] text-stone-800 hover:text-teal-800 hover:underline"
+          >
+            Console
+          </Link>
         </div>
       )}
 
@@ -200,7 +208,7 @@ export function AccountMenu() {
                 <MenuLink href="/account" onClick={close}>
                   Your Profile
                 </MenuLink>
-              <MenuLink href="/wishlist" onClick={close}>
+              <MenuLink href="/account/wishlist" onClick={close}>
                 Your Wishlist
               </MenuLink>
               <MenuLink href="/account/orders" onClick={close}>
@@ -218,58 +226,14 @@ export function AccountMenu() {
               <MenuLink href="/" onClick={close}>
                 Your recommendations
               </MenuLink>
-              {user.role === "seller" && (
-                <>
-                  <MenuLink href="/seller" onClick={close}>
-                    Your Seller Account
-                  </MenuLink>
-                  <MenuLink href="/seller/products" onClick={close}>
-                    Your listings
-                  </MenuLink>
-                  <MenuLink href="/seller/orders" onClick={close}>
-                    Seller orders
-                  </MenuLink>
-                  <MenuLink href="/seller/promos" onClick={close}>
-                    Sales &amp; coupons
-                  </MenuLink>
-                  <MenuLink href="/seller/reviews" onClick={close}>
-                    Reviews
-                  </MenuLink>
-                  <MenuLink href="/seller/tickets" onClick={close}>
-                    Complaints
-                  </MenuLink>
-                </>
-              )}
               {user.role === "buyer" && (
                 <MenuLink href="/sell" onClick={close}>
-                  Your Seller Account
+                  Sell on Dukkan
                 </MenuLink>
               )}
-              {user.role === "admin" && (
-                <>
-                  <MenuLink href="/admin" onClick={close}>
-                    Admin console
-                  </MenuLink>
-                  <MenuLink href="/admin/applications" onClick={close}>
-                    Join requests
-                  </MenuLink>
-                  <MenuLink href="/admin/products" onClick={close}>
-                    Products
-                  </MenuLink>
-                  <MenuLink href="/admin/tags" onClick={close}>
-                    Tags & coupons
-                  </MenuLink>
-                  <MenuLink href="/admin/reviews" onClick={close}>
-                    Reviews
-                  </MenuLink>
-                  <MenuLink href="/admin/tickets" onClick={close}>
-                    Platform support
-                  </MenuLink>
-                  <MenuLink href="/admin/settings" onClick={close}>
-                    Platform settings
-                  </MenuLink>
-                </>
-              )}
+              <MenuLink href={ROUTES.consoleDashboard} onClick={close}>
+                Console
+              </MenuLink>
             </div>
           </div>
         </div>

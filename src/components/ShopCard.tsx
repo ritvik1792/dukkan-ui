@@ -1,19 +1,28 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
-import { categories } from "@/data/seed";
 import { CATEGORY_HUES } from "@/lib/constants";
 import { formatInr, shopLocality } from "@/lib/format";
 import { formatDistance } from "@/lib/geo";
 import { ROUTES } from "@/lib/routes";
 import type { NearbyShop } from "@/lib/types";
 import { shopPromoLines } from "@/services/catalog";
+import { isShopOpenNow } from "@/lib/shopOps";
 import Link from "next/link";
 
 function ShopArt({ shop }: { shop: NearbyShop }) {
+  const { state } = useApp();
   const primary = shop.categoryIds[0] ?? "grocery";
   const hue = CATEGORY_HUES[primary] ?? 150;
-  const emoji = categories.find((c) => c.id === primary)?.emoji ?? "🏪";
+  const emoji = state.categories.find((c) => c.id === primary)?.emoji ?? "🏪";
+  if (shop.imageUrl) {
+    return (
+      <div className="relative h-44 overflow-hidden sm:h-48">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={shop.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -51,7 +60,7 @@ function StarMark() {
 export function ShopCard({ shop }: { shop: NearbyShop }) {
   const { selectShop, state } = useApp();
   const categoryNames = shop.categoryIds
-    .map((id) => categories.find((c) => c.id === id)?.name)
+    .map((id) => state.categories.find((c) => c.id === id)?.name)
     .filter(Boolean)
     .slice(0, 2);
   const promos = shopPromoLines(shop, state.listings, state.coupons, state.promoTags);
@@ -66,6 +75,11 @@ export function ShopCard({ shop }: { shop: NearbyShop }) {
     >
       <div className="relative">
         <ShopArt shop={shop} />
+        {!isShopOpenNow(shop) && (
+          <span className="absolute left-3 top-3 rounded-md bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+            Closed
+          </span>
+        )}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-3 pb-3 pt-12">
           <div className="flex items-end justify-between gap-2">
             <h3 className="min-w-0 line-clamp-2 text-[17px] font-bold leading-tight text-white drop-shadow">

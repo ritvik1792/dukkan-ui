@@ -3,24 +3,24 @@
 import { AccountMenu } from "@/components/AccountMenu";
 import { CategoryList } from "@/components/CategoryNav";
 import { LogoMark } from "@/components/LogoMark";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useAuthDialog } from "@/components/auth/AuthDialog";
+import { LocationChip } from "@/components/location/LocationChip";
 import { useApp } from "@/context/AppContext";
-import { neighborhoods } from "@/data/seed";
 import { afterPaint } from "@/lib/drawer";
 import { useMotionRouter } from "@/lib/motion";
+import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 export function Header() {
-  const { user, neighborhood, cartCount, dispatch, state } = useApp();
+  const { user, cartCount, state } = useApp();
   const { openAuth } = useAuthDialog();
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuShown, setMenuShown] = useState(false);
   const [menuRender, setMenuRender] = useState(false);
   const router = useMotionRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     if (menuOpen) {
@@ -62,22 +62,7 @@ export function Header() {
           </div>
         </Link>
 
-        <label className="hidden min-w-0 md:block">
-          <span className="sr-only">Delivery location</span>
-          <select
-            value={neighborhood.id}
-            onChange={(e) =>
-              dispatch({ type: "setNeighborhood", neighborhoodId: e.target.value })
-            }
-            className="max-w-[220px] rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm"
-          >
-            {neighborhoods.map((n) => (
-              <option key={n.id} value={n.id} className="text-ink">
-                {n.name}, {n.area}
-              </option>
-            ))}
-          </select>
-        </label>
+        <LocationChip className="hidden max-w-[220px] md:flex" />
 
         <form onSubmit={onSearch} className="hidden flex-1 md:block">
           <input
@@ -89,22 +74,13 @@ export function Header() {
         </form>
 
         <nav className="ml-auto flex items-center gap-1 text-sm">
-          {user?.role === "seller" && (
-            <Link
-              href="/seller"
-              className={`hidden rounded-xl px-3 py-2 sm:block ${pathname.startsWith("/seller") ? "bg-white/15" : "hover:bg-white/10"}`}
-            >
-              Seller
-            </Link>
-          )}
-          {user?.role === "admin" && (
-            <Link
-              href="/admin"
-              className={`hidden rounded-xl px-3 py-2 sm:block ${pathname.startsWith("/admin") ? "bg-white/15" : "hover:bg-white/10"}`}
-            >
-              Admin
-            </Link>
-          )}
+          <Link
+            href={ROUTES.consoleDashboard}
+            className="hidden rounded-xl px-3 py-2 hover:bg-white/10 sm:block"
+          >
+            Console
+          </Link>
+          <NotificationBell />
           <Link
             href="/cart"
             className="relative rounded-xl bg-lime px-3 py-2 font-semibold text-ink"
@@ -125,19 +101,7 @@ export function Header() {
       </div>
 
       <div className="page-shell flex gap-2 pb-3 md:hidden">
-        <select
-          value={neighborhood.id}
-          onChange={(e) =>
-            dispatch({ type: "setNeighborhood", neighborhoodId: e.target.value })
-          }
-          className="rounded-xl border border-white/15 bg-white/10 px-2 py-2 text-xs"
-        >
-          {neighborhoods.map((n) => (
-            <option key={n.id} value={n.id} className="text-ink">
-              {n.name}
-            </option>
-          ))}
-        </select>
+        <LocationChip className="max-w-[9.5rem] shrink-0 px-2 py-1.5" />
         <form onSubmit={onSearch} className="flex-1">
           <input
             value={query}
@@ -180,7 +144,7 @@ export function Header() {
                   <Link href="/account" onClick={() => setMenuOpen(false)} className="block py-1">
                     Profile
                   </Link>
-                  <Link href="/wishlist" onClick={() => setMenuOpen(false)} className="block py-1">
+                  <Link href="/account/wishlist" onClick={() => setMenuOpen(false)} className="block py-1">
                     Wishlist
                   </Link>
                   <Link href="/account/orders" onClick={() => setMenuOpen(false)} className="block py-1">
@@ -189,15 +153,16 @@ export function Header() {
                   <Link href="/account/tickets" onClick={() => setMenuOpen(false)} className="block py-1">
                     Support
                   </Link>
+                  <Link
+                    href={ROUTES.consoleDashboard}
+                    onClick={() => setMenuOpen(false)}
+                    className="block py-1"
+                  >
+                    Console
+                  </Link>
                 </>
               ) : (
                 <>
-                  <Link href="/account" onClick={() => setMenuOpen(false)} className="block py-1">
-                    Profile
-                  </Link>
-                  <Link href="/wishlist" onClick={() => setMenuOpen(false)} className="block py-1">
-                    Wishlist
-                  </Link>
                   <button
                     type="button"
                     onClick={() => {
@@ -208,6 +173,13 @@ export function Header() {
                   >
                     Sign in
                   </button>
+                  <Link
+                    href={ROUTES.consoleDashboard}
+                    onClick={() => setMenuOpen(false)}
+                    className="block py-1"
+                  >
+                    Console
+                  </Link>
                 </>
               )}
               <Link href="/sell" onClick={() => setMenuOpen(false)} className="block py-1">

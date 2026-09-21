@@ -1,6 +1,6 @@
 "use client";
 
-import { categories } from "@/data/seed";
+import { useApp } from "@/context/AppContext";
 import { CATEGORY_HUES } from "@/lib/constants";
 import Link from "next/link";
 
@@ -11,6 +11,8 @@ export function CategoryList({
   activeId?: string;
   onSelect?: () => void;
 }) {
+  const { state } = useApp();
+  const categories = state.categories;
   return (
     <nav className="space-y-1">
       <Link
@@ -43,6 +45,8 @@ export function CategoryChips({
 }: {
   activeId?: string;
 }) {
+  const { state } = useApp();
+  const categories = state.categories;
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
       <Link
@@ -69,6 +73,8 @@ export function CategoryChips({
 }
 
 export function CategoryCircles() {
+  const { state } = useApp();
+  const categories = state.categories;
   return (
     <>
       {categories.map((c) => (
