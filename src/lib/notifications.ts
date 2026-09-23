@@ -11,6 +11,7 @@ import type {
   AppNotificationKind,
   Order,
   OrderStatus,
+  ProductRequest,
   Review,
   Shop,
   ShopSlaStep,
@@ -22,6 +23,9 @@ export const NOTIFICATION_CAP = 80;
 type ShopLookup = { shops: Shop[] };
 
 export function notificationHref(item: AppNotification, role?: string) {
+  if (item.kind === "stock_confirmation") {
+    return sellerConsolePath("/requests");
+  }
   if (item.kind === "review" && item.reviewId) {
     const q = `review=${encodeURIComponent(item.reviewId)}`;
     if (role === "admin") return `${adminConsolePath("/reviews")}?${q}`;
@@ -48,11 +52,14 @@ export function mergeNotifications(list: AppNotification[], incoming: AppNotific
   return [...extra, ...list].slice(0, NOTIFICATION_CAP);
 }
 
-function note(input: Omit<AppNotification, "id" | "createdAt">): AppNotification {
+function note(
+  input: Omit<AppNotification, "id" | "createdAt"> & { createdAt?: string },
+): AppNotification {
+  const { createdAt, ...rest } = input;
   return {
-    ...input,
+    ...rest,
     id: createId("ntf"),
-    createdAt: new Date().toISOString(),
+    createdAt: createdAt ?? new Date().toISOString(),
   };
 }
 
@@ -134,6 +141,46 @@ export function notificationsForTicket(state: ShopLookup, ticket: Ticket): AppNo
       dedupeKey: `ticket:${ticket.id}`,
     }),
   ];
+}
+
+/** Bell items for open stock-confirmation / availability requests (client-composed). */
+export function notificationsForMerchantAvailability(input: {
+  shops: Shop[];
+  rows: Array<{
+    request: ProductRequest;
+    shopId: string;
+    status: string;
+    notifiedAt?: string;
+  }>;
+  productName?: (catalogProductId: string) => string | undefined;
+}): AppNotification[] {
+  const out: AppNotification[] = [];
+  for (const row of input.rows) {
+    if (row.status !== "NOTIFIED" && row.status !== "VIEWED") continue;
+    const shop = ownerOf(input.shops, row.shopId);
+    if (!shop) continue;
+    const prefs = shopAlertPrefs(shop);
+    if (!prefs.stockConfirmation) continue;
+    const name =
+      input.productName?.(row.request.catalogProductId) ??
+      row.request.queryText ??
+      row.request.catalogProductId;
+    const budget =
+      row.request.maxBudget != null ? ` · under ₹${Math.round(row.request.maxBudget)}` : "";
+    out.push(
+      note({
+        userId: shop.ownerUserId,
+        shopId: shop.id,
+        kind: "stock_confirmation",
+        title: "New customer request",
+        message: `${name}${budget}`,
+        requestId: row.request.id,
+        dedupeKey: `availability:${row.request.id}:${row.shopId}`,
+        createdAt: row.notifiedAt ?? row.request.createdAt,
+      }),
+    );
+  }
+  return out;
 }
 
 function statusEnteredAt(order: Order, status: OrderStatus) {

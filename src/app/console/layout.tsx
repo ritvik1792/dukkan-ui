@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "Dukkan Console",
-  description: "Seller and admin console for Dukkan.",
+  title: "GreenOwl Console",
+  description: "Provider and admin console for GreenOwl.",
 };
 
 export default function ConsoleLayout({ children }: { children: ReactNode }) {

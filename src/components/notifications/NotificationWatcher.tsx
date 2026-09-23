@@ -2,11 +2,17 @@
 
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
-import { alertTone, notificationHref, slaNotificationsDue } from "@/lib/notifications";
+import { fetchMerchantRequests, mapProductRequest } from "@/lib/api";
+import {
+  alertTone,
+  notificationHref,
+  notificationsForMerchantAvailability,
+  slaNotificationsDue,
+} from "@/lib/notifications";
 import { useEffect, useRef } from "react";
 
 export function NotificationWatcher() {
-  const { state, user, isAuthenticated, dispatch } = useApp();
+  const { state, user, isAuthenticated, dispatch, catalogById } = useApp();
   const { showAlert } = useAlert();
   const primedFor = useRef<string | null>(null);
   const seen = useRef(new Set<string>());
@@ -60,6 +66,45 @@ export function NotificationWatcher() {
     const timer = window.setInterval(tick, 20_000);
     return () => window.clearInterval(timer);
   }, [state.hydrated, state.shops, state.orders, state.notifications, dispatch]);
+
+  useEffect(() => {
+    if (!state.hydrated || !isAuthenticated || !user) return;
+    if (user.role !== "seller" && user.role !== "admin") return;
+
+    let cancelled = false;
+
+    async function pollMerchantRequests() {
+      try {
+        const payload = await fetchMerchantRequests();
+        if (cancelled) return;
+        const rows = payload.map((row) => ({
+          request: mapProductRequest(row.request),
+          shopId: row.shopId,
+          status: row.requestShop.status,
+          notifiedAt: row.requestShop.notifiedAt ?? undefined,
+        }));
+        const incoming = notificationsForMerchantAvailability({
+          shops: state.shops,
+          rows,
+          productName: (id) => catalogById(id)?.name,
+        });
+        for (const item of incoming) {
+          dispatch({ type: "addNotification", notification: item });
+        }
+      } catch {
+        /* seller may not have shops yet; ignore poll errors */
+      }
+    }
+
+    void pollMerchantRequests();
+    const timer = window.setInterval(() => {
+      void pollMerchantRequests();
+    }, 8_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [state.hydrated, state.shops, isAuthenticated, user, catalogById, dispatch]);
 
   return null;
 }

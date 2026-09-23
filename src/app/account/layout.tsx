@@ -8,11 +8,13 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
 const links = [
-  { href: "/account", label: "Personal details" },
+  { href: "/account", label: "Profile" },
   { href: "/account?tab=addresses", label: "Saved addresses" },
   { href: "/account?tab=payments", label: "Saved payment methods" },
   { href: "/account/orders", label: "Orders" },
-  { href: "/account/wishlist", label: "Wishlist" },
+  { href: "/account/bookings", label: "Bookings" },
+  { href: "/account/service-requests", label: "Service requests" },
+  { href: "/account/wishlist", label: "Saved" },
   { href: "/account/tickets", label: "Support" },
 ];
 

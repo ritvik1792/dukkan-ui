@@ -11,8 +11,8 @@ export const GEO_MAX_AGE_MS = 5 * 60_000;
 export const AREA_LABEL_MAX_KM = 15;
 
 export const BRAND = {
-  name: "Dukkan",
-  tagline: "Nearby shops. Fast delivery.",
+  name: "GreenOwl",
+  tagline: "Products, shops & services near you.",
 };
 
 export const STORAGE_KEY = "dukkan-frontend-state-v5";

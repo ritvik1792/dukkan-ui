@@ -156,7 +156,7 @@ export function AccountMenu() {
               <p className="text-[15px] font-bold">Your shopping</p>
               <div className="mt-2">
                 <MenuLink href="/" onClick={close}>
-                  Nearby dukkans
+                  Nearby providers
                 </MenuLink>
                 <MenuLink href="/search" onClick={close}>
                   Search products
@@ -173,7 +173,7 @@ export function AccountMenu() {
                   </MenuLink>
                 ))}
                 <MenuLink href="/sell" onClick={close}>
-                  Sell on Dukkan
+                  Sell on GreenOwl
                 </MenuLink>
               </div>
             </div>
@@ -228,7 +228,7 @@ export function AccountMenu() {
               </MenuLink>
               {user.role === "buyer" && (
                 <MenuLink href="/sell" onClick={close}>
-                  Sell on Dukkan
+                  Sell on GreenOwl
                 </MenuLink>
               )}
               <MenuLink href={ROUTES.consoleDashboard} onClick={close}>

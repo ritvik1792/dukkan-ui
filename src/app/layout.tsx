@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
@@ -14,12 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dukkan — nearby shops, fast delivery",
+  title: "GreenOwl — products, shops & services near you",
   description:
-    "Upload products like Amazon, find local dukkans like IndiaMART, and get Zepto-style delivery inside a configurable radius.",
+    "Discover local products, shops, services, and people near you. Book appointments or request help on GreenOwl.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"

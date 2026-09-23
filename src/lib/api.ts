@@ -20,6 +20,15 @@ import type {
   Review,
   Role,
   SellerApplication,
+  Booking,
+  BookingStatus,
+  ProviderService,
+  ProviderType,
+  SearchFilter,
+  SearchResults,
+  ServiceRequest,
+  ServiceRequestStatus,
+  ServiceStatus,
   Shop,
   ShopEmployee,
   ShopEmployeeRole,
@@ -27,6 +36,7 @@ import type {
   ShopTransport,
   ShopTransportKind,
   TagKind,
+  VerificationStatus,
   Ticket,
   TicketKind,
   TicketMessage,
@@ -98,6 +108,25 @@ export function setToken(token: string | null) {
   else window.localStorage.removeItem(API_TOKEN_KEY);
 }
 
+const PUBLIC_API_PATHS = new Set([
+  "/api/health",
+  "/api/auth/login",
+  "/api/auth/signup",
+  "/api/auth/otp/request",
+  "/api/auth/otp/verify",
+  "/api/search",
+  "/api/services",
+  "/api/providers",
+]);
+
+function apiPath(path: string) {
+  return path.split("?")[0] ?? path;
+}
+
+function isPublicApiPath(path: string) {
+  return PUBLIC_API_PATHS.has(apiPath(path));
+}
+
 export function resolveMediaUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
   if (url.startsWith("http") || url.startsWith("data:") || url.startsWith("blob:")) return url;
@@ -113,12 +142,15 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (init.body && !isForm && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  if (token && !headers.has("Authorization")) {
+  if (token && !isPublicApiPath(path) && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
   const res = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
   if (!res.ok) {
+    if (res.status === 401 && token && !isPublicApiPath(path)) {
+      setToken(null);
+    }
     let detail = res.statusText;
     try {
       const body = (await res.json()) as { message?: string; error?: string };
@@ -314,6 +346,15 @@ export function patchShopRequest(
     notifyOrderReceived?: boolean;
     notifyOrderStatus?: boolean;
     notifyStockConfirmation?: boolean;
+    providerType?: ProviderType;
+    productsAllowed?: boolean;
+    servicesAllowed?: boolean;
+    bookingsAllowed?: boolean;
+    serviceRequestsAllowed?: boolean;
+    ordersAllowed?: boolean;
+    quickDeliveryAllowed?: boolean;
+    serviceArea?: string;
+    profession?: string;
   },
 ) {
   return apiFetch<RawShop>(`/api/shops/${shopId}`, {
@@ -499,6 +540,7 @@ export type RawProductRequest = {
   catalogProductId: string;
   listingId?: string | null;
   queryText?: string | null;
+  maxBudget?: number | string | null;
   buyerLat: number;
   buyerLng: number;
   status: string;
@@ -534,6 +576,7 @@ export function createProductRequest(input: {
   queryText?: string;
   buyerLat: number;
   buyerLng: number;
+  maxBudget?: number;
 }) {
   return apiFetch<{ request: RawProductRequest; shops: unknown[]; notifiedCount?: number }>(
     "/api/product-requests",
@@ -616,6 +659,7 @@ export function mapProductRequest(raw: RawProductRequest): ProductRequest {
     catalogProductId: raw.catalogProductId,
     listingId: raw.listingId ?? undefined,
     queryText: raw.queryText ?? undefined,
+    maxBudget: raw.maxBudget == null || raw.maxBudget === "" ? undefined : asNumber(raw.maxBudget),
     buyerLat: asNumber(raw.buyerLat),
     buyerLng: asNumber(raw.buyerLng),
     status: raw.status as ProductRequest["status"],
@@ -827,6 +871,16 @@ export type RawShop = {
   notifyOrderReceived?: boolean | null;
   notifyOrderStatus?: boolean | null;
   notifyStockConfirmation?: boolean | null;
+  providerType?: string | null;
+  productsAllowed?: boolean | null;
+  servicesAllowed?: boolean | null;
+  bookingsAllowed?: boolean | null;
+  serviceRequestsAllowed?: boolean | null;
+  ordersAllowed?: boolean | null;
+  quickDeliveryAllowed?: boolean | null;
+  verificationStatus?: string | null;
+  serviceArea?: string | null;
+  profession?: string | null;
 };
 
 type RawShopEmployee = {
@@ -993,7 +1047,15 @@ export function asNumber(value: unknown, fallback = 0): number {
 }
 
 function asEnum<T extends string>(value: unknown, fallback: T): T {
-  return (typeof value === "string" ? value.toLowerCase() : fallback) as T;
+  if (typeof value !== "string") return fallback;
+  const lower = value.toLowerCase();
+  if (lower === fallback) return fallback;
+  return (value.includes("_") ? value.toUpperCase() : lower) as T;
+}
+
+function asUpperEnum<T extends string>(value: unknown, fallback: T): T {
+  if (typeof value !== "string") return fallback;
+  return value.trim().toUpperCase() as T;
 }
 
 function asIso(value: unknown): string {
@@ -1032,7 +1094,419 @@ export function mapShop(raw: RawShop): Shop {
     notifyOrderReceived: raw.notifyOrderReceived ?? true,
     notifyOrderStatus: raw.notifyOrderStatus ?? true,
     notifyStockConfirmation: raw.notifyStockConfirmation ?? true,
+    providerType: asUpperEnum<ProviderType>(
+      raw.providerType,
+      "PRODUCT_BUSINESS",
+    ),
+    productsAllowed: raw.productsAllowed ?? true,
+    servicesAllowed: Boolean(raw.servicesAllowed),
+    bookingsAllowed: Boolean(raw.bookingsAllowed),
+    serviceRequestsAllowed: Boolean(raw.serviceRequestsAllowed),
+    ordersAllowed: raw.ordersAllowed ?? true,
+    quickDeliveryAllowed: Boolean(raw.quickDeliveryAllowed),
+    verificationStatus: asUpperEnum<VerificationStatus>(
+      raw.verificationStatus,
+      "UNVERIFIED",
+    ),
+    serviceArea: raw.serviceArea ?? undefined,
+    profession: raw.profession ?? undefined,
   });
+}
+
+export type RawProviderService = {
+  id: string;
+  providerId: string;
+  name: string;
+  description?: string | null;
+  categoryId?: string | null;
+  price?: number | string | null;
+  startingPrice?: number | string | null;
+  durationMinutes?: number | null;
+  serviceArea?: string | null;
+  bookingEnabled: boolean;
+  requestEnabled?: boolean;
+  imageUrl?: string | null;
+  imageUrls?: string[] | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RawBooking = {
+  id: string;
+  customerId: string;
+  providerId: string;
+  serviceId: string;
+  scheduledStart: string;
+  scheduledEnd?: string | null;
+  status: string;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RawServiceRequest = {
+  id: string;
+  customerId: string;
+  providerId: string;
+  serviceId: string;
+  customerAddress: string;
+  customerLat?: number | null;
+  customerLng?: number | null;
+  description?: string | null;
+  preferredTime?: string | null;
+  contactPhone?: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RawSearchResponse = {
+  query: string;
+  filter: string;
+  products: {
+    id: string;
+    name: string;
+    brand: string;
+    categoryId: string;
+    description?: string | null;
+    imageUrl?: string | null;
+    imageLabel?: string | null;
+    imageHue?: number | null;
+    type: string;
+  }[];
+  shops: RawShop[];
+  services: {
+    id: string;
+    name: string;
+    description?: string | null;
+    categoryId?: string | null;
+    price?: number | string | null;
+    startingPrice?: number | string | null;
+    durationMinutes?: number | null;
+    serviceArea?: string | null;
+    bookingEnabled: boolean;
+    requestEnabled: boolean;
+    imageUrl?: string | null;
+    providerId: string;
+    providerName: string;
+    providerProfession?: string | null;
+    providerRating?: number | string | null;
+    distanceKm?: number | null;
+    type: string;
+  }[];
+  people: {
+    id: string;
+    name: string;
+    profession?: string | null;
+    serviceArea?: string | null;
+    description?: string | null;
+    imageUrl?: string | null;
+    rating?: number | string | null;
+    startingPrice?: number | string | null;
+    distanceKm?: number | null;
+    serviceNames?: string[] | null;
+    type: string;
+  }[];
+};
+
+export function mapProviderService(raw: RawProviderService): ProviderService {
+  return {
+    id: raw.id,
+    providerId: raw.providerId,
+    name: raw.name,
+    description: raw.description ?? undefined,
+    categoryId: raw.categoryId ?? undefined,
+    price: raw.price == null ? undefined : asNumber(raw.price),
+    startingPrice: raw.startingPrice == null ? undefined : asNumber(raw.startingPrice),
+    durationMinutes: raw.durationMinutes ?? undefined,
+    serviceArea: raw.serviceArea ?? undefined,
+    bookingEnabled: Boolean(raw.bookingEnabled),
+    requestEnabled: raw.requestEnabled !== false,
+    imageUrl: resolveMediaUrl(raw.imageUrl),
+    imageUrls: (raw.imageUrls ?? []).map((url) => resolveMediaUrl(url) ?? url),
+    status: asUpperEnum<ServiceStatus>(raw.status, "ACTIVE"),
+    createdAt: asIso(raw.createdAt),
+    updatedAt: asIso(raw.updatedAt),
+  };
+}
+
+export function mapBooking(raw: RawBooking): Booking {
+  return {
+    id: raw.id,
+    customerId: raw.customerId,
+    providerId: raw.providerId,
+    serviceId: raw.serviceId,
+    scheduledStart: asIso(raw.scheduledStart),
+    scheduledEnd: raw.scheduledEnd ? asIso(raw.scheduledEnd) : undefined,
+    status: asUpperEnum<BookingStatus>(raw.status, "PENDING"),
+    notes: raw.notes ?? undefined,
+    createdAt: asIso(raw.createdAt),
+    updatedAt: asIso(raw.updatedAt),
+  };
+}
+
+export function mapServiceRequest(raw: RawServiceRequest): ServiceRequest {
+  return {
+    id: raw.id,
+    customerId: raw.customerId,
+    providerId: raw.providerId,
+    serviceId: raw.serviceId,
+    customerAddress: raw.customerAddress,
+    customerLat: raw.customerLat ?? undefined,
+    customerLng: raw.customerLng ?? undefined,
+    description: raw.description ?? undefined,
+    preferredTime: raw.preferredTime ? asIso(raw.preferredTime) : undefined,
+    contactPhone: raw.contactPhone ?? undefined,
+    status: asUpperEnum<ServiceRequestStatus>(raw.status, "REQUESTED"),
+    createdAt: asIso(raw.createdAt),
+    updatedAt: asIso(raw.updatedAt),
+  };
+}
+
+export function mapSearchResponse(raw: RawSearchResponse): SearchResults {
+  const filter = (raw.filter?.toLowerCase() ?? "all") as SearchFilter;
+  return {
+    query: raw.query ?? "",
+    filter: ["all", "products", "shops", "services", "people"].includes(filter)
+      ? filter
+      : "all",
+    products: (raw.products ?? []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      brand: p.brand,
+      categoryId: p.categoryId,
+      description: p.description ?? undefined,
+      imageUrl: resolveMediaUrl(p.imageUrl),
+      imageLabel: p.imageLabel ?? undefined,
+      imageHue: p.imageHue ?? undefined,
+      type: "product" as const,
+    })),
+    shops: (raw.shops ?? []).map(mapShop),
+    services: (raw.services ?? []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description ?? undefined,
+      categoryId: s.categoryId ?? undefined,
+      price: s.price == null ? undefined : asNumber(s.price),
+      startingPrice: s.startingPrice == null ? undefined : asNumber(s.startingPrice),
+      durationMinutes: s.durationMinutes ?? undefined,
+      serviceArea: s.serviceArea ?? undefined,
+      bookingEnabled: Boolean(s.bookingEnabled),
+      requestEnabled: Boolean(s.requestEnabled),
+      imageUrl: resolveMediaUrl(s.imageUrl),
+      providerId: s.providerId,
+      providerName: s.providerName,
+      providerProfession: s.providerProfession ?? undefined,
+      providerRating:
+        s.providerRating == null ? undefined : asNumber(s.providerRating),
+      distanceKm: s.distanceKm ?? undefined,
+      type: "service" as const,
+    })),
+    people: (raw.people ?? []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      profession: p.profession ?? undefined,
+      serviceArea: p.serviceArea ?? undefined,
+      description: p.description ?? undefined,
+      imageUrl: resolveMediaUrl(p.imageUrl),
+      rating: p.rating == null ? undefined : asNumber(p.rating),
+      startingPrice: p.startingPrice == null ? undefined : asNumber(p.startingPrice),
+      distanceKm: p.distanceKm ?? undefined,
+      serviceNames: p.serviceNames ?? [],
+      type: "person" as const,
+    })),
+  };
+}
+
+export function fetchSearch(input: {
+  q?: string;
+  filter?: SearchFilter;
+  lat?: number;
+  lng?: number;
+  category?: string;
+}) {
+  const params = new URLSearchParams();
+  if (input.q) params.set("q", input.q);
+  if (input.filter && input.filter !== "all") params.set("filter", input.filter);
+  if (input.lat != null) params.set("lat", String(input.lat));
+  if (input.lng != null) params.set("lng", String(input.lng));
+  if (input.category) params.set("category", input.category);
+  const suffix = params.size ? `?${params}` : "";
+  return apiFetch<RawSearchResponse>(`/api/search${suffix}`).then(mapSearchResponse);
+}
+
+export function fetchProviderProfile(providerId: string) {
+  return apiFetch<{ provider: RawShop; services: RawProviderService[] }>(
+    `/api/providers/${encodeURIComponent(providerId)}`,
+  ).then((raw) => ({
+    provider: mapShop(raw.provider),
+    services: raw.services.map(mapProviderService),
+  }));
+}
+
+export function createProviderRequest(input: {
+  name: string;
+  description?: string;
+  address: string;
+  lat?: number;
+  lng?: number;
+  categoryIds?: string[];
+  providerType?: ProviderType;
+  profession?: string;
+  serviceArea?: string;
+  phone?: string;
+  imageUrl?: string;
+}) {
+  return apiFetch<RawShop>("/api/providers", {
+    method: "POST",
+    body: JSON.stringify(input),
+  }).then(mapShop);
+}
+
+export function fetchPublicServices(providerId?: string) {
+  const suffix = providerId ? `?providerId=${encodeURIComponent(providerId)}` : "";
+  return apiFetch<RawProviderService[]>(`/api/services${suffix}`).then((rows) =>
+    rows.map(mapProviderService),
+  );
+}
+
+export function fetchServiceById(id: string) {
+  return apiFetch<RawProviderService>(`/api/services/${encodeURIComponent(id)}`).then(
+    mapProviderService,
+  );
+}
+
+export function fetchSellerServices(providerId?: string) {
+  const suffix = providerId ? `?providerId=${encodeURIComponent(providerId)}` : "";
+  return apiFetch<RawProviderService[]>(`/api/seller/services${suffix}`).then((rows) =>
+    rows.map(mapProviderService),
+  );
+}
+
+export function createSellerService(
+  input: {
+    name: string;
+    description?: string;
+    categoryId?: string;
+    price?: number;
+    startingPrice?: number;
+    durationMinutes?: number;
+    serviceArea?: string;
+    bookingEnabled?: boolean;
+    requestEnabled?: boolean;
+    imageUrl?: string;
+    imageUrls?: string[];
+    status?: ServiceStatus;
+  },
+  providerId?: string,
+) {
+  const suffix = providerId ? `?providerId=${encodeURIComponent(providerId)}` : "";
+  return apiFetch<RawProviderService>(`/api/seller/services${suffix}`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  }).then(mapProviderService);
+}
+
+export function patchSellerService(
+  id: string,
+  input: {
+    name?: string;
+    description?: string;
+    categoryId?: string;
+    price?: number;
+    startingPrice?: number;
+    durationMinutes?: number;
+    serviceArea?: string;
+    bookingEnabled?: boolean;
+    requestEnabled?: boolean;
+    imageUrl?: string;
+    imageUrls?: string[];
+    status?: ServiceStatus;
+  },
+) {
+  return apiFetch<RawProviderService>(`/api/seller/services/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  }).then(mapProviderService);
+}
+
+export function deleteSellerService(id: string) {
+  return apiFetch<void>(`/api/seller/services/${id}`, { method: "DELETE" });
+}
+
+export function createBookingRequest(input: {
+  serviceId: string;
+  scheduledStart: string;
+  scheduledEnd?: string;
+  notes?: string;
+}) {
+  return apiFetch<RawBooking>("/api/bookings", {
+    method: "POST",
+    body: JSON.stringify(input),
+  }).then(mapBooking);
+}
+
+export function fetchMyBookings() {
+  return apiFetch<RawBooking[]>("/api/bookings/mine").then((rows) => rows.map(mapBooking));
+}
+
+export function fetchSellerBookings(input?: { providerId?: string; status?: BookingStatus }) {
+  const params = new URLSearchParams();
+  if (input?.providerId) params.set("providerId", input.providerId);
+  if (input?.status) params.set("status", input.status);
+  const suffix = params.size ? `?${params}` : "";
+  return apiFetch<RawBooking[]>(`/api/seller/bookings${suffix}`).then((rows) =>
+    rows.map(mapBooking),
+  );
+}
+
+export function patchBookingStatus(id: string, status: BookingStatus) {
+  return apiFetch<RawBooking>(`/api/bookings/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  }).then(mapBooking);
+}
+
+export function createServiceRequest(input: {
+  serviceId: string;
+  customerAddress: string;
+  customerLat?: number;
+  customerLng?: number;
+  description?: string;
+  preferredTime?: string;
+  contactPhone?: string;
+}) {
+  return apiFetch<RawServiceRequest>("/api/service-requests", {
+    method: "POST",
+    body: JSON.stringify(input),
+  }).then(mapServiceRequest);
+}
+
+export function fetchMyServiceRequests() {
+  return apiFetch<RawServiceRequest[]>("/api/service-requests/mine").then((rows) =>
+    rows.map(mapServiceRequest),
+  );
+}
+
+export function fetchSellerServiceRequests(input?: {
+  providerId?: string;
+  status?: ServiceRequestStatus;
+}) {
+  const params = new URLSearchParams();
+  if (input?.providerId) params.set("providerId", input.providerId);
+  if (input?.status) params.set("status", input.status);
+  const suffix = params.size ? `?${params}` : "";
+  return apiFetch<RawServiceRequest[]>(`/api/seller/service-requests${suffix}`).then((rows) =>
+    rows.map(mapServiceRequest),
+  );
+}
+
+export function patchServiceRequestStatus(id: string, status: ServiceRequestStatus) {
+  return apiFetch<RawServiceRequest>(`/api/service-requests/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  }).then(mapServiceRequest);
 }
 
 function mapShopEmployee(raw: RawShopEmployee): ShopEmployee {

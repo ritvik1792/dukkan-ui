@@ -4,9 +4,9 @@ import { RequireAuth } from "@/components/auth/RequireAuth";
 import { LocationCapture } from "@/components/location/LocationCapture";
 import { Field, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { useApp } from "@/context/AppContext";
-import { createApplicationRequest, mapApplication, mapShop } from "@/lib/api";
+import { createApplicationRequest, createProviderRequest, mapApplication, mapShop } from "@/lib/api";
 import { createId } from "@/lib/ids";
-import type { Coordinates, SellerApplication, Shop } from "@/lib/types";
+import type { Coordinates, ProviderType, SellerApplication, Shop } from "@/lib/types";
 import { useMotionRouter } from "@/lib/motion";
 import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
@@ -116,8 +116,8 @@ function SellForm() {
   }
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-10">
-      <h1 className="text-3xl font-semibold">Open a dukkan</h1>
+    <>
+      <h1 className="text-3xl font-semibold">Sell on GreenOwl</h1>
       <p className="mt-2 text-sm text-stone-500">
         Apply once. We create a seller profile. Track approval from the console.
       </p>
@@ -194,14 +194,129 @@ function SellForm() {
           Submit application
         </button>
       </form>
-    </div>
+    </>
+  );
+}
+
+function ProviderApplyForm() {
+  const { user, state, dispatch, origin: shopperOrigin, locationLabel } = useApp();
+  const categories = state.categories.filter(
+    (c) => c.kind === "SERVICE" || c.kind === "BOTH" || !c.kind,
+  );
+  const router = useMotionRouter();
+  const [providerType, setProviderType] = useState<ProviderType>("SERVICE_BUSINESS");
+  const [name, setName] = useState("");
+  const [profession, setProfession] = useState("");
+  const [serviceArea, setServiceArea] = useState("");
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState(user?.phone ?? "");
+  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "services");
+  const [notes, setNotes] = useState("");
+  const [pin, setPin] = useState<{ coordinates: Coordinates; accuracyM?: number } | null>(null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    const origin =
+      pin?.coordinates ?? shopperOrigin ?? { lat: 28.6328, lng: 77.2197 };
+    try {
+      const shop = await createProviderRequest({
+        name,
+        description: notes || undefined,
+        address,
+        lat: origin.lat,
+        lng: origin.lng,
+        categoryIds: [categoryId],
+        providerType,
+        profession: profession || undefined,
+        serviceArea: serviceArea || undefined,
+        phone: phone || undefined,
+      });
+      dispatch({ type: "upsertShop", shop });
+      dispatch({
+        type: "upsertUser",
+        user: { ...user, role: "seller", shopId: shop.id, phone },
+      });
+      router.push(ROUTES.consoleDashboard);
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Could not submit");
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="mt-10 space-y-4 border-t pt-10">
+      <h2 className="text-xl font-semibold">Offer services on GreenOwl</h2>
+      <p className="text-sm text-stone-500">
+        Apply as a service business or individual. Admin enables bookings and requests after review.
+      </p>
+      <Field label="Provider type">
+        <Select
+          value={providerType}
+          onChange={(e) => setProviderType(e.target.value as ProviderType)}
+        >
+          <option value="SERVICE_BUSINESS">Service business</option>
+          <option value="INDIVIDUAL">Individual professional</option>
+        </Select>
+      </Field>
+      <Field label={providerType === "INDIVIDUAL" ? "Your name" : "Business name"}>
+        <TextInput required value={name} onChange={(e) => setName(e.target.value)} />
+      </Field>
+      {providerType === "INDIVIDUAL" && (
+        <Field label="Profession">
+          <TextInput value={profession} onChange={(e) => setProfession(e.target.value)} />
+        </Field>
+      )}
+      <Field label="Service area">
+        <TextInput
+          value={serviceArea}
+          onChange={(e) => setServiceArea(e.target.value)}
+          placeholder="e.g. South Delhi"
+        />
+      </Field>
+      <Field label="Address">
+        <TextArea required value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
+      </Field>
+      <Field label="Location" hint={pin ? "GPS pinned" : `defaults to ${locationLabel}`}>
+        <LocationCapture
+          label="Pin your base location"
+          value={pin?.coordinates}
+          accuracyM={pin?.accuracyM}
+          onCapture={(coordinates, accuracyM, resolved) => {
+            setPin({ coordinates, accuracyM });
+            if (resolved?.formattedAddress) setAddress(resolved.formattedAddress);
+          }}
+          onClear={() => setPin(null)}
+        />
+      </Field>
+      <Field label="Phone">
+        <TextInput value={phone} onChange={(e) => setPhone(e.target.value)} />
+      </Field>
+      <Field label="Category">
+        <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="About">
+        <TextArea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+      </Field>
+      <button type="submit" className="rounded-full border border-ink px-5 py-2.5 text-sm font-semibold">
+        Submit provider profile
+      </button>
+    </form>
   );
 }
 
 export default function SellApplyPage() {
   return (
     <RequireAuth>
-      <SellForm />
+      <div className="mx-auto max-w-xl px-4 py-10">
+        <SellForm />
+        <ProviderApplyForm />
+      </div>
     </RequireAuth>
   );
 }

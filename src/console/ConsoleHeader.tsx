@@ -16,7 +16,7 @@ export function ConsoleHeader() {
         <Link href={home} className="flex items-center gap-2">
           <LogoMark />
           <div className="leading-tight">
-            <div className="text-lg font-bold tracking-tight">Dukkan</div>
+            <div className="text-lg font-bold tracking-tight">GreenOwl</div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-lime">Console</div>
           </div>
         </Link>

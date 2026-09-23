@@ -17,5 +17,5 @@ export default function LegacyShopRedirect() {
     router.replace(ROUTES.shopDashboard);
   }, [state.hydrated, params.id, router, selectShop]);
 
-  return <p className="p-8 text-sm text-stone-500">Opening dukkan…</p>;
+  return <p className="p-8 text-sm text-stone-500">Opening provider…</p>;
 }

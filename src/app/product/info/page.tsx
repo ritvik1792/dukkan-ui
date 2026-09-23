@@ -38,6 +38,7 @@ export default function ProductInfoPage() {
   const [mode, setMode] = useState<DeliveryMode>("partner");
   const [activePhoto, setActivePhoto] = useState<string | undefined>(undefined);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [maxBudget, setMaxBudget] = useState("");
 
   useEffect(() => {
     if (!state.hydrated) return;
@@ -186,12 +187,12 @@ export default function ProductInfoPage() {
     router.push("/checkout");
   }
 
-  async function confirmAvailability(target: Listing) {
+  async function askNearbySellers(target: Listing) {
     if (!user) {
       showAlert({
         tone: "warning",
         title: "Sign in required",
-        message: "Sign in as a buyer to ask nearby sellers to confirm availability.",
+        message: "Sign in as a buyer to ask nearby sellers if they have this product.",
         action: { href: "/login", label: "Sign in" },
       });
       return;
@@ -205,6 +206,15 @@ export default function ProductInfoPage() {
       });
       return;
     }
+    const budgetValue = maxBudget.trim() === "" ? undefined : Number(maxBudget);
+    if (budgetValue != null && (!Number.isFinite(budgetValue) || budgetValue <= 0)) {
+      showAlert({
+        tone: "warning",
+        title: "Invalid budget",
+        message: "Enter a positive max budget, or leave it blank.",
+      });
+      return;
+    }
     setConfirmingId(target.id);
     try {
       const payload = await createProductRequest({
@@ -213,12 +223,13 @@ export default function ProductInfoPage() {
         queryText: product!.name,
         buyerLat: coords.lat,
         buyerLng: coords.lng,
+        maxBudget: budgetValue,
       });
       const request = mapProductRequest(payload.request);
       showAlert({
         tone: "success",
         title: "Sellers notified",
-        message: "Waiting for availability confirmations.",
+        message: "Nearby shops can answer yes or no with a price in their Availability inbox.",
         action: { href: requestPath(request.id), label: "View status" },
       });
       router.push(requestPath(request.id));
@@ -360,13 +371,34 @@ export default function ProductInfoPage() {
       <section className="mt-10">
         <h2 className="text-lg font-semibold">Choose a seller</h2>
         <p className="text-sm text-stone-500">
-          Default is the lowest seller price plus delivery.
+          Default is the lowest seller price plus delivery. Or ask nearby sellers — they answer yes/no
+          with a price in their shop inbox.
         </p>
+        <div className="mt-4 rounded-2xl border border-stone-200 bg-white p-4">
+          <label className="block text-sm font-semibold" htmlFor="ask-max-budget">
+            Max budget (optional)
+          </label>
+          <p className="mt-1 text-xs text-stone-500">
+            Tell shops you want this product under ₹X. They can still offer any price.
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-sm text-stone-500">₹</span>
+            <input
+              id="ask-max-budget"
+              type="number"
+              min={1}
+              inputMode="numeric"
+              value={maxBudget}
+              onChange={(e) => setMaxBudget(e.target.value)}
+              placeholder="e.g. 499"
+              className="w-40 rounded-xl border border-stone-200 px-3 py-2 text-sm outline-none focus:border-ink"
+            />
+          </div>
+        </div>
         <div className="mt-4 space-y-3">
           {offers.map(({ listing: l, shop: s, best }) => (
-            <button
+            <div
               key={l.id}
-              type="button"
               onClick={() => chooseSeller(l)}
               className={`w-full rounded-2xl border p-4 text-left ${
                 l.id === listing.id ? "border-ink bg-white" : "border-stone-200 bg-white/60"
@@ -400,11 +432,11 @@ export default function ProductInfoPage() {
                   disabled={confirmingId === l.id}
                   onClick={(e) => {
                     e.stopPropagation();
-                    void confirmAvailability(l);
+                    void askNearbySellers(l);
                   }}
                   className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-lime disabled:opacity-50"
                 >
-                  {confirmingId === l.id ? "Asking sellers…" : "Confirm availability"}
+                  {confirmingId === l.id ? "Asking sellers…" : "Ask nearby sellers"}
                 </button>
                 <Link
                   href={ROUTES.shopDashboard}
@@ -417,7 +449,7 @@ export default function ProductInfoPage() {
                   View dukkan
                 </Link>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </section>

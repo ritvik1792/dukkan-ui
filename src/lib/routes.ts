@@ -12,6 +12,10 @@ export const ROUTES = {
   consoleDashboard: "/console/dashboard",
   sellerConsole: "/console/seller",
   adminConsole: "/console/admin",
+  accountBookings: "/account/bookings",
+  accountServiceRequests: "/account/service-requests",
+  serviceBook: "/services/book",
+  serviceRequest: "/services/request",
 } as const;
 
 export function sellerConsolePath(path = "") {

@@ -43,6 +43,30 @@ export type ApprovalStatus = "pending" | "approved" | "rejected";
 
 export type ShopStatus = "pending" | "active" | "suspended";
 
+export type ProviderType = "PRODUCT_BUSINESS" | "SERVICE_BUSINESS" | "INDIVIDUAL";
+
+export type VerificationStatus = "UNVERIFIED" | "PENDING" | "VERIFIED";
+
+export type CategoryKind = "PRODUCT" | "SERVICE" | "BOTH";
+
+export type ServiceStatus = "ACTIVE" | "INACTIVE";
+
+export type BookingStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "COMPLETED"
+  | "REJECTED"
+  | "CANCELLED";
+
+export type ServiceRequestStatus =
+  | "REQUESTED"
+  | "ACCEPTED"
+  | "COMPLETED"
+  | "REJECTED"
+  | "CANCELLED";
+
+export type SearchFilter = "all" | "products" | "shops" | "services" | "people";
+
 export type ApplicationStatus =
   | "submitted"
   | "under_review"
@@ -152,6 +176,7 @@ export type Category = {
   id: string;
   name: string;
   emoji: string;
+  kind?: CategoryKind;
 };
 
 export type Neighborhood = {
@@ -213,6 +238,119 @@ export type Shop = {
   notifyOrderStatus?: boolean;
   notifyStockConfirmation?: boolean;
   alertPrefs?: ShopAlertPrefs;
+  providerType?: ProviderType;
+  productsAllowed?: boolean;
+  servicesAllowed?: boolean;
+  bookingsAllowed?: boolean;
+  serviceRequestsAllowed?: boolean;
+  ordersAllowed?: boolean;
+  quickDeliveryAllowed?: boolean;
+  verificationStatus?: VerificationStatus;
+  serviceArea?: string;
+  profession?: string;
+};
+
+export type ProviderService = {
+  id: string;
+  providerId: string;
+  name: string;
+  description?: string;
+  categoryId?: string;
+  price?: number;
+  startingPrice?: number;
+  durationMinutes?: number;
+  serviceArea?: string;
+  bookingEnabled: boolean;
+  requestEnabled: boolean;
+  imageUrl?: string;
+  imageUrls?: string[];
+  status: ServiceStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Booking = {
+  id: string;
+  customerId: string;
+  providerId: string;
+  serviceId: string;
+  scheduledStart: string;
+  scheduledEnd?: string;
+  status: BookingStatus;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ServiceRequest = {
+  id: string;
+  customerId: string;
+  providerId: string;
+  serviceId: string;
+  customerAddress: string;
+  customerLat?: number;
+  customerLng?: number;
+  description?: string;
+  preferredTime?: string;
+  contactPhone?: string;
+  status: ServiceRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProductSearchHit = {
+  id: string;
+  name: string;
+  brand: string;
+  categoryId: string;
+  description?: string;
+  imageUrl?: string;
+  imageLabel?: string;
+  imageHue?: number;
+  type: "product";
+};
+
+export type ServiceSearchHit = {
+  id: string;
+  name: string;
+  description?: string;
+  categoryId?: string;
+  price?: number;
+  startingPrice?: number;
+  durationMinutes?: number;
+  serviceArea?: string;
+  bookingEnabled: boolean;
+  requestEnabled: boolean;
+  imageUrl?: string;
+  providerId: string;
+  providerName: string;
+  providerProfession?: string;
+  providerRating?: number;
+  distanceKm?: number;
+  type: "service";
+};
+
+export type PersonSearchHit = {
+  id: string;
+  name: string;
+  profession?: string;
+  serviceArea?: string;
+  description?: string;
+  imageUrl?: string;
+  rating?: number;
+  startingPrice?: number;
+  distanceKm?: number;
+  serviceNames: string[];
+  type: "person";
+};
+
+export type SearchResults = {
+  query: string;
+  filter: SearchFilter;
+  products: ProductSearchHit[];
+  shops: Shop[];
+  services: ServiceSearchHit[];
+  people: PersonSearchHit[];
 };
 
 export type ShopSlaStep = "placed" | "packing" | "ready_for_delivery" | "out_for_delivery";
@@ -231,7 +369,13 @@ export type ShopAlertPrefs = {
   sla: Record<ShopSlaStep, ShopSlaPref>;
 };
 
-export type AppNotificationKind = "order" | "review" | "complaint" | "delivered" | "order_sla";
+export type AppNotificationKind =
+  | "order"
+  | "review"
+  | "complaint"
+  | "delivered"
+  | "order_sla"
+  | "stock_confirmation";
 
 export type AppNotification = {
   id: string;
@@ -243,6 +387,7 @@ export type AppNotification = {
   orderId?: string;
   reviewId?: string;
   ticketId?: string;
+  requestId?: string;
   dedupeKey: string;
   createdAt: string;
   readAt?: string;
@@ -391,6 +536,7 @@ export type ProductRequest = {
   catalogProductId: string;
   listingId?: string;
   queryText?: string;
+  maxBudget?: number;
   buyerLat: number;
   buyerLng: number;
   status: ProductRequestStatus;

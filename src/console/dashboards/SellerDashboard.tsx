@@ -3,15 +3,17 @@
 import { ShopOpsSettings } from "@/components/seller/ShopOpsSettings";
 import { StatCard } from "@/components/ui/StatCard";
 import { useApp } from "@/context/AppContext";
+import { fetchMerchantRequests } from "@/lib/api";
 import { formatInr } from "@/lib/format";
 import { isShopOpenNow, shopHoursLabel } from "@/lib/shopOps";
 import { sellerAnalytics } from "@/services/analytics";
 import { sellerConsolePath, storefrontUrl } from "@/lib/routes";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export function SellerDashboard() {
   const { user, state, selectShop } = useApp();
+  const [pendingRequests, setPendingRequests] = useState(0);
   const stats = useMemo(() => {
     if (!user) {
       return { orderCount: 0, revenue: 0, skuCount: 0, demand: [], avgRating: 0, reviewCount: 0 };
@@ -29,6 +31,26 @@ export function SellerDashboard() {
       catalog: state.catalog,
     });
   }, [user, state.shops, state.listings, state.orders, state.reviews, state.catalog]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    fetchMerchantRequests()
+      .then((rows) => {
+        if (cancelled) return;
+        const open = rows.filter(
+          (row) => row.requestShop.status === "NOTIFIED" || row.requestShop.status === "VIEWED",
+        );
+        setPendingRequests(open.length);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingRequests(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   if (!user) return null;
   const myShops = state.shops.filter(
     (s) => s.ownerUserId === user.id || s.id === user.shopId,
@@ -41,6 +63,17 @@ export function SellerDashboard() {
       <p className="mt-1 text-sm text-stone-500">
         Demand, reviews, and catalogue health for your dukkan.
       </p>
+      {pendingRequests > 0 && (
+        <Link
+          href={sellerConsolePath("/requests")}
+          className="mt-4 block rounded-2xl bg-lime/30 p-4 text-sm text-ink"
+        >
+          <span className="font-semibold">
+            {pendingRequests} availability request{pendingRequests === 1 ? "" : "s"}
+          </span>{" "}
+          waiting for yes/no — open Availability inbox.
+        </Link>
+      )}
       {application && application.status !== "approved" && (
         <Link
           href={sellerConsolePath("/application")}
@@ -59,6 +92,12 @@ export function SellerDashboard() {
           hint={`${stats.reviewCount} reviews`}
         />
       </div>
+      <p className="mt-4 text-sm">
+        <Link href={sellerConsolePath("/requests")} className="underline">
+          Availability requests
+        </Link>
+        {pendingRequests > 0 ? ` · ${pendingRequests} need a reply` : ""}
+      </p>
       <h2 className="mt-8 text-lg font-semibold">Products with demand</h2>
       <ul className="mt-3 space-y-2">
         {stats.demand.map((row) => (

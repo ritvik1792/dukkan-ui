@@ -57,7 +57,7 @@ export function Header() {
         <Link href="/" className="flex items-center gap-2">
           <LogoMark />
           <div className="leading-tight">
-            <div className="text-lg font-bold tracking-tight">Dukkan</div>
+            <div className="text-lg font-bold tracking-tight">GreenOwl</div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-lime">Near you</div>
           </div>
         </Link>
@@ -68,7 +68,7 @@ export function Header() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products"
+            placeholder="Search for products, shops, services or people..."
             className="w-full rounded-xl border border-white/10 bg-white px-4 py-2.5 text-sm text-ink placeholder:text-stone-400"
           />
         </form>
@@ -106,7 +106,7 @@ export function Header() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products"
+            placeholder="Search for products, shops, services or people..."
             className="w-full rounded-xl bg-white px-3 py-2 text-sm text-ink"
           />
         </form>
@@ -145,10 +145,16 @@ export function Header() {
                     Profile
                   </Link>
                   <Link href="/account/wishlist" onClick={() => setMenuOpen(false)} className="block py-1">
-                    Wishlist
+                    Saved
                   </Link>
                   <Link href="/account/orders" onClick={() => setMenuOpen(false)} className="block py-1">
                     Orders
+                  </Link>
+                  <Link href="/account/bookings" onClick={() => setMenuOpen(false)} className="block py-1">
+                    Bookings
+                  </Link>
+                  <Link href="/account/service-requests" onClick={() => setMenuOpen(false)} className="block py-1">
+                    Service requests
                   </Link>
                   <Link href="/account/tickets" onClick={() => setMenuOpen(false)} className="block py-1">
                     Support
@@ -183,7 +189,7 @@ export function Header() {
                 </>
               )}
               <Link href="/sell" onClick={() => setMenuOpen(false)} className="block py-1">
-                Sell on Dukkan
+                Sell on GreenOwl
               </Link>
             </div>
           </div>

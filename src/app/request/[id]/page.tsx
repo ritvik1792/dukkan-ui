@@ -120,7 +120,16 @@ function RequestStatusPage() {
         Status <span className="font-medium text-ink">{request.status}</span>
         {" · "}
         Wave {request.waveIndex + 1}
+        {request.maxBudget != null ? (
+          <>
+            {" · "}
+            Budget under <span className="font-medium text-ink">{formatInr(request.maxBudget)}</span>
+          </>
+        ) : null}
       </p>
+      {request.queryText && (
+        <p className="mt-1 text-sm text-stone-500">Asked for: {request.queryText}</p>
+      )}
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold">Offers</h2>

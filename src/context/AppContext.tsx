@@ -30,6 +30,8 @@ import {
 } from "@/data/seed";
 import {
   ApiError,
+  fetchHealth,
+  getToken,
   loadStorefront,
   loginRequest,
   mapApiUser,
@@ -1072,6 +1074,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!state.hydrated) return;
     let cancelled = false;
+    if (!getToken()) {
+      fetchHealth()
+        .then((health) => {
+          if (!cancelled) {
+            dispatch({ type: "setApi", status: "online", shopCount: health.shopCount });
+          }
+        })
+        .catch(() => {
+          if (!cancelled) dispatch({ type: "setApi", status: "offline" });
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
     loadStorefront()
       .then((payload) => {
         if (cancelled) return;
