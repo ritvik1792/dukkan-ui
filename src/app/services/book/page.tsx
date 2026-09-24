@@ -7,7 +7,7 @@ import { useApp } from "@/context/AppContext";
 import { createBookingRequest, fetchServiceById } from "@/lib/api";
 import { formatInr } from "@/lib/format";
 import { ROUTES } from "@/lib/routes";
-import type { ProviderService } from "@/lib/types";
+import type { ProviderService, Shop } from "@/lib/types";
 import { useMotionRouter } from "@/lib/motion";
 import { Suspense, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";

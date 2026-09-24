@@ -120,9 +120,7 @@ function RadiusSection() {
         <div className="min-w-0">
           <p className="text-sm font-medium">{locationSummary(location)}</p>
           {location ? (
-            <p className="mt-0.5 text-xs tabular-nums text-stone-500">
-              {formatCoordinates(location.coordinates)} · saved {formatDate(location.capturedAt)}
-            </p>
+            <p className="mt-0.5 text-xs text-stone-500">Saved {formatDate(location.capturedAt)}</p>
           ) : (
             <p className="mt-0.5 text-xs text-stone-500">
               Share your location to sort shops by real distance.

@@ -2,7 +2,6 @@
 
 import { useApp } from "@/context/AppContext";
 import { afterPaint } from "@/lib/drawer";
-import { formatCoordinates } from "@/lib/geo";
 import { geoErrorMessage, readGeoPermission, type GeoPermission } from "@/lib/geolocation";
 import { locationSummary } from "@/services/location";
 import { usePathname } from "next/navigation";
@@ -209,9 +208,6 @@ function LocationDialog({
                       <span>
                         <span className="font-medium text-ink">{item.name}</span>
                         <span className="block text-xs text-stone-500">{item.area}</span>
-                      </span>
-                      <span className="shrink-0 text-[11px] tabular-nums text-stone-400">
-                        {formatCoordinates(item.coordinates)}
                       </span>
                     </button>
                   </li>

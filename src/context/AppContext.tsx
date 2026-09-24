@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   type Dispatch,
   type ReactNode,
 } from "react";
@@ -63,6 +64,7 @@ import {
   areaLocation,
   isUsableLocation,
   nearestNeighborhood,
+  placeTitle,
   resolveGpsLocation,
 } from "@/services/location";
 import type {
@@ -936,13 +938,15 @@ function reducer(state: AppState, action: Action): AppState {
           };
         }),
         // The API has no concept of placements yet, so keep the local slot assignment.
-        advertisements: action.advertisements.map((ad) => {
+        // Empty API catalogs should not wipe the storefront ad bar — fall back to seed.
+        advertisements: (action.advertisements.length ? action.advertisements : seedAds).map((ad) => {
           const prev = state.advertisements.find((item) => item.id === ad.id);
+          const seed = seedAds.find((item) => item.id === ad.id);
           return {
             ...ad,
-            placementId: ad.placementId ?? prev?.placementId,
-            weight: ad.weight ?? prev?.weight,
-            createdAt: ad.createdAt ?? prev?.createdAt,
+            placementId: ad.placementId ?? prev?.placementId ?? seed?.placementId,
+            weight: ad.weight ?? prev?.weight ?? seed?.weight,
+            createdAt: ad.createdAt ?? prev?.createdAt ?? seed?.createdAt,
           };
         }),
         categories: action.categories ?? state.categories,
@@ -1002,6 +1006,7 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const namedFixes = useRef(new Set<string>());
 
   useEffect(() => {
     const view = readViewSelection();
@@ -1139,7 +1144,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable(state)));
   }, [state]);
 
-  // Signing in on a fresh device should restore the location saved with the account.
+  // A GPS fix saved earlier may still be labeled "Current location". Name it from the pin.
+  useEffect(() => {
+    if (!state.hydrated) return;
+    const current = state.location;
+    if (!current || current.source !== "gps") return;
+    const unnamed =
+      !current.postcode ||
+      current.label === "Current location" ||
+      current.label.startsWith("Near ");
+    if (!unnamed) return;
+    const key = `${current.coordinates.lat.toFixed(5)},${current.coordinates.lng.toFixed(5)}`;
+    if (namedFixes.current.has(key)) return;
+    namedFixes.current.add(key);
+    let cancelled = false;
+    resolveGpsLocation(
+      { coordinates: current.coordinates, accuracyM: current.accuracyM },
+      state.neighborhoods,
+    )
+      .then((next) => {
+        if (cancelled) return;
+        if (next.label === current.label && next.postcode === current.postcode && next.area === current.area) {
+          return;
+        }
+        dispatch({
+          type: "setLocation",
+          location: { ...next, capturedAt: current.capturedAt },
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    state.hydrated,
+    state.location,
+    state.neighborhoods,
+  ]);
   useEffect(() => {
     if (!state.hydrated || state.location || !state.sessionUserId) return;
     const saved = state.users.find((u) => u.id === state.sessionUserId)?.location;
@@ -1165,7 +1206,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       state.neighborhoods.find((n) => n.id === state.neighborhoodId) ?? state.neighborhoods[0];
     const location = state.location;
     const origin = location?.coordinates ?? neighborhood.coordinates;
-    const locationLabel = location?.label ?? neighborhood.name;
+    const locationLabel = location ? placeTitle(location) : neighborhood.name;
     const needsLocationPrompt = state.hydrated && !location && !state.locationPromptSeen;
     const shopRadiusKm = clampShopRadiusKm(
       user?.shopRadiusKm ?? state.settings.deliveryRadiusKm ?? DEFAULT_DELIVERY_RADIUS_KM,

@@ -10,7 +10,6 @@ import { SearchSuggest } from "@/components/search/SearchSuggest";
 import { useApp } from "@/context/AppContext";
 import { useIsHydrated } from "@/lib/hydration";
 import { fetchPublicServices, fetchSearch } from "@/lib/api";
-import { BRAND } from "@/lib/constants";
 import { ROUTES } from "@/lib/routes";
 import type { ServiceSearchHit } from "@/lib/types";
 import Link from "next/link";
@@ -221,8 +220,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="page-shell space-y-8 bg-surface py-6 md:py-8">
+      <div className="page-shell space-y-6 bg-surface py-5 md:space-y-8 md:py-8">
         <CategoryBrowse />
+
+        {/* Home-hero ad bar + companion “Highly rated” strip that historically sat with it */}
+        <AdCarousel ads={state.advertisements} />
+
+        {topRated.length > 0 && (
+          <HorizontalScroller title="Highly rated near you">
+            {topRated.map((shop) => (
+              <ShopCard key={`rated-${shop.id}`} shop={shop} />
+            ))}
+          </HorizontalScroller>
+        )}
 
         <HorizontalScroller title={`Shops near ${displayLocation}`}>
           {nearbyShops.map((shop) => (
@@ -237,16 +247,6 @@ export default function HomePage() {
           <HorizontalScroller title="Services near you">
             {nearbyServices.map((service) => (
               <ServiceListingCard key={service.id} service={service} providerName={service.providerName} />
-            ))}
-          </HorizontalScroller>
-        )}
-
-        <AdCarousel ads={state.advertisements} />
-
-        {topRated.length > 0 && (
-          <HorizontalScroller title="Highly rated near you">
-            {topRated.map((shop) => (
-              <ShopCard key={`rated-${shop.id}`} shop={shop} />
             ))}
           </HorizontalScroller>
         )}

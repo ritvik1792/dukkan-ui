@@ -152,9 +152,10 @@ body {
 }
 
 .chip-active {
-  background: var(--color-carrot);
+  /* Dusty rose — aligned with rose-gold brand, not neon pink */
+  background: #be123c;
   color: #ffffff;
-  box-shadow: 0 2px 8px rgb(225 29 72 / 0.24);
+  box-shadow: 0 2px 8px rgb(190 18 60 / 0.2);
 }
 
 .chip-idle {
@@ -303,6 +304,40 @@ select option {
   animation: pop-in 0.16s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes category-circle-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.category-circle {
+  animation: category-circle-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ad-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.ad-carousel {
+  animation: fade-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ad-carousel-slide {
+  animation: ad-slide-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 .page-enter {
   animation: page-enter 0.16s ease-out;
 }
@@ -408,6 +443,9 @@ select option {
   .animate-fade-up,
   .animate-fade-in,
   .animate-pop-in,
+  .category-circle,
+  .ad-carousel,
+  .ad-carousel-slide,
   .page-enter,
   .page-slide-in,
   .nav-progress,

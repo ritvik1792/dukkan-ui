@@ -78,24 +78,31 @@ export function CategoryChips({
   );
 }
 
-function CategoryCircleLink({ category }: { category: Category }) {
+function CategoryCircleLink({
+  category,
+  index = 0,
+}: {
+  category: Category;
+  index?: number;
+}) {
   const hue = CATEGORY_HUES[category.id] ?? 350;
   return (
     <Link
       href={`/search?category=${category.id}`}
-      className="group flex min-w-[5.25rem] flex-1 snap-start flex-col items-center text-center transition duration-200 hover:-translate-y-1 sm:min-w-[6rem]"
+      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+      className="category-circle group flex w-[4.75rem] shrink-0 snap-start flex-col items-center text-center sm:w-[5.5rem]"
     >
       <div
-        className="flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-border/80 transition-all duration-300 group-hover:scale-105 group-hover:shadow-md group-hover:ring-rose-200 sm:h-24 sm:w-24"
+        className="flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-border/80 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-105 group-hover:shadow-md group-hover:ring-rose-200 sm:h-[4.75rem] sm:w-[4.75rem]"
         style={{
-          background: `linear-gradient(145deg, #ffffff 30%, hsl(${hue} 60% 96%) 100%)`,
+          background: `linear-gradient(145deg, #ffffff 30%, hsl(${hue} 45% 95%) 100%)`,
         }}
       >
-        <span className="text-3xl leading-none transition-transform duration-200 group-hover:scale-110 sm:text-4xl">
+        <span className="text-[1.65rem] leading-none transition-transform duration-200 group-hover:scale-110 sm:text-[1.85rem]">
           {category.emoji}
         </span>
       </div>
-      <p className="mt-2.5 line-clamp-1 text-xs font-semibold tracking-tight text-ink group-hover:text-rose-600 sm:text-[13px]">
+      <p className="mt-1.5 line-clamp-1 text-[11px] font-semibold tracking-tight text-ink transition-colors group-hover:text-rose-700 sm:text-xs">
         {category.name}
       </p>
     </Link>
@@ -108,8 +115,8 @@ export function CategoryCircles({ categories }: { categories?: Category[] }) {
   const list = categories ?? state.categories;
   return (
     <>
-      {list.map((c) => (
-        <CategoryCircleLink key={c.id} category={c} />
+      {list.map((c, i) => (
+        <CategoryCircleLink key={c.id} category={c} index={i} />
       ))}
     </>
   );
@@ -148,21 +155,21 @@ export function CategoryBrowse() {
 
   return (
     <section className="animate-fade-up">
-      <div className="mb-3.5 flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">
+      <div className="mb-2.5 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-lg font-bold tracking-tight text-ink sm:text-xl">
             {title}
           </h2>
           <p className="mt-0.5 text-xs text-muted sm:text-sm">
             Explore fresh foods, daily essentials &amp; local picks
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
           <button
             type="button"
             onClick={scrollLeft}
             aria-label="Scroll left"
-            className="hidden h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-muted shadow-sm transition hover:bg-blush hover:text-rose-600 sm:flex"
+            className="hidden h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-muted shadow-sm transition hover:bg-blush hover:text-rose-700 sm:flex"
           >
             ←
           </button>
@@ -170,13 +177,13 @@ export function CategoryBrowse() {
             type="button"
             onClick={scrollRight}
             aria-label="Scroll right"
-            className="hidden h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-muted shadow-sm transition hover:bg-blush hover:text-rose-600 sm:flex"
+            className="hidden h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-muted shadow-sm transition hover:bg-blush hover:text-rose-700 sm:flex"
           >
             →
           </button>
           <Link
             href="/search"
-            className="ml-1 text-xs font-semibold text-rose-600 underline-offset-2 hover:underline sm:text-sm"
+            className="ml-0.5 text-xs font-semibold text-rose-700 underline-offset-2 hover:underline sm:text-sm"
           >
             View all
           </Link>
@@ -186,7 +193,7 @@ export function CategoryBrowse() {
       <div
         role="tablist"
         aria-label="Category groups"
-        className="no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-0.5"
+        className="no-scrollbar mb-2.5 flex gap-2 overflow-x-auto pb-0.5"
       >
         {CATEGORY_GROUPS.map((group) => {
           const active = group.id === groupId;
@@ -210,13 +217,13 @@ export function CategoryBrowse() {
       <div
         id="category-scroll-container"
         key={groupId}
-        className="no-scrollbar flex animate-pop-in snap-x snap-mandatory gap-4 overflow-x-auto pb-2 sm:gap-6"
+        className="no-scrollbar -mx-0.5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-0.5 pb-0.5 sm:gap-3.5"
       >
-        {visible.map((c) => (
-          <CategoryCircleLink key={c.id} category={c} />
+        {visible.map((c, i) => (
+          <CategoryCircleLink key={c.id} category={c} index={i} />
         ))}
         {visible.length === 0 && (
-          <p className="py-6 text-sm text-muted">No categories in this group yet.</p>
+          <p className="py-3 text-sm text-muted">No categories in this group yet.</p>
         )}
       </div>
     </section>

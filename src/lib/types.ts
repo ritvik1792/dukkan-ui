@@ -101,6 +101,8 @@ export type UserLocation = {
   coordinates: Coordinates;
   label: string;
   area?: string;
+  /** Postal code for this fix, when a geocoder can resolve one. */
+  postcode?: string;
   source: LocationSource;
   /** GPS accuracy radius in metres, when the browser reports one. */
   accuracyM?: number;

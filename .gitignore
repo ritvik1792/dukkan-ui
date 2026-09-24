@@ -41,3 +41,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local browser screenshots from layout checks
+.theme-check/
+.mobile-audit/
