@@ -93,7 +93,7 @@ export function AdminDashboard() {
               {stats.shops.map((row) => (
                 <tr
                   key={row.shop.id}
-                  className="cursor-pointer border-b last:border-0 transition-colors duration-150 hover:bg-stone-50"
+                  className="cursor-pointer border-b last:border-0 transition-colors duration-150 hover:bg-blush/60"
                   onClick={() => peek?.openShop(row.shop.id)}
                 >
                   <td className="px-4 py-3">

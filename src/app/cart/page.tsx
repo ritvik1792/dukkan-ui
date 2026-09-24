@@ -35,7 +35,7 @@ export default function CartPage() {
         <p className="mt-2 text-sm text-stone-500">Search a product, then pick a nearby seller.</p>
         <Link
           href="/search"
-          className="mt-6 inline-block rounded-full bg-ink px-5 py-2 text-sm text-lime hover:opacity-90"
+          className="mt-6 inline-block rounded-full bg-carrot px-5 py-2 text-sm text-white hover:opacity-90"
         >
           Browse products
         </Link>
@@ -71,7 +71,7 @@ export default function CartPage() {
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div>
-          <div className="rounded-2xl border border-stone-200 bg-white px-5 py-4">
+          <div className="rounded-2xl border border-border bg-white px-5 py-4">
             <h1 className="text-2xl font-semibold">Shopping Cart</h1>
             <p className="mt-1 text-sm text-stone-600">
               Your {summary.itemCount} item{summary.itemCount === 1 ? "" : "s"} come from{" "}
@@ -89,9 +89,9 @@ export default function CartPage() {
               return (
                 <section
                   key={shipment.shop.id}
-                  className="overflow-hidden rounded-2xl border border-stone-200 bg-white"
+                  className="overflow-hidden rounded-2xl border border-border bg-white"
                 >
-                  <header className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 bg-cream px-5 py-3">
+                  <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-cream px-5 py-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
                         Delivery {index + 1} of {shipments.length}
@@ -120,20 +120,20 @@ export default function CartPage() {
                     </p>
                   </header>
 
-                  <ul className="divide-y divide-stone-200">
+                  <ul className="divide-y divide-border">
                     {shipment.lines.map(({ item, listing, product, lineTotal }) => {
                       const off = percentOff(listing.basePrice, listing.sellerPrice);
                       const href = ROUTES.productInfo;
                       const openProduct = () =>
                         selectProduct(product.id, shipment.shop.id);
                       return (
-                        <li key={`${listing.id}-${item.deliveryMode}`} className="flex gap-4 p-5">
-                          <Link href={href} onClick={openProduct} className="w-24 shrink-0 sm:w-32">
+                        <li key={`${listing.id}-${item.deliveryMode}`} className="flex flex-col gap-3 p-4 sm:flex-row sm:gap-4 sm:p-5">
+                          <Link href={href} onClick={openProduct} className="w-full shrink-0 sm:w-24 md:w-32">
                             <ProductArt
                               hue={product.imageHue}
                               label={product.imageLabel}
                               imageUrl={product.imageUrl}
-                              className="h-24 w-full"
+                              className="h-40 w-full sm:h-24"
                             />
                           </Link>
                           <div className="min-w-0 flex-1">
@@ -148,7 +148,7 @@ export default function CartPage() {
                                 </p>
                                 <p
                                   className={`mt-1 text-xs font-semibold ${
-                                    listing.stock > 0 ? "text-teal-800" : "text-red-700"
+                                    listing.stock > 0 ? "text-carrot" : "text-red-700"
                                   }`}
                                 >
                                   {listing.stock > 0 ? "In stock" : "Out of stock"}
@@ -161,7 +161,7 @@ export default function CartPage() {
                                     <span className="line-through">
                                       {formatInr(listing.basePrice)}
                                     </span>{" "}
-                                    <span className="font-semibold text-teal-800">{off}% off</span>
+                                    <span className="font-semibold text-carrot">{off}% off</span>
                                   </p>
                                 )}
                                 <p className="text-xs text-stone-500">
@@ -201,7 +201,7 @@ export default function CartPage() {
                     })}
                   </ul>
 
-                  <div className="border-t border-stone-200 px-5 py-4">
+                  <div className="border-t border-border px-5 py-4">
                     <p className="mb-2 text-sm font-semibold">
                       How should {shipment.shop.name} deliver?
                     </p>
@@ -223,11 +223,11 @@ export default function CartPage() {
           </div>
         </div>
 
-        <aside className="h-fit space-y-3 rounded-2xl border border-stone-200 bg-white p-5 lg:sticky lg:top-24">
+        <aside className="h-fit space-y-3 rounded-2xl border border-border bg-white p-5 lg:sticky lg:top-24">
           <p className="text-sm text-stone-600">
             This order ships as {deliveryCountLabel(summary.deliveryCount)}.
           </p>
-          <div className="space-y-1 border-t border-stone-200 pt-3 text-sm">
+          <div className="space-y-1 border-t border-border pt-3 text-sm">
             <div className="flex justify-between">
               <span className="text-stone-600">
                 Subtotal ({summary.itemCount} item{summary.itemCount === 1 ? "" : "s"})
@@ -241,13 +241,13 @@ export default function CartPage() {
               <span className="font-semibold">{formatInr(summary.deliveryTotal)}</span>
             </div>
           </div>
-          <div className="flex items-baseline justify-between border-t border-stone-200 pt-3">
+          <div className="flex items-baseline justify-between border-t border-border pt-3">
             <span className="font-semibold">Order total</span>
             <span className="text-xl font-bold">{formatInr(summary.total)}</span>
           </div>
           <Link
             href="/checkout"
-            className="block rounded-full bg-[#ffd814] px-4 py-3 text-center text-sm font-semibold text-ink hover:bg-[#f7ca00]"
+            className="btn-primary btn-block btn-lg"
           >
             Proceed to Buy
           </Link>

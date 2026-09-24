@@ -137,7 +137,7 @@ export default function AccountTicketsPage() {
               onRemove={photos.remove}
             />
           </Field>
-          <button type="submit" className="rounded-full bg-ink px-4 py-2 text-sm text-lime">
+          <button type="submit" className="rounded-full bg-carrot px-4 py-2 text-sm text-white">
             Submit ticket
           </button>
         </form>

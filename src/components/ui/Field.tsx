@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 
 export const fieldClass =
-  "w-full rounded-xl border border-stone-200 px-3 py-2 transition duration-200 focus:border-ink focus:outline-none focus:ring-2 focus:ring-lime/40";
+  "w-full rounded-xl border border-border px-3 py-2 transition duration-200 focus:border-ink focus:outline-none focus:ring-2 focus:ring-pink/40";
 
 export function Field({
   label,
@@ -47,7 +47,7 @@ export function FileButton({
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span className="relative inline-flex">
-        <span className="inline-flex cursor-pointer items-center rounded-full bg-ink px-4 py-2 text-sm font-semibold text-lime shadow-sm">
+        <span className="inline-flex cursor-pointer items-center rounded-full bg-carrot px-4 py-2 text-sm font-semibold text-white shadow-sm">
           {buttonLabel}
         </span>
         <input

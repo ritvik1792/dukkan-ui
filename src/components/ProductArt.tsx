@@ -15,7 +15,7 @@ export function ProductArt({
       style={{
         background: imageUrl
           ? undefined
-          : `linear-gradient(160deg, hsl(${hue} 70% 88%), hsl(${hue} 55% 72%))`,
+          : `linear-gradient(160deg, hsl(${hue} 36% 90%), hsl(${hue} 28% 78%))`,
       }}
     >
       {imageUrl ? (
@@ -24,8 +24,8 @@ export function ProductArt({
       ) : (
         <>
           <div
-            className="absolute -right-6 -top-8 h-24 w-24 rounded-full opacity-40"
-            style={{ background: `hsl(${hue} 80% 60%)` }}
+            className="absolute -right-6 -top-8 h-24 w-24 rounded-full opacity-35"
+            style={{ background: `hsl(${hue} 40% 70%)` }}
           />
           <span className="relative z-10 mb-4 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold tracking-wide text-ink">
             {label}

@@ -229,7 +229,7 @@ export function TagsBoard({ mode }: { mode: "seller" | "admin" }) {
         </div>
         <button
           type="button"
-          className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-lime"
+          className="rounded-full bg-carrot px-4 py-2 text-sm font-semibold text-white"
           onClick={() => setPanel({ mode: "create" })}
         >
           Add tag
@@ -262,7 +262,7 @@ export function TagsBoard({ mode }: { mode: "seller" | "admin" }) {
               drawerShown ? "translate-x-0" : "translate-x-full"
             }`}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-border bg-white px-5 py-4">
               <div>
                 <h2 className="text-lg font-semibold">
                   {panel.mode === "create" ? "Add tag" : editing?.label ?? "Tag"}

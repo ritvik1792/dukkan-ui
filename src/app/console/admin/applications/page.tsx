@@ -77,7 +77,7 @@ export default function AdminApplications() {
           return (
             <li
               key={app.id}
-              className={`rounded-2xl bg-white p-4 ${shop ? "cursor-pointer transition-colors duration-150 hover:bg-stone-50" : ""}`}
+              className={`rounded-2xl bg-white p-4 ${shop ? "cursor-pointer transition-colors duration-150 hover:bg-blush/60" : ""}`}
               onClick={shop ? () => peek?.openShop(shop.id) : undefined}
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -106,7 +106,7 @@ export default function AdminApplications() {
               <div className="mt-3 flex flex-wrap gap-2" onClick={(event) => event.stopPropagation()}>
                 <button
                   type="button"
-                  className="rounded-full bg-ink px-3 py-1 text-xs text-lime"
+                  className="rounded-full bg-carrot px-3 py-1 text-xs text-white"
                   onClick={() => setStatus(app.id, app.shopId, "approved")}
                 >
                   Approve shop

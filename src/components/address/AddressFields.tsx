@@ -45,7 +45,7 @@ export function AddressFields({
           value={value.line}
           onChange={(e) => onChange({ ...value, line: e.target.value })}
           placeholder="House, street, area, city"
-          className="w-full rounded-xl border border-stone-200 px-3 py-2 transition duration-200 focus:border-ink focus:outline-none focus:ring-2 focus:ring-lime/40"
+          className="w-full rounded-xl border border-border px-3 py-2 transition duration-200 focus:border-ink focus:outline-none focus:ring-2 focus:ring-pink/40"
         />
       </Field>
       <Field label="PIN code">

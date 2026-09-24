@@ -13,6 +13,7 @@ import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
 import { deleteListingRequest, mapCatalogProduct, mapListing, upsertCatalogRequest, upsertListingRequest } from "@/lib/api";
+import { BRAND_FALLBACK_HUE, randomBrandHue } from "@/lib/constants";
 import { formatInr } from "@/lib/format";
 import { createId } from "@/lib/ids";
 import type { Listing, ProductTag } from "@/lib/types";
@@ -109,7 +110,7 @@ export default function SellerProducts() {
           category: category ? `${category.emoji} ${category.name}` : "—",
           unit: product?.unit ?? "",
           imageUrl: product?.imageUrl,
-          imageHue: product?.imageHue ?? 140,
+          imageHue: product?.imageHue ?? BRAND_FALLBACK_HUE,
           imageLabel: product?.imageLabel ?? "",
           status: visibilityLabel(listing.status),
           availability: listing.stock > 0 ? "In stock" : "Out of stock",
@@ -177,7 +178,7 @@ export default function SellerProducts() {
       description: form.description,
       unit: form.unit,
       imageLabel: existing?.imageLabel || form.name.slice(0, 8),
-      imageHue: existing?.imageHue ?? Math.floor(Math.random() * 360),
+      imageHue: existing?.imageHue ?? randomBrandHue(),
       imageUrl: form.mainImage || undefined,
       galleryUrls: form.gallery,
     };
@@ -277,7 +278,7 @@ export default function SellerProducts() {
           ) : (
             <span
               className="flex h-10 w-10 items-center justify-center rounded-lg text-xs font-semibold text-ink"
-              style={{ background: `hsl(${row.imageHue} 70% 88%)` }}
+              style={{ background: `hsl(${row.imageHue} 32% 88%)` }}
             >
               {row.imageLabel.slice(0, 2)}
             </span>
@@ -332,7 +333,7 @@ export default function SellerProducts() {
               min={0}
               value={row.listing.stock}
               onChange={(event) => setStock(row.listing, Number(event.target.value))}
-              className="w-16 rounded-lg border border-stone-200 px-2 py-1"
+              className="w-16 rounded-lg border border-border px-2 py-1"
               aria-label={`Stock for ${row.productName}`}
             />
             <button
@@ -340,7 +341,7 @@ export default function SellerProducts() {
               aria-pressed={inStock}
               onClick={() => setInStock(row.listing, !inStock)}
               className={`rounded-full px-2 py-1 text-[11px] font-semibold transition ${
-                inStock ? "bg-teal-100 text-teal-800" : "bg-stone-200 text-stone-500"
+                inStock ? "bg-blush text-carrot" : "bg-stone-200 text-stone-500"
               }`}
             >
               {inStock ? "In stock" : "Out"}
@@ -390,7 +391,7 @@ export default function SellerProducts() {
             type="button"
             aria-label="Edit product"
             onClick={() => openEdit(row.listing.id)}
-            className="rounded-lg p-1.5 text-stone-600 transition hover:bg-stone-100"
+            className="rounded-lg p-1.5 text-stone-600 transition hover:bg-blush"
           >
             <PencilIcon />
           </button>
@@ -419,7 +420,7 @@ export default function SellerProducts() {
         <button
           type="button"
           onClick={openCreate}
-          className="rounded-full bg-ink px-4 py-2 text-sm text-lime transition duration-200 hover:opacity-90"
+          className="rounded-full bg-carrot px-4 py-2 text-sm text-white transition duration-200 hover:opacity-90"
         >
           + Add product
         </button>
@@ -430,7 +431,7 @@ export default function SellerProducts() {
           <span className="mr-2 font-semibold">{selected.length} selected</span>
           <button
             type="button"
-            className="rounded-full bg-lime px-3 py-1.5 font-semibold text-ink transition hover:opacity-90"
+            className="rounded-full bg-carrot px-3 py-1.5 font-semibold text-white transition hover:opacity-90"
             onClick={() => setBulkOpen(true)}
           >
             Edit
@@ -501,9 +502,9 @@ export default function SellerProducts() {
                         placeholder="Grocery, electronics…"
                       />
                     </Field>
-                    <div className="mt-4 overflow-hidden rounded-2xl border border-stone-200">
+                    <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
                       <table className="min-w-full text-left text-sm">
-                        <thead className="bg-stone-50 text-xs uppercase text-stone-400">
+                        <thead className="bg-cream text-xs uppercase text-stone-400">
                           <tr>
                             <th className="px-3 py-2">Category</th>
                             <th className="px-3 py-2">SKUs</th>
@@ -514,7 +515,7 @@ export default function SellerProducts() {
                           {categoryRows.map((row) => (
                             <tr
                               key={row.id}
-                              className="cursor-pointer border-t transition hover:bg-lime/40"
+                              className="cursor-pointer border-t transition hover:bg-blush"
                               onClick={() => {
                                 setChosenCategory(row.id);
                                 setCreateStep("details");
@@ -525,13 +526,13 @@ export default function SellerProducts() {
                                   {row.emoji} {row.name}
                                 </span>
                                 {row.inShop && (
-                                  <span className="ml-2 rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-teal-800">
+                                  <span className="ml-2 rounded-full bg-blush px-2 py-0.5 text-[10px] font-semibold text-carrot">
                                     Your dukkan
                                   </span>
                                 )}
                               </td>
                               <td className="px-3 py-3">{row.skuCount}</td>
-                              <td className="px-3 py-3 text-right text-xs font-semibold text-teal-800">
+                              <td className="px-3 py-3 text-right text-xs font-semibold text-carrot">
                                 Select
                               </td>
                             </tr>
@@ -666,7 +667,7 @@ function BulkEditModal({
           </button>
         </div>
         <div className="mt-4 space-y-4">
-          <div className="flex items-center justify-between rounded-2xl bg-stone-50 px-4 py-3">
+          <div className="flex items-center justify-between rounded-2xl bg-cream px-4 py-3">
             <div>
               <p className="text-sm font-semibold">{enabled ? "Enabled" : "Disabled"}</p>
               <p className="text-xs text-stone-500">
@@ -679,7 +680,7 @@ function BulkEditModal({
               aria-checked={enabled}
               onClick={() => setEnabled((on) => !on)}
               className={`relative h-8 w-14 rounded-full transition duration-200 ${
-                enabled ? "bg-teal-600" : "bg-stone-300"
+                enabled ? "bg-carrot" : "bg-stone-300"
               }`}
             >
               <span
@@ -726,7 +727,7 @@ function BulkEditModal({
           </button>
           <button
             type="button"
-            className="rounded-full bg-ink px-4 py-2 text-sm text-lime"
+            className="rounded-full bg-carrot px-4 py-2 text-sm text-white"
             onClick={() =>
               onApply({
                 categoryId: categoryId || undefined,

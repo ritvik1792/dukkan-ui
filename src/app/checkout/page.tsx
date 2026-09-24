@@ -299,7 +299,7 @@ function CheckoutForm() {
             <label
               key={item.id}
               className={`flex cursor-pointer gap-3 rounded-2xl border p-3 text-sm transition-colors duration-200 ${
-                addressId === item.id ? "border-ink bg-lime/20" : "border-stone-200"
+                addressId === item.id ? "border-carrot/40 bg-blush/60" : "border-border"
               }`}
             >
               <input
@@ -317,7 +317,7 @@ function CheckoutForm() {
           ))}
           <label
             className={`flex cursor-pointer gap-3 rounded-2xl border p-3 text-sm transition-colors duration-200 ${
-              addressId === "new" ? "border-ink bg-lime/20" : "border-stone-200"
+              addressId === "new" ? "border-carrot/40 bg-blush/60" : "border-border"
             }`}
           >
             <input
@@ -352,7 +352,7 @@ function CheckoutForm() {
             <label
               key={item.id}
               className={`flex cursor-pointer gap-3 rounded-2xl border p-3 text-sm transition-colors duration-200 ${
-                method === item.id ? "border-ink bg-lime/20" : "border-stone-200"
+                method === item.id ? "border-carrot/40 bg-blush/60" : "border-border"
               }`}
             >
               <input
@@ -394,7 +394,7 @@ function CheckoutForm() {
               <label
                 key={card.id}
                 className={`flex cursor-pointer gap-3 rounded-2xl border p-3 text-sm transition-colors duration-200 ${
-                  cardId === card.id ? "border-ink bg-lime/20" : "border-stone-200"
+                  cardId === card.id ? "border-carrot/40 bg-blush/60" : "border-border"
                 }`}
               >
                 <input
@@ -416,7 +416,7 @@ function CheckoutForm() {
             ))}
             <label
               className={`flex cursor-pointer gap-3 rounded-2xl border p-3 text-sm transition-colors duration-200 ${
-                cardId === "new" ? "border-ink bg-lime/20" : "border-stone-200"
+                cardId === "new" ? "border-carrot/40 bg-blush/60" : "border-border"
               }`}
             >
               <input
@@ -530,7 +530,7 @@ function CheckoutForm() {
         </div>
       </section>
 
-      <section className="mt-4 rounded-2xl border border-stone-200 bg-white p-5">
+      <section className="mt-4 rounded-2xl border border-border bg-white p-5">
         <p className="font-semibold">Arriving in {deliveryCountLabel(summary.deliveryCount)}</p>
         <ul className="mt-3 space-y-2 text-sm">
           {priced.map((row, index) => (
@@ -544,7 +544,7 @@ function CheckoutForm() {
           ))}
         </ul>
         {saleTotal + couponTotal > 0 && (
-          <p className="mt-3 text-sm text-teal-800">
+          <p className="mt-3 text-sm text-carrot">
             Saved {formatInr(saleTotal + couponTotal)}
             {couponTotal > 0 ? ` · coupon ${formatInr(couponTotal)}` : ""}
           </p>
@@ -557,7 +557,7 @@ function CheckoutForm() {
         type="button"
         disabled={paying}
         onClick={() => void pay()}
-        className="mt-6 w-full rounded-full bg-ink py-3 font-semibold text-lime disabled:opacity-60"
+        className="btn-primary btn-block btn-lg mt-6"
       >
         {paying
           ? "Processing…"

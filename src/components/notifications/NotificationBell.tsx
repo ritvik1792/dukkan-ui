@@ -63,7 +63,7 @@ export function NotificationBell({ tone = "dark" }: { tone?: "dark" | "light" })
   const buttonClass =
     tone === "dark"
       ? "relative rounded-xl p-2 hover:bg-white/10"
-      : "relative rounded-xl p-2 hover:bg-stone-100";
+      : "relative rounded-xl p-2 hover:bg-blush";
 
   function openItem(id: string, href: string) {
     dispatch({ type: "markNotificationsRead", ids: [id] });
@@ -82,7 +82,7 @@ export function NotificationBell({ tone = "dark" }: { tone?: "dark" | "light" })
         <BellIcon className="h-5 w-5" />
         <span
           aria-hidden={unreadCount === 0}
-          className={`cart-badge absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-lime px-1 text-[10px] font-semibold text-ink ${
+          className={`cart-badge absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-ember px-1 text-[10px] font-semibold text-white ${
             unreadCount === 0 ? "invisible" : ""
           }`}
         >
@@ -90,7 +90,7 @@ export function NotificationBell({ tone = "dark" }: { tone?: "dark" | "light" })
         </span>
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-[20.5rem] overflow-hidden rounded-2xl border border-stone-200 bg-white text-ink shadow-xl">
+        <div className="absolute right-0 z-50 mt-2 w-[min(20.5rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-border bg-white text-ink shadow-xl">
           <div className="flex items-center justify-between border-b px-3 py-2">
             <p className="text-sm font-semibold">Notifications</p>
             {unreadCount > 0 && (
@@ -107,10 +107,10 @@ export function NotificationBell({ tone = "dark" }: { tone?: "dark" | "light" })
             {mine.slice(0, 20).map((item) => {
               const href = notificationHref(item, user.role);
               return (
-                <li key={item.id} className={item.readAt ? "" : "bg-lime/15"}>
+                <li key={item.id} className={item.readAt ? "" : "bg-ember/15"}>
                   <button
                     type="button"
-                    className="w-full px-3 py-2.5 text-left hover:bg-stone-50"
+                    className="w-full px-3 py-2.5 text-left hover:bg-blush/60"
                     onClick={() => openItem(item.id, href)}
                   >
                     <p className="text-sm font-medium">{item.title}</p>

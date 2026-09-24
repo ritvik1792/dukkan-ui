@@ -31,8 +31,8 @@ export function DashboardNav({ links }: { links: NavLink[] }) {
             <Link
               key={l.href}
               href={l.href}
-              className={`whitespace-nowrap rounded-xl px-3 py-2 text-sm transition duration-200 ${
-                active ? "bg-ink text-lime" : "bg-white hover:bg-stone-100"
+              className={`whitespace-nowrap rounded-xl px-3 py-2.5 text-sm transition duration-200 ${
+                active ? "bg-carrot text-white" : "bg-white hover:bg-blush"
               }`}
             >
               {l.label}

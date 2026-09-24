@@ -31,7 +31,7 @@ function BookingsList() {
   return (
     <div>
       <h2 className="text-xl font-semibold">Your bookings</h2>
-      <p className="mt-1 text-sm text-stone-500">Scheduled services you requested on pinkCarrot.</p>
+      <p className="mt-1 text-sm text-stone-500">Scheduled services you requested on Pink Carrot.</p>
       {loading && <p className="mt-6 text-sm text-stone-500">Loading…</p>}
       <div className="mt-6 space-y-3">
         {rows.map((booking) => {
@@ -53,7 +53,7 @@ function BookingsList() {
           );
         })}
         {!loading && rows.length === 0 && (
-          <p className="rounded-2xl bg-stone-50 p-6 text-sm text-stone-500">No bookings yet.</p>
+          <p className="rounded-2xl bg-cream p-6 text-sm text-stone-500">No bookings yet.</p>
         )}
       </div>
     </div>

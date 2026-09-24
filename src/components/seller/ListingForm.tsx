@@ -117,7 +117,7 @@ export function ListingForm({
     setForm((f) => ({ ...f, gallery: [...f.gallery, ...next].slice(0, 8) }));
   }
 
-  const tagBox = compact ? "rounded-2xl border border-stone-200 p-3" : "rounded-2xl bg-white p-4";
+  const tagBox = compact ? "rounded-2xl border border-border p-3" : "rounded-2xl bg-white p-4";
 
   return (
     <form
@@ -275,7 +275,7 @@ export function ListingForm({
           )}
         </ul>
       </div>
-      <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-lime">
+      <button type="submit" className="rounded-full bg-carrot px-5 py-2.5 text-sm font-semibold text-white">
         {submitLabel}
       </button>
     </form>

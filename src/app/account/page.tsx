@@ -53,7 +53,7 @@ export default function AccountSettingsPage() {
         <button
           type="button"
           onClick={() => openAuth()}
-          className="mt-6 inline-block rounded-full bg-ink px-5 py-2 text-sm text-lime"
+          className="mt-6 inline-block rounded-full bg-carrot px-5 py-2 text-sm text-white"
         >
           Sign in with phone
         </button>
@@ -77,7 +77,7 @@ export default function AccountSettingsPage() {
                 <h2 className="font-semibold">Support tickets</h2>
                 <p className="text-sm text-stone-500">Complaints and help requests on your account.</p>
               </div>
-              <Link href="/account/tickets" className="shrink-0 rounded-full bg-ink px-4 py-2 text-sm text-lime">
+              <Link href="/account/tickets" className="shrink-0 rounded-full bg-carrot px-4 py-2 text-sm text-white">
                 Open tickets
               </Link>
             </div>
@@ -116,7 +116,7 @@ function RadiusSection() {
         <h2 className="font-semibold">Location &amp; delivery</h2>
         <p className="text-sm text-stone-500">Where we look for nearby dukkans, and how far.</p>
       </div>
-      <div className="flex items-start justify-between gap-3 rounded-xl border border-stone-200 p-3">
+      <div className="flex items-start justify-between gap-3 rounded-xl border border-border p-3">
         <div className="min-w-0">
           <p className="text-sm font-medium">{locationSummary(location)}</p>
           {location ? (
@@ -133,7 +133,7 @@ function RadiusSection() {
           <button
             type="button"
             onClick={openLocation}
-            className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-lime"
+            className="rounded-full bg-carrot px-3 py-1.5 text-xs font-semibold text-white"
           >
             {location ? "Change" : "Set location"}
           </button>
@@ -263,8 +263,8 @@ function ProfileSection() {
         />
       </Field>
       {error && <p className="text-sm text-red-700">{error}</p>}
-      {saved && !error && <p className="text-sm text-emerald-700">Profile saved.</p>}
-      <button type="submit" className="rounded-full bg-ink px-4 py-2 text-sm text-lime">
+      {saved && !error && <p className="text-sm text-carrot">Profile saved.</p>}
+      <button type="submit" className="rounded-full bg-carrot px-4 py-2 text-sm text-white">
         Save profile
       </button>
     </form>
@@ -316,12 +316,12 @@ function AddressBook() {
           {addresses.map((item) => {
             const isDefault = user.defaultAddressId === item.id;
             return (
-              <li key={item.id} className="rounded-2xl border border-stone-200 p-3 text-sm">
+              <li key={item.id} className="rounded-2xl border border-border p-3 text-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium">
                       {item.label}
-                      {isDefault ? <span className="ml-2 text-xs text-teal-700">Default</span> : null}
+                      {isDefault ? <span className="ml-2 text-xs text-carrot">Default</span> : null}
                     </p>
                     <p className="mt-0.5 text-stone-500">{formatAddressLine(item)}</p>
                     {item.coordinates && (
@@ -361,7 +361,7 @@ function AddressBook() {
           <p className="mt-1 mb-4 text-sm text-stone-500">Save a home, work, or other delivery address.</p>
           <AddressFields value={draft} onChange={setDraft} />
           {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
-          <button type="submit" className="mt-4 rounded-full bg-ink px-4 py-2 text-sm text-lime">
+          <button type="submit" className="mt-4 rounded-full bg-carrot px-4 py-2 text-sm text-white">
             Save address
           </button>
         </form>
@@ -422,12 +422,12 @@ function PaymentBook() {
           {cards.map((card) => {
             const isDefault = user.defaultCardId === card.id;
             return (
-              <li key={card.id} className="rounded-2xl border border-stone-200 p-3 text-sm">
+              <li key={card.id} className="rounded-2xl border border-border p-3 text-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium">
                       {cardBrandLabel(card.brand)} · •••• {card.last4}
-                      {isDefault ? <span className="ml-2 text-xs text-teal-700">Default</span> : null}
+                      {isDefault ? <span className="ml-2 text-xs text-carrot">Default</span> : null}
                     </p>
                     <p className="mt-0.5 text-stone-500">
                       {card.name} · Expires {card.expiry}
@@ -491,7 +491,7 @@ function PaymentBook() {
             />
           </Field>
           {error && <p className="text-sm text-red-700">{error}</p>}
-          <button type="submit" className="rounded-full bg-ink px-4 py-2 text-sm text-lime">
+          <button type="submit" className="rounded-full bg-carrot px-4 py-2 text-sm text-white">
             Save card
           </button>
         </form>
@@ -514,7 +514,7 @@ function ConsoleSection() {
         <button
           type="button"
           onClick={() => router.push(ROUTES.consoleDashboard)}
-          className="shrink-0 rounded-full bg-ink px-4 py-2 text-sm text-lime"
+          className="shrink-0 rounded-full bg-carrot px-4 py-2 text-sm text-white"
         >
           Console
         </button>

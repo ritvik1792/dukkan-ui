@@ -20,6 +20,6 @@ export function StatCard({
 
 export function StatusPill({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-full bg-lime/50 px-2 py-0.5 text-xs capitalize">{children}</span>
+    <span className="rounded-full bg-champagne px-2 py-0.5 text-xs capitalize">{children}</span>
   );
 }

@@ -11,6 +11,7 @@ import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
+import { randomBrandHue } from "@/lib/constants";
 import { formatInr } from "@/lib/format";
 import { afterPaint } from "@/lib/drawer";
 import { adminConsolePath } from "@/lib/routes";
@@ -176,7 +177,7 @@ export default function AdminProducts() {
         description: form.description,
         unit: form.unit,
         imageLabel: existing?.imageLabel || form.name.slice(0, 8),
-        imageHue: existing?.imageHue ?? Math.floor(Math.random() * 360),
+        imageHue: existing?.imageHue ?? randomBrandHue(),
         imageUrl: form.mainImage || undefined,
         galleryUrls: form.gallery,
       },
@@ -287,7 +288,7 @@ export default function AdminProducts() {
         row.caseStatus === "—" ? (
           <span className="text-xs text-stone-400">—</span>
         ) : (
-          <span className="text-xs text-amber-700">{row.caseStatus}</span>
+          <span className="text-xs text-ember">{row.caseStatus}</span>
         ),
     },
     {
@@ -323,7 +324,7 @@ export default function AdminProducts() {
             <button
               type="button"
               onClick={() => makeLive(row.listing)}
-              className="rounded-full bg-ink px-3 py-1 text-xs text-lime"
+              className="rounded-full bg-carrot px-3 py-1 text-xs text-white"
             >
               Make live
             </button>

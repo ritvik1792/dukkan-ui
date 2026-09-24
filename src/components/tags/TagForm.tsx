@@ -287,8 +287,8 @@ export function TagForm({
                   key={method.id}
                   className={`rounded-full border px-3 py-1 text-xs ${
                     form.paymentMethods.includes(method.id)
-                      ? "border-ink bg-lime/40"
-                      : "border-stone-200 bg-white"
+                      ? "border-carrot/40 bg-blush"
+                      : "border-border bg-white"
                   } ${lockRules ? "opacity-70" : "cursor-pointer"}`}
                 >
                   <input
@@ -304,7 +304,7 @@ export function TagForm({
             </div>
           </div>
           {form.paymentMethods.includes("credit_card") && (
-            <div className="rounded-2xl border border-stone-200 p-3">
+            <div className="rounded-2xl border border-border p-3">
               <p className="text-sm font-semibold">Credit card rules</p>
               <p className="mt-1 text-xs text-stone-500">
                 Restrict this coupon to card networks and issuing banks.
@@ -315,8 +315,8 @@ export function TagForm({
                     key={network.id}
                     className={`rounded-full border px-3 py-1 text-xs ${
                       form.cardNetworks.includes(network.id)
-                        ? "border-ink bg-lime/40"
-                        : "border-stone-200 bg-white"
+                        ? "border-carrot/40 bg-blush"
+                        : "border-border bg-white"
                     } ${lockRules ? "opacity-70" : "cursor-pointer"}`}
                   >
                     <input
@@ -357,14 +357,14 @@ export function TagForm({
             placeholder="Search products"
           />
         </div>
-        <ul className="mt-3 max-h-56 space-y-1 overflow-y-auto rounded-2xl border border-stone-200 bg-white p-2">
+        <ul className="mt-3 max-h-56 space-y-1 overflow-y-auto rounded-2xl border border-border bg-white p-2">
           {listings.map((listing) => {
             const product = catalogById(listing.catalogProductId);
             const shop = shopById(listing.shopId);
             const checked = form.listingIds.includes(listing.id);
             return (
               <li key={listing.id}>
-                <label className="flex cursor-pointer items-start gap-2 rounded-xl px-2 py-1.5 text-sm hover:bg-stone-50">
+                <label className="flex cursor-pointer items-start gap-2 rounded-xl px-2 py-1.5 text-sm hover:bg-blush/60">
                   <input
                     type="checkbox"
                     className="mt-1"
@@ -391,7 +391,7 @@ export function TagForm({
         )}
       </div>
 
-      <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-lime">
+      <button type="submit" className="rounded-full bg-carrot px-5 py-2.5 text-sm font-semibold text-white">
         {submitLabel}
       </button>
       {lockRules && (

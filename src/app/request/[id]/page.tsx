@@ -138,7 +138,7 @@ function RequestStatusPage() {
           {activeOffers.map((offer) => {
             const shop = shopById(offer.shopId);
             return (
-              <li key={offer.id} className="rounded-2xl border border-stone-200 bg-white p-4">
+              <li key={offer.id} className="rounded-2xl border border-border bg-white p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold">{shop?.name ?? offer.shopId}</p>
@@ -153,7 +153,7 @@ function RequestStatusPage() {
                   type="button"
                   disabled={busyOfferId === offer.id || request.status === "ORDERED"}
                   onClick={() => void select(offer)}
-                  className="mt-3 rounded-full bg-[#ffa41c] px-4 py-2 text-sm font-semibold text-ink disabled:opacity-50"
+                  className="btn-primary btn-sm mt-3"
                 >
                   {busyOfferId === offer.id ? "Selecting…" : "Select & checkout"}
                 </button>
@@ -161,7 +161,7 @@ function RequestStatusPage() {
             );
           })}
           {activeOffers.length === 0 && (
-            <li className="rounded-2xl border border-dashed border-stone-200 p-6 text-sm text-stone-500">
+            <li className="rounded-2xl border border-dashed border-border p-6 text-sm text-stone-500">
               No offers yet. Keep this page open — sellers have a short window to reply.
             </li>
           )}

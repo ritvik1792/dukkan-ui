@@ -175,7 +175,7 @@ export default function SellerAvailabilityInbox() {
                 const selected = activeId === row.request.id;
                 const productName = product?.name ?? row.request.catalogProductId;
                 return (
-                  <li key={row.request.id} className="rounded-2xl border border-stone-200 bg-white p-4">
+                  <li key={row.request.id} className="rounded-2xl border border-border bg-white p-4">
                     <button type="button" className="w-full text-left" onClick={() => void open(row.request.id)}>
                       <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
                         New customer request
@@ -205,7 +205,7 @@ export default function SellerAvailabilityInbox() {
                               type="button"
                               disabled={busy}
                               onClick={() => setStep("price")}
-                              className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-lime disabled:opacity-50"
+                              className="rounded-full bg-carrot px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                             >
                               Yes
                             </button>
@@ -245,7 +245,7 @@ export default function SellerAvailabilityInbox() {
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void sendOffer()}
-                                className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-lime disabled:opacity-50"
+                                className="rounded-full bg-carrot px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                               >
                                 Send offer
                               </button>
@@ -266,7 +266,7 @@ export default function SellerAvailabilityInbox() {
                 );
               })}
               {openRows.length === 0 && (
-                <li className="rounded-2xl border border-dashed border-stone-200 p-6 text-sm text-stone-500">
+                <li className="rounded-2xl border border-dashed border-border p-6 text-sm text-stone-500">
                   No open availability requests.
                 </li>
               )}

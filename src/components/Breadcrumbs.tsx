@@ -25,7 +25,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   account: "Account",
   orders: "Orders",
   tickets: "Support",
-  sell: "Sell on Dukkan",
+  sell: "Sell on Pink Carrot",
   seller: "Seller",
   admin: "Admin",
   application: "Application",
@@ -125,7 +125,7 @@ export function Breadcrumbs({ items }: { items?: Crumb[] }) {
   if (crumbs.length === 0) return null;
 
   return (
-    <nav aria-label="Breadcrumb" className="border-b border-stone-200/70 bg-white/70">
+    <nav aria-label="Breadcrumb" className="border-b border-border/70 bg-white/70">
       <ol className="page-shell flex flex-wrap items-center gap-x-1.5 gap-y-1 py-2 text-xs text-stone-500">
         {crumbs.map((crumb, index) => {
           const last = index === crumbs.length - 1;

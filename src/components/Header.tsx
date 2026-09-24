@@ -6,22 +6,24 @@ import { LogoMark } from "@/components/LogoMark";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { LocationChip } from "@/components/location/LocationChip";
+import { SearchSuggest } from "@/components/search/SearchSuggest";
 import { useApp } from "@/context/AppContext";
+import { useIsHydrated } from "@/lib/hydration";
 import { afterPaint } from "@/lib/drawer";
-import { useMotionRouter } from "@/lib/motion";
 import { BRAND } from "@/lib/constants";
 import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export function Header() {
   const { user, cartCount, state } = useApp();
   const { openAuth } = useAuthDialog();
-  const [query, setQuery] = useState("");
+  const isHydrated = useIsHydrated();
+  const displayCartCount = isHydrated ? cartCount : 0;
+  const displayUser = isHydrated ? user : null;
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuShown, setMenuShown] = useState(false);
   const [menuRender, setMenuRender] = useState(false);
-  const router = useMotionRouter();
 
   useEffect(() => {
     if (menuOpen) {
@@ -34,47 +36,37 @@ export function Header() {
     return () => window.clearTimeout(timeout);
   }, [menuOpen]);
 
-  function onSearch(e: FormEvent) {
-    e.preventDefault();
-    const q = query.trim();
-    router.push(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
-    setMenuOpen(false);
-  }
-
   return (
     <header className="sticky top-0 z-40 overflow-visible border-b border-white/10 bg-ink text-white">
-      <div className="page-shell flex items-center gap-3 py-3">
+      <div className="page-shell flex min-w-0 items-center gap-2 py-3 sm:gap-3">
         <button
           type="button"
           aria-label="Open categories"
           onClick={() => setMenuOpen(true)}
-          className="rounded-xl p-2 hover:bg-white/10"
+          className="shrink-0 rounded-xl p-2.5 hover:bg-white/10"
         >
           <span className="block h-0.5 w-5 bg-white" />
           <span className="mt-1 block h-0.5 w-5 bg-white" />
           <span className="mt-1 block h-0.5 w-5 bg-white" />
         </button>
 
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex min-w-0 shrink items-center gap-2">
           <LogoMark />
-          <div className="leading-tight">
-            <div className="text-lg font-bold tracking-tight">{BRAND.name}</div>
-            <div className="text-[10px] uppercase tracking-[0.18em] text-lime">Near you</div>
+          <div className="min-w-0 leading-tight">
+            <div className="truncate text-base font-bold tracking-tight sm:text-lg">{BRAND.name}</div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-rose-gold">Near you</div>
           </div>
         </Link>
 
-        <LocationChip className="hidden max-w-[220px] md:flex" />
+        <LocationChip className="hidden max-w-[220px] shrink-0 md:flex" />
 
-        <form onSubmit={onSearch} className="hidden flex-1 md:block">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search for products, shops, services or people..."
-            className="w-full rounded-xl border border-white/10 bg-white px-4 py-2.5 text-sm text-ink placeholder:text-stone-400"
-          />
-        </form>
+        <SearchSuggest
+          variant="header"
+          className="hidden min-w-0 flex-1 md:block"
+          onNavigated={() => setMenuOpen(false)}
+        />
 
-        <nav className="ml-auto flex items-center gap-1 text-sm">
+        <nav className="ml-auto flex shrink-0 items-center gap-0.5 text-sm sm:gap-1">
           <Link
             href={ROUTES.consoleDashboard}
             className="hidden rounded-xl px-3 py-2 hover:bg-white/10 sm:block"
@@ -84,17 +76,17 @@ export function Header() {
           <NotificationBell />
           <Link
             href="/cart"
-            className="relative rounded-xl bg-lime px-3 py-2 font-semibold text-ink"
+            className="relative rounded-xl bg-carrot px-2.5 py-2 font-semibold text-white shadow-sm ring-1 ring-white/10 hover:brightness-105 sm:px-3"
           >
             Cart
             <span
-              key={cartCount}
-              aria-hidden={cartCount === 0}
+              key={displayCartCount}
+              aria-hidden={displayCartCount === 0}
               className={`cart-badge absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[11px] text-ink ${
-                cartCount === 0 ? "invisible" : ""
+                displayCartCount === 0 ? "invisible" : ""
               }`}
             >
-              {cartCount}
+              {displayCartCount}
             </span>
           </Link>
           <AccountMenu />
@@ -103,17 +95,14 @@ export function Header() {
 
       <div className="page-shell flex gap-2 pb-3 md:hidden">
         <LocationChip className="max-w-[9.5rem] shrink-0 px-2 py-1.5" />
-        <form onSubmit={onSearch} className="flex-1">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search for products, shops, services or people..."
-            className="w-full rounded-xl bg-white px-3 py-2 text-sm text-ink"
-          />
-        </form>
+        <SearchSuggest
+          variant="header"
+          className="min-w-0 flex-1"
+          onNavigated={() => setMenuOpen(false)}
+        />
       </div>
 
-      {state.settings.showDemoRoleSwitcher && user && (
+      {state.settings.showDemoRoleSwitcher && displayUser && (
         <div className="bg-white/5 px-4 py-1 text-center text-[11px] text-white/60">
           Demo preview is on in admin settings
         </div>
@@ -139,31 +128,31 @@ export function Header() {
               </button>
             </div>
             <CategoryList onSelect={() => setMenuOpen(false)} />
-            <div className="mt-6 space-y-2 border-t pt-4 text-sm">
+            <div className="mt-6 space-y-1 border-t pt-4 text-sm">
               {user ? (
                 <>
-                  <Link href="/account" onClick={() => setMenuOpen(false)} className="block py-1">
+                  <Link href="/account" onClick={() => setMenuOpen(false)} className="block rounded-lg px-1 py-2.5">
                     Profile
                   </Link>
-                  <Link href="/account/wishlist" onClick={() => setMenuOpen(false)} className="block py-1">
+                  <Link href="/account/wishlist" onClick={() => setMenuOpen(false)} className="block rounded-lg px-1 py-2.5">
                     Saved
                   </Link>
-                  <Link href="/account/orders" onClick={() => setMenuOpen(false)} className="block py-1">
+                  <Link href="/account/orders" onClick={() => setMenuOpen(false)} className="block rounded-lg px-1 py-2.5">
                     Orders
                   </Link>
-                  <Link href="/account/bookings" onClick={() => setMenuOpen(false)} className="block py-1">
+                  <Link href="/account/bookings" onClick={() => setMenuOpen(false)} className="block rounded-lg px-1 py-2.5">
                     Bookings
                   </Link>
-                  <Link href="/account/service-requests" onClick={() => setMenuOpen(false)} className="block py-1">
+                  <Link href="/account/service-requests" onClick={() => setMenuOpen(false)} className="block rounded-lg px-1 py-2.5">
                     Service requests
                   </Link>
-                  <Link href="/account/tickets" onClick={() => setMenuOpen(false)} className="block py-1">
+                  <Link href="/account/tickets" onClick={() => setMenuOpen(false)} className="block rounded-lg px-1 py-2.5">
                     Support
                   </Link>
                   <Link
                     href={ROUTES.consoleDashboard}
                     onClick={() => setMenuOpen(false)}
-                    className="block py-1"
+                    className="block rounded-lg px-1 py-2.5"
                   >
                     Console
                   </Link>
@@ -176,21 +165,21 @@ export function Header() {
                       setMenuOpen(false);
                       openAuth();
                     }}
-                    className="block py-1"
+                    className="block w-full rounded-lg px-1 py-2.5 text-left"
                   >
                     Sign in
                   </button>
                   <Link
                     href={ROUTES.consoleDashboard}
                     onClick={() => setMenuOpen(false)}
-                    className="block py-1"
+                    className="block rounded-lg px-1 py-2.5"
                   >
                     Console
                   </Link>
                 </>
               )}
-              <Link href="/sell" onClick={() => setMenuOpen(false)} className="block py-1">
-                Sell on pinkCarrot
+              <Link href="/sell" onClick={() => setMenuOpen(false)} className="block rounded-lg px-1 py-2.5">
+                Sell on Pink Carrot
               </Link>
             </div>
           </div>

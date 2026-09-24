@@ -90,7 +90,7 @@ export function WriteReviewForm({
             key={star}
             type="button"
             aria-label={`${star} stars`}
-            className={`text-lg ${star <= rating ? "text-amber-500" : "text-stone-300"}`}
+            className={`text-lg ${star <= rating ? "text-ember" : "text-stone-300"}`}
             onClick={() => setRating(star)}
           >
             ★
@@ -144,7 +144,7 @@ export function WriteReviewForm({
         </div>
         <button
           type="button"
-          className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-lime"
+          className="rounded-full bg-carrot px-4 py-2 text-sm font-semibold text-white"
           onClick={() => void submit()}
         >
           Post review

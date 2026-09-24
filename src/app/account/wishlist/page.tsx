@@ -29,7 +29,7 @@ export default function AccountWishlistPage() {
       {state.wishlist.length === 0 ? (
         <Link
           href="/search"
-          className="mt-4 inline-block rounded-full bg-ink px-4 py-2 text-sm text-lime"
+          className="mt-4 inline-block rounded-full bg-carrot px-4 py-2 text-sm text-white"
         >
           Browse products
         </Link>

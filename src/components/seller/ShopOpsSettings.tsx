@@ -84,7 +84,7 @@ export function ShopOpsSettings({ shop, compact = false }: { shop: Shop; compact
             type="button"
             onClick={() => patch({ isOpen: !shopManuallyOpen(shop) })}
             className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              shopManuallyOpen(shop) ? "bg-ink text-lime" : "border border-stone-200 bg-white"
+              shopManuallyOpen(shop) ? "bg-carrot text-white" : "border border-border bg-white"
             }`}
           >
             {shopManuallyOpen(shop) ? "Marked open" : "Marked closed"}
@@ -152,7 +152,7 @@ export function ShopOpsSettings({ shop, compact = false }: { shop: Shop; compact
             return (
               <li
                 key={step.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-stone-50 px-3 py-2.5"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-cream px-3 py-2.5"
               >
                 <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
                   <input

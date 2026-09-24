@@ -117,7 +117,7 @@ function SellForm() {
 
   return (
     <>
-      <h1 className="text-3xl font-semibold">Sell on pinkCarrot</h1>
+      <h1 className="text-3xl font-semibold">Sell on Pink Carrot</h1>
       <p className="mt-2 text-sm text-stone-500">
         Apply once. We create a seller profile. Track approval from the console.
       </p>
@@ -190,7 +190,7 @@ function SellForm() {
         <Field label="About the shop">
           <TextArea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
         </Field>
-        <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-lime">
+        <button type="submit" className="rounded-full bg-carrot px-5 py-2.5 text-sm font-semibold text-white">
           Submit application
         </button>
       </form>
@@ -245,7 +245,7 @@ function ProviderApplyForm() {
 
   return (
     <form onSubmit={submit} className="mt-10 space-y-4 border-t pt-10">
-      <h2 className="text-xl font-semibold">Offer services on pinkCarrot</h2>
+      <h2 className="text-xl font-semibold">Offer services on Pink Carrot</h2>
       <p className="text-sm text-stone-500">
         Apply as a service business or individual. Admin enables bookings and requests after review.
       </p>

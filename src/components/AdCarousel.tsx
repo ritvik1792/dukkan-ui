@@ -43,12 +43,12 @@ export function AdCarousel({
       <div
         className="absolute inset-0 opacity-40"
         style={{
-          background: `linear-gradient(120deg, hsl(${ad.hue} 60% 35%), #0b1f1a)`,
+          background: `linear-gradient(120deg, hsl(${ad.hue} 55% 38%), #1e1418)`,
         }}
       />
       <div className="relative grid gap-6 p-6 md:grid-cols-[1.2fr_0.8fr] md:p-8">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lime">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-rose-gold">
             {ad.badge}
           </p>
           <h2 className="mt-2 max-w-xl text-2xl font-semibold tracking-tight md:text-3xl">
@@ -60,7 +60,7 @@ export function AdCarousel({
             onClick={() => {
               if (ad.catalogProductId && productHref) selectProduct(ad.catalogProductId);
             }}
-            className="mt-6 inline-block rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-ink"
+            className="btn-primary mt-6"
           >
             {ad.cta}
           </Link>
@@ -76,7 +76,7 @@ export function AdCarousel({
           ) : (
             <div
               className="h-40 w-40 rounded-full opacity-80"
-              style={{ background: `hsl(${ad.hue} 80% 60%)` }}
+              style={{ background: `hsl(${ad.hue} 42% 62%)` }}
             />
           )}
         </div>
@@ -90,7 +90,7 @@ export function AdCarousel({
                 type="button"
                 aria-label={`Show ad ${i + 1}`}
                 onClick={() => setIndex(i)}
-                className={`h-2 rounded-full ${i === index ? "w-6 bg-lime" : "w-2 bg-white/40"}`}
+                className={`h-2 rounded-full ${i === index ? "w-6 bg-carrot" : "w-2 bg-white/40"}`}
               />
             ))}
           </div>

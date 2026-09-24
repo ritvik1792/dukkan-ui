@@ -134,7 +134,7 @@ function EmailPasswordAuthDialog({
           role="dialog"
           aria-modal="true"
           aria-labelledby="auth-title"
-          className={`overflow-hidden rounded-[1.75rem] bg-[#fff5f8] shadow-2xl transition duration-300 ${
+          className={`overflow-hidden rounded-[1.75rem] bg-cream shadow-2xl transition duration-300 ${
             shown ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
           }`}
         >
@@ -153,7 +153,7 @@ function EmailPasswordAuthDialog({
             </p>
 
             <form className="mt-5 space-y-3" onSubmit={onSubmit}>
-              <label className="block rounded-2xl border border-stone-200 bg-white px-3">
+              <label className="block rounded-2xl border border-border bg-white px-3">
                 <span className="sr-only">Email</span>
                 <input
                   autoFocus
@@ -166,7 +166,7 @@ function EmailPasswordAuthDialog({
                   className="w-full bg-transparent py-3 outline-none"
                 />
               </label>
-              <label className="block rounded-2xl border border-stone-200 bg-white px-3">
+              <label className="block rounded-2xl border border-border bg-white px-3">
                 <span className="sr-only">Password</span>
                 <input
                   required
@@ -182,7 +182,7 @@ function EmailPasswordAuthDialog({
               <button
                 type="submit"
                 disabled={busy}
-                className="w-full rounded-xl bg-carrot py-3 text-sm font-bold text-white hover:brightness-105 disabled:opacity-60"
+                className="btn-primary btn-block btn-lg"
               >
                 {busy ? "Signing in…" : "Sign in"}
               </button>

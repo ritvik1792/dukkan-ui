@@ -48,7 +48,7 @@ export function TicketDetailSheet({
           shown ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-border bg-white px-5 py-4">
           <div>
             <p className="text-xs uppercase tracking-wider text-stone-400">Ticket</p>
             <h2 className="text-lg font-semibold">{ticket.subject}</h2>

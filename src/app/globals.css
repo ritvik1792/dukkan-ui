@@ -1,28 +1,178 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-ink: #2a1810;
-  --color-lime: #e8722a;
-  --color-cream: #fceef3;
-  --color-carrot: #e8722a;
-  --color-blush: #f9d5e5;
-  --color-background: var(--color-cream);
-  --color-foreground: var(--color-ink);
+  /* Rich charcoal / espresso for dark header anchors */
+  --color-ink: #18181b;
+  /* Brand Pink — vibrant, appetizing, balanced (neither fluorescent neon nor dull muddy brown) */
+  --color-primary: #e11d48;
+  --color-primary-hover: #be123c;
+  --color-primary-light: #fff1f3;
+  --color-primary-subtle: #ffe4e6;
+  --color-primary-border: #fecdd3;
+  /* Backward-compatible alias for existing markup */
+  --color-carrot: var(--color-primary);
+  --color-carrot-hover: var(--color-primary-hover);
+  /* Accent & secondary hues */
+  --color-pink: #f43f5e;
+  --color-rose-gold: #f43f5e;
+  --color-peach: #fb7185;
+  --color-muted-rose: #fda4af;
+  --color-blush: #fff1f3;
+  /* Swiggy-like trust / discount emerald */
+  --color-deal: #0f8a5f;
+  --color-deal-light: #ecfdf5;
+  --color-deal-border: #a7f3d0;
+  /* Clean surfaces & borders (fresh white & light slate canvas, not dull beige) */
+  --color-cream: #fafafa;
+  --color-champagne: #f4f5f7;
+  --color-surface: #f8f9fa;
+  --color-border: #e4e4e7;
+  --color-muted: #64748b;
+  --color-ember: #ea580c;
+  --color-background: #f8f9fa;
+  --color-foreground: #18181b;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 html {
   color-scheme: light;
+  overflow-x: clip;
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 10% -10%, #ffe6f0 0%, transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, #ffe0cc 0%, transparent 50%),
-    var(--color-cream);
-  color: var(--color-ink);
+  background: var(--color-surface);
+  color: var(--color-foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  overflow-x: clip;
+}
+
+/* ── Shared button system (uniform across storefront + console) ── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  background: var(--color-carrot);
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid transparent;
+  box-shadow:
+    0 1px 2px rgb(225 29 72 / 0.12),
+    0 2px 8px rgb(225 29 72 / 0.22);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  box-shadow:
+    0 4px 14px rgb(225 29 72 / 0.32),
+    0 1px 2px rgb(225 29 72 / 0.15);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-blush);
+  border-color: var(--color-primary-border);
+  color: var(--color-primary);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-blush);
+  color: var(--color-primary);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-sm {
+  padding: 0.375rem 0.875rem;
+  font-size: 0.75rem;
+}
+
+.btn-lg {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9375rem;
+}
+
+/* Soft surface cards — white on clean canvas with crisp borders */
+.surface-card {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+}
+
+.chip-active {
+  background: var(--color-carrot);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgb(225 29 72 / 0.24);
+}
+
+.chip-idle {
+  background: #ffffff;
+  color: var(--color-ink);
+  border: 1px solid var(--color-border);
+}
+
+.chip-idle:hover {
+  background: var(--color-blush);
+  border-color: var(--color-primary-border);
+  color: var(--color-primary);
+}
+
+.badge-soft {
+  background: var(--color-blush);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary-border);
 }
 
 button,
@@ -35,7 +185,8 @@ summary {
     background-color 0.12s ease,
     border-color 0.12s ease,
     box-shadow 0.12s ease,
-    opacity 0.12s ease;
+    opacity 0.12s ease,
+    filter 0.12s ease;
 }
 
 button,
@@ -68,7 +219,9 @@ button:not(:disabled):active,
 
 .page-shell {
   width: 100%;
+  max-width: 100%;
   padding-inline: 0.75rem;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
@@ -84,7 +237,7 @@ button:not(:disabled):active,
 }
 
 select option {
-  color: #2a1810;
+  color: #1c1917;
 }
 
 @keyframes alert-in {

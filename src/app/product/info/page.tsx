@@ -245,7 +245,7 @@ export default function ProductInfoPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="page-shell mx-auto max-w-6xl py-8">
       <div className="grid gap-8 lg:grid-cols-[0.85fr_1fr_280px]">
         <div>
           <div className="relative">
@@ -253,7 +253,7 @@ export default function ProductInfoPage() {
               hue={product.imageHue}
               label={product.imageLabel}
               imageUrl={activePhoto ?? product.imageUrl}
-              className="h-80 lg:min-h-80 lg:h-full"
+              className="h-64 sm:h-80 lg:min-h-80 lg:h-full"
             />
             <WishlistButton catalogProductId={product.id} className="absolute right-3 top-3 z-10" />
           </div>
@@ -267,7 +267,7 @@ export default function ProductInfoPage() {
                     key={src.slice(0, 48)}
                     type="button"
                     className={`h-16 w-16 overflow-hidden rounded-xl ring-1 transition duration-200 ${
-                      (activePhoto ?? product.imageUrl) === src ? "ring-ink" : "ring-stone-200"
+                      (activePhoto ?? product.imageUrl) === src ? "ring-ink" : "ring-border"
                     }`}
                     onClick={() => setActivePhoto(src)}
                   >
@@ -282,7 +282,7 @@ export default function ProductInfoPage() {
           <p className="text-xs uppercase tracking-wider text-stone-500">
             {product.brand} · {product.unit}
           </p>
-          <h1 className="mt-1 text-3xl font-semibold">{product.name}</h1>
+          <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">{product.name}</h1>
           <p className="mt-2 text-sm text-stone-600">{product.description}</p>
           <p className="mt-3 text-sm">
             {avg ? `${avg.toFixed(1)} ★` : "No rating"} · {reviews.length} reviews
@@ -296,13 +296,13 @@ export default function ProductInfoPage() {
             <span className="text-3xl font-bold">{formatInr(listing.sellerPrice)}</span>
             <span className="text-stone-400 line-through">{formatInr(listing.basePrice)}</span>
             {off > 0 && (
-              <span className="text-sm font-semibold text-teal-800">{off}% off</span>
+              <span className="text-sm font-semibold text-carrot">{off}% off</span>
             )}
           </div>
           <p className="mt-1 text-sm text-stone-500">
             + {formatInr(fee)} delivery · landed {formatInr(listing.sellerPrice + fee)}
           </p>
-          <p className={`mt-3 text-sm font-semibold ${inStock ? "text-teal-800" : "text-red-700"}`}>
+          <p className={`mt-3 text-sm font-semibold ${inStock ? "text-carrot" : "text-red-700"}`}>
             {inStock
               ? listing.stock <= 5
                 ? `Only ${listing.stock} left in stock`
@@ -330,7 +330,7 @@ export default function ProductInfoPage() {
           </div>
         </div>
 
-        <aside className="h-fit rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+        <aside className="h-fit rounded-2xl border border-border bg-white p-4 shadow-sm">
           <p className="text-sm font-semibold">Quantity</p>
           <div className="mt-2">
             <QtyControl
@@ -355,7 +355,7 @@ export default function ProductInfoPage() {
             type="button"
             disabled={!inStock}
             onClick={buyNow}
-            className="mt-4 w-full rounded-full bg-[#ffa41c] px-4 py-3 text-sm font-semibold text-ink hover:bg-[#fa8900] disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-primary btn-block btn-lg mt-4"
           >
             Buy now
           </button>
@@ -374,7 +374,7 @@ export default function ProductInfoPage() {
           Default is the lowest seller price plus delivery. Or ask nearby sellers — they answer yes/no
           with a price in their shop inbox.
         </p>
-        <div className="mt-4 rounded-2xl border border-stone-200 bg-white p-4">
+        <div className="mt-4 rounded-2xl border border-border bg-white p-4">
           <label className="block text-sm font-semibold" htmlFor="ask-max-budget">
             Max budget (optional)
           </label>
@@ -391,7 +391,7 @@ export default function ProductInfoPage() {
               value={maxBudget}
               onChange={(e) => setMaxBudget(e.target.value)}
               placeholder="e.g. 499"
-              className="w-40 rounded-xl border border-stone-200 px-3 py-2 text-sm outline-none focus:border-ink"
+              className="w-40 rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-ink"
             />
           </div>
         </div>
@@ -401,7 +401,7 @@ export default function ProductInfoPage() {
               key={l.id}
               onClick={() => chooseSeller(l)}
               className={`w-full rounded-2xl border p-4 text-left ${
-                l.id === listing.id ? "border-ink bg-white" : "border-stone-200 bg-white/60"
+                l.id === listing.id ? "border-ink bg-white" : "border-border bg-white/60"
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -434,7 +434,7 @@ export default function ProductInfoPage() {
                     e.stopPropagation();
                     void askNearbySellers(l);
                   }}
-                  className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-lime disabled:opacity-50"
+                  className="rounded-full bg-carrot px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                 >
                   {confirmingId === l.id ? "Asking sellers…" : "Ask nearby sellers"}
                 </button>

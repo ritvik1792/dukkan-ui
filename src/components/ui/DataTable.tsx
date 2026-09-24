@@ -242,7 +242,7 @@ export function DataTable<T>({
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">
-        <div className="min-w-[12rem] flex-1">
+        <div className="min-w-0 w-full flex-1 sm:min-w-[12rem]">
           <TextInput
             value={search}
             onChange={(event) => {
@@ -258,7 +258,7 @@ export function DataTable<T>({
             type="button"
             onClick={() => setFiltersOpen((v) => !v)}
             className={`rounded-full border px-4 py-2 text-sm transition ${
-              activeFilterCount ? "border-ink bg-ink text-lime" : "border-stone-200 bg-white"
+              activeFilterCount ? "border-ink bg-carrot text-white" : "border-border bg-white"
             }`}
           >
             Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}
@@ -268,16 +268,16 @@ export function DataTable<T>({
           <button
             type="button"
             onClick={() => setColumnsOpen((v) => !v)}
-            className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm"
+            className="rounded-full border border-border bg-white px-4 py-2 text-sm"
           >
             Columns
           </button>
           {columnsOpen && (
-            <div className="absolute right-0 z-40 mt-1 w-56 rounded-xl border border-stone-200 bg-white p-2 shadow-xl">
+            <div className="absolute right-0 z-40 mt-1 w-56 rounded-xl border border-border bg-white p-2 shadow-xl">
               {columns.map((column) => (
                 <label
                   key={column.id}
-                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-stone-50"
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-blush/60"
                 >
                   <input
                     type="checkbox"
@@ -300,7 +300,7 @@ export function DataTable<T>({
       </div>
 
       {filtersOpen && filterable.length > 0 && (
-        <div className="mt-3 rounded-2xl border border-stone-200 bg-white p-4">
+        <div className="mt-3 rounded-2xl border border-border bg-white p-4">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {filterable.map((column) => {
               const filter = column.filter!;
@@ -443,7 +443,7 @@ export function DataTable<T>({
                 key={rowKey(row)}
                 onClick={onRowClick ? (event) => handleRowClick(row, event) : undefined}
                 className={`border-b last:border-0 ${
-                  onRowClick ? "cursor-pointer transition-colors duration-150 hover:bg-stone-50" : ""
+                  onRowClick ? "cursor-pointer transition-colors duration-150 hover:bg-blush/60" : ""
                 }`}
               >
                 {selectable && (
@@ -504,7 +504,7 @@ export function DataTable<T>({
                 setPageSize(Number(event.target.value));
                 setPage(0);
               }}
-              className="rounded-lg border border-stone-200 px-2 py-1"
+              className="rounded-lg border border-border px-2 py-1"
             >
               {PAGE_SIZES.map((size) => (
                 <option key={size} value={size}>
@@ -518,7 +518,7 @@ export function DataTable<T>({
               type="button"
               disabled={currentPage === 0}
               onClick={() => setPage(currentPage - 1)}
-              className="rounded-full border border-stone-200 px-3 py-1 disabled:opacity-40"
+              className="rounded-full border border-border px-3 py-1 disabled:opacity-40"
             >
               Prev
             </button>
@@ -529,7 +529,7 @@ export function DataTable<T>({
               type="button"
               disabled={currentPage >= pageCount - 1}
               onClick={() => setPage(currentPage + 1)}
-              className="rounded-full border border-stone-200 px-3 py-1 disabled:opacity-40"
+              className="rounded-full border border-border px-3 py-1 disabled:opacity-40"
             >
               Next
             </button>

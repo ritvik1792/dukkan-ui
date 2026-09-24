@@ -92,7 +92,7 @@ function RequestForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-xl bg-ink py-3 text-sm font-semibold text-lime disabled:opacity-60"
+          className="w-full rounded-xl bg-carrot py-3 text-sm font-semibold text-white disabled:opacity-60"
         >
           {submitting ? "Sending…" : "Send request"}
         </button>

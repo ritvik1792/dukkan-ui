@@ -102,7 +102,7 @@ function ComboBox({
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 z-40 mt-1 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-xl">
+        <div className="absolute left-0 right-0 z-40 mt-1 overflow-hidden rounded-xl border border-border bg-white shadow-xl">
           <div className="border-b border-stone-100 p-2">
             <input
               ref={inputRef}
@@ -112,7 +112,7 @@ function ComboBox({
                 setActive(0);
               }}
               placeholder={searchPlaceholder}
-              className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm focus:border-ink focus:outline-none"
+              className="w-full rounded-lg border border-border px-2 py-1.5 text-sm focus:border-ink focus:outline-none"
               onKeyDown={(event) => {
                 if (event.key === "ArrowDown") {
                   event.preventDefault();
@@ -136,7 +136,7 @@ function ComboBox({
               <li>
                 <button
                   type="button"
-                  className="flex w-full items-center px-3 py-2 text-left text-stone-500 hover:bg-stone-50"
+                  className="flex w-full items-center px-3 py-2 text-left text-stone-500 hover:bg-blush/60"
                   onClick={() => {
                     onClear();
                     if (!multiple) close();

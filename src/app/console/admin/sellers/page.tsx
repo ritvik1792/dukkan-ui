@@ -106,7 +106,7 @@ export default function AdminSellers() {
                   type="button"
                   onClick={() => setStatus(shop, status)}
                   className={`rounded-full px-3 py-1 text-xs ${
-                    shop.status === status ? "bg-ink text-lime" : "border"
+                    shop.status === status ? "bg-carrot text-white" : "border"
                   }`}
                 >
                   {titleCase(status)}

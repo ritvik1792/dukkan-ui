@@ -130,7 +130,7 @@ export default function AdminProductDetail() {
             <button
               type="button"
               onClick={() => setPendingAction("hide")}
-              className="rounded-full border border-stone-200 px-4 py-1.5 text-xs"
+              className="rounded-full border border-border px-4 py-1.5 text-xs"
             >
               Hide
             </button>
@@ -145,7 +145,7 @@ export default function AdminProductDetail() {
                 });
                 showAlert({ tone: "success", title: "Product is live" });
               }}
-              className="rounded-full bg-ink px-4 py-1.5 text-xs font-semibold text-lime"
+              className="rounded-full bg-carrot px-4 py-1.5 text-xs font-semibold text-white"
             >
               Make live
             </button>
@@ -153,7 +153,7 @@ export default function AdminProductDetail() {
           <button
             type="button"
             onClick={() => setPendingAction("override")}
-            className="rounded-full border border-stone-200 px-4 py-1.5 text-xs"
+            className="rounded-full border border-border px-4 py-1.5 text-xs"
           >
             Override
           </button>
@@ -169,7 +169,7 @@ export default function AdminProductDetail() {
             className="h-48"
           />
           {product.galleryUrls?.length ? (
-            <div className="mt-3 grid grid-cols-4 gap-2">
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {product.galleryUrls.slice(0, 4).map((url) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -276,7 +276,7 @@ export default function AdminProductDetail() {
             <h2 className="text-lg font-semibold">Recent reviews</h2>
             <Link
               href={adminConsolePath(`/products/${listing.id}/reviews`)}
-              className="rounded-full bg-ink px-4 py-1.5 text-xs font-semibold text-lime"
+              className="rounded-full bg-carrot px-4 py-1.5 text-xs font-semibold text-white"
             >
               See all {stats.count} review{stats.count === 1 ? "" : "s"}
             </Link>

@@ -4,6 +4,7 @@ import { ListingForm, type ListingFormValue } from "@/components/seller/ListingF
 import { useApp } from "@/context/AppContext";
 import { findCatalogByName } from "@/services/catalog";
 import { mapCatalogProduct, mapListing, upsertCatalogRequest, upsertListingRequest } from "@/lib/api";
+import { randomBrandHue } from "@/lib/constants";
 import { createId } from "@/lib/ids";
 import { useMotionRouter } from "@/lib/motion";
 import { sellerConsolePath } from "@/lib/routes";
@@ -26,7 +27,7 @@ export default function NewProductPage() {
       description: form.description,
       unit: form.unit,
       imageLabel: form.name.slice(0, 8),
-      imageHue: existing?.imageHue ?? Math.floor(Math.random() * 360),
+      imageHue: existing?.imageHue ?? randomBrandHue(),
       imageUrl: form.mainImage || undefined,
       galleryUrls: form.gallery,
     };

@@ -257,7 +257,7 @@ export function AdForm({
       <button
         type="submit"
         disabled={!canSubmit}
-        className="w-full rounded-full bg-ink px-4 py-2 text-sm font-semibold text-lime disabled:opacity-40"
+        className="w-full rounded-full bg-carrot px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
       >
         {submitLabel}
       </button>

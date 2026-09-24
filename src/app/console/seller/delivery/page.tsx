@@ -162,7 +162,7 @@ export default function SellerDeliveryPage() {
       )}
 
       {error && (
-        <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{error}</p>
+        <p className="mt-4 rounded-2xl bg-peach/20 px-4 py-3 text-sm text-ink">{error}</p>
       )}
 
       <section className="mt-6">
@@ -256,7 +256,7 @@ export default function SellerDeliveryPage() {
               <button
                 type="button"
                 disabled={busy || !assignId}
-                className="rounded-full bg-ink px-3 py-2 text-xs font-semibold text-lime disabled:opacity-40"
+                className="rounded-full bg-carrot px-3 py-2 text-xs font-semibold text-white disabled:opacity-40"
                 onClick={() => {
                   const partnerId = assignId;
                   setAssignId("");
@@ -298,7 +298,7 @@ export default function SellerDeliveryPage() {
             <button
               type="submit"
               disabled={busy}
-              className="rounded-full border border-stone-200 px-3 py-1.5 text-xs"
+              className="rounded-full border border-border px-3 py-1.5 text-xs"
             >
               Add rider
             </button>
@@ -328,7 +328,7 @@ export default function SellerDeliveryPage() {
           )}
         </div>
         <form
-          className="mt-3 grid gap-2 rounded-2xl bg-white p-4 sm:grid-cols-4"
+          className="mt-3 grid gap-2 rounded-2xl bg-white p-4 sm:grid-cols-2 lg:grid-cols-4"
           onSubmit={(event) => {
             event.preventDefault();
             if (!shopId || !newEmployee.name.trim()) return;
@@ -359,7 +359,7 @@ export default function SellerDeliveryPage() {
               </option>
             ))}
           </Select>
-          <button type="submit" disabled={busy} className="rounded-full border border-stone-200 px-3 py-2 text-xs">
+          <button type="submit" disabled={busy} className="rounded-full border border-border px-3 py-2 text-xs">
             Add staff
           </button>
         </form>
@@ -387,7 +387,7 @@ export default function SellerDeliveryPage() {
           )}
         </div>
         <form
-          className="mt-3 grid gap-2 rounded-2xl bg-white p-4 sm:grid-cols-5"
+          className="mt-3 grid gap-2 rounded-2xl bg-white p-4 sm:grid-cols-2 lg:grid-cols-5"
           onSubmit={(event) => {
             event.preventDefault();
             if (!shopId) return;
@@ -429,7 +429,7 @@ export default function SellerDeliveryPage() {
             value={newVehicle.capacityKg}
             onChange={(event) => setNewVehicle((row) => ({ ...row, capacityKg: event.target.value }))}
           />
-          <button type="submit" disabled={busy} className="rounded-full border border-stone-200 px-3 py-2 text-xs">
+          <button type="submit" disabled={busy} className="rounded-full border border-border px-3 py-2 text-xs">
             Add vehicle
           </button>
         </form>

@@ -58,7 +58,7 @@ export function TicketThread({
   const plain = variant === "plain";
 
   return (
-    <div className={plain ? "space-y-3" : "rounded-2xl border border-stone-200 bg-white p-4"}>
+    <div className={plain ? "space-y-3" : "rounded-2xl border border-border bg-white p-4"}>
       {!plain && (
         <>
           <div className="flex flex-wrap items-start justify-between gap-2">
@@ -122,10 +122,10 @@ export function TicketThread({
             <li
               key={message.id}
               className={`max-w-[90%] rounded-2xl px-3 py-2 text-sm ${
-                mine ? "ml-auto bg-ink text-lime" : "bg-cream text-ink"
+                mine ? "ml-auto bg-carrot text-white" : "bg-cream text-ink"
               }`}
             >
-              <p className={`text-[11px] ${mine ? "text-lime/70" : "text-stone-500"}`}>
+              <p className={`text-[11px] ${mine ? "text-white/75" : "text-muted"}`}>
                 {author?.name ?? "Unknown"} · {formatDate(message.createdAt)}
               </p>
               {message.body && <p className="mt-1 whitespace-pre-wrap">{message.body}</p>}
@@ -151,7 +151,7 @@ export function TicketThread({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-lime"
+              className="rounded-full bg-carrot px-3 py-1.5 text-xs font-semibold text-white"
               onClick={() => void send()}
             >
               Send
@@ -159,7 +159,7 @@ export function TicketThread({
             {canAssign && ticket.status !== "resolved" && ticket.status !== "closed" && !ticket.hidden && (
               <button
                 type="button"
-                className="rounded-full border border-stone-200 px-3 py-1.5 text-xs"
+                className="rounded-full border border-border px-3 py-1.5 text-xs"
                 onClick={() => {
                   dispatch({
                     type: "setTicketStatus",
@@ -177,7 +177,7 @@ export function TicketThread({
             {canAssign && (
               <button
                 type="button"
-                className="rounded-full border border-stone-200 px-3 py-1.5 text-xs"
+                className="rounded-full border border-border px-3 py-1.5 text-xs"
                 onClick={() => {
                   dispatch({
                     type: "setTicketHidden",

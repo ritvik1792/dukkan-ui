@@ -11,15 +11,16 @@ import type {
 } from "@/lib/types";
 import Link from "next/link";
 import { ProductArt } from "@/components/ProductArt";
+import { BRAND_FALLBACK_HUE } from "@/lib/constants";
 
 export function ProductHitCard({ hit }: { hit: ProductSearchHit }) {
   const { selectProduct } = useApp();
-  const hue = hit.imageHue ?? 150;
+  const hue = hit.imageHue ?? BRAND_FALLBACK_HUE;
   return (
     <Link
       href={`/product/${hit.id}`}
       onClick={() => selectProduct(hit.id)}
-      className="flex flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200/80 transition hover:-translate-y-0.5 hover:shadow-md"
+      className="flex flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-border/80 transition hover:-translate-y-0.5 hover:shadow-md"
     >
       <div className="relative aspect-square">
         {hit.imageUrl ? (
@@ -41,26 +42,26 @@ export function ServiceHitCard({ hit }: { hit: ServiceSearchHit }) {
   const { selectShop } = useApp();
   const price = hit.startingPrice ?? hit.price;
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200/80">
-      <div className="relative h-36 bg-ink">
+    <div className="flex flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-border/80">
+      <div className="relative h-36 bg-gradient-to-br from-champagne via-rose-gold/30 to-muted-rose/40">
         {hit.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={hit.imageUrl} alt="" className="h-full w-full object-cover opacity-90" />
         ) : (
-          <div className="flex h-full items-center justify-center text-4xl text-lime/30">✦</div>
+          <div className="flex h-full items-center justify-center text-4xl text-ink/25">✦</div>
         )}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 p-3 pt-8">
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/75 p-3 pt-8">
           <p className="font-semibold text-white">{hit.name}</p>
-          <p className="text-xs text-white/70">{hit.providerName}</p>
+          <p className="text-xs text-white/75">{hit.providerName}</p>
         </div>
       </div>
-      <div className="space-y-2 p-3 text-sm text-stone-600">
+      <div className="space-y-2 p-3 text-sm text-muted">
         {price != null && <p className="font-semibold text-ink">From {formatInr(price)}</p>}
         {hit.durationMinutes != null && (
-          <p className="text-xs text-stone-500">{hit.durationMinutes} min</p>
+          <p className="text-xs text-muted">{hit.durationMinutes} min</p>
         )}
         {hit.distanceKm != null && (
-          <p className="text-xs text-stone-500">{formatDistance(hit.distanceKm)} away</p>
+          <p className="text-xs text-muted">{formatDistance(hit.distanceKm)} away</p>
         )}
         <div className="flex flex-wrap gap-2 pt-1">
           <Link
@@ -73,7 +74,7 @@ export function ServiceHitCard({ hit }: { hit: ServiceSearchHit }) {
           {hit.bookingEnabled && (
             <Link
               href={`/services/book?serviceId=${encodeURIComponent(hit.id)}`}
-              className="rounded-full bg-ink px-3 py-1 text-xs font-semibold text-lime"
+              className="rounded-full bg-carrot px-3 py-1 text-xs font-semibold text-white"
             >
               Book
             </Link>
@@ -81,7 +82,7 @@ export function ServiceHitCard({ hit }: { hit: ServiceSearchHit }) {
           {hit.requestEnabled && (
             <Link
               href={`/services/request?serviceId=${encodeURIComponent(hit.id)}`}
-              className="rounded-full bg-lime px-3 py-1 text-xs font-semibold text-ink"
+              className="rounded-full bg-carrot px-3 py-1 text-xs font-semibold text-white"
             >
               Request
             </Link>
@@ -99,9 +100,9 @@ export function PersonHitCard({ hit }: { hit: PersonSearchHit }) {
     <Link
       href={ROUTES.shopDashboard}
       onClick={() => selectShop(hit.id)}
-      className="flex gap-3 rounded-2xl bg-white p-4 ring-1 ring-stone-200/80 transition hover:bg-stone-50"
+      className="flex gap-3 rounded-2xl bg-white p-4 ring-1 ring-border/80 transition hover:bg-champagne/80"
     >
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-ink text-2xl text-lime">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-champagne to-rose-gold/70 text-2xl text-ink">
         {hit.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={hit.imageUrl} alt="" className="h-full w-full object-cover" />
@@ -111,11 +112,11 @@ export function PersonHitCard({ hit }: { hit: PersonSearchHit }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-ink">{hit.name}</p>
-        {hit.profession && <p className="text-sm text-stone-500">{hit.profession}</p>}
+        {hit.profession && <p className="text-sm text-muted">{hit.profession}</p>}
         {hit.serviceNames.length > 0 && (
-          <p className="mt-1 line-clamp-1 text-xs text-stone-500">{hit.serviceNames.join(" · ")}</p>
+          <p className="mt-1 line-clamp-1 text-xs text-muted">{hit.serviceNames.join(" · ")}</p>
         )}
-        <div className="mt-2 flex flex-wrap gap-2 text-xs text-stone-500">
+        <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted">
           {hit.rating != null && hit.rating > 0 && <span>{hit.rating.toFixed(1)} ★</span>}
           {price != null && <span>From {formatInr(price)}</span>}
           {hit.distanceKm != null && <span>{formatDistance(hit.distanceKm)}</span>}
@@ -134,7 +135,7 @@ export function ServiceListingCard({
 }) {
   const price = "startingPrice" in service ? (service.startingPrice ?? service.price) : undefined;
   return (
-    <div className="min-w-[14rem] flex-[1_0_15rem] snap-start rounded-2xl bg-white p-4 ring-1 ring-stone-200/80">
+    <div className="min-w-[14rem] flex-[1_0_15rem] snap-start rounded-2xl bg-white p-4 ring-1 ring-border/80">
       <p className="font-semibold text-ink">{service.name}</p>
       {providerName && <p className="text-xs text-stone-500">{providerName}</p>}
       {price != null && <p className="mt-2 text-sm font-medium">From {formatInr(price)}</p>}
@@ -142,7 +143,7 @@ export function ServiceListingCard({
         {service.bookingEnabled && (
           <Link
             href={`/services/book?serviceId=${encodeURIComponent(service.id)}`}
-            className="rounded-full bg-ink px-3 py-1 text-xs font-semibold text-lime"
+            className="rounded-full bg-carrot px-3 py-1 text-xs font-semibold text-white"
           >
             Book
           </Link>

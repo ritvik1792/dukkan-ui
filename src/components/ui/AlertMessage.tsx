@@ -20,17 +20,17 @@ export type AlertAction = {
 };
 
 const toneStyles: Record<AlertTone, string> = {
-  success: "border-teal-200 bg-teal-50 text-teal-950",
-  error: "border-red-200 bg-red-50 text-red-950",
-  info: "border-stone-200 bg-white text-ink",
-  warning: "border-amber-200 bg-amber-50 text-amber-950",
+  success: "border-border bg-champagne text-ink",
+  error: "border-red-200/80 bg-red-50 text-red-950",
+  info: "border-border bg-white text-ink",
+  warning: "border-peach/40 bg-peach/15 text-ink",
 };
 
 const toneDot: Record<AlertTone, string> = {
-  success: "bg-teal-600",
+  success: "bg-carrot",
   error: "bg-red-600",
   info: "bg-ink",
-  warning: "bg-amber-500",
+  warning: "bg-ember",
 };
 
 export function AlertMessage({

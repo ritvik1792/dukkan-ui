@@ -64,7 +64,7 @@ export default function SellerBookingsPage() {
                   <button
                     type="button"
                     onClick={() => transition(booking.id, "CONFIRMED")}
-                    className="rounded-full bg-ink px-3 py-1 text-xs text-lime"
+                    className="rounded-full bg-carrot px-3 py-1 text-xs text-white"
                   >
                     Confirm
                   </button>
@@ -81,7 +81,7 @@ export default function SellerBookingsPage() {
           </div>
         ))}
         {!loading && rows.length === 0 && (
-          <p className="rounded-2xl bg-stone-50 p-6 text-sm text-stone-500">No bookings yet.</p>
+          <p className="rounded-2xl bg-cream p-6 text-sm text-stone-500">No bookings yet.</p>
         )}
       </div>
     </div>

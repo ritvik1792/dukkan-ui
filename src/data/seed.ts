@@ -62,14 +62,23 @@ export const neighborhoods: Neighborhood[] = [
 ];
 
 export const categories: Category[] = [
-  { id: "grocery", name: "Grocery", emoji: "🛒" },
-  { id: "fresh", name: "Fruits & veg", emoji: "🥬" },
-  { id: "dairy", name: "Dairy", emoji: "🥛" },
-  { id: "snacks", name: "Snacks", emoji: "🍪" },
-  { id: "home", name: "Home", emoji: "🏠" },
-  { id: "electronics", name: "Electronics", emoji: "🔌" },
-  { id: "industrial", name: "Industrial", emoji: "⚙️" },
-  { id: "apparel", name: "Apparel", emoji: "👕" },
+  { id: "grocery", name: "Grocery", emoji: "🛒", kind: "PRODUCT" },
+  { id: "fresh", name: "Fruits & veg", emoji: "🥬", kind: "PRODUCT" },
+  { id: "dairy", name: "Dairy", emoji: "🥛", kind: "PRODUCT" },
+  { id: "snacks", name: "Snacks", emoji: "🍪", kind: "PRODUCT" },
+  { id: "home", name: "Home", emoji: "🏠", kind: "PRODUCT" },
+  { id: "electronics", name: "Electronics", emoji: "🔌", kind: "PRODUCT" },
+  { id: "industrial", name: "Industrial", emoji: "⚙️", kind: "PRODUCT" },
+  { id: "apparel", name: "Apparel", emoji: "👕", kind: "PRODUCT" },
+  { id: "fashion", name: "Fashion", emoji: "👗", kind: "PRODUCT" },
+  { id: "salon", name: "Salon", emoji: "💇", kind: "SERVICE" },
+  { id: "home-repair", name: "Home Repair", emoji: "🔧", kind: "SERVICE" },
+  { id: "ac-repair", name: "AC Repair", emoji: "❄️", kind: "SERVICE" },
+  { id: "beauty", name: "Beauty", emoji: "✨", kind: "SERVICE" },
+  { id: "fitness", name: "Fitness", emoji: "💪", kind: "SERVICE" },
+  { id: "tutors", name: "Tutors", emoji: "📚", kind: "SERVICE" },
+  { id: "restaurants", name: "Restaurants", emoji: "🍽️", kind: "BOTH" },
+  { id: "auto-services", name: "Auto Services", emoji: "🚗", kind: "SERVICE" },
 ];
 
 /** Catalog fixture people (IDs used by mock orders). Not login accounts — passwords live in Postgres. */
@@ -542,7 +551,7 @@ export const catalog: CatalogProduct[] = [
     description: "Everyday cotton t-shirt from the market stall.",
     unit: "1 pc",
     imageLabel: "Tee",
-    imageHue: 340,
+    imageHue: 350,
   },
 ];
 
@@ -1525,7 +1534,7 @@ export const advertisements: Advertisement[] = [
     cta: "Browse fresh",
     href: "/search?category=fresh",
     badge: "Quick delivery",
-    hue: 128,
+    hue: 18,
     catalogProductId: "cat-tomato",
     active: true,
     placementId: "plc-home-hero",

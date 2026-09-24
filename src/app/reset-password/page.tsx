@@ -93,7 +93,7 @@ function ResetPasswordForm() {
             <button
               type="submit"
               disabled={busy || !token}
-              className="w-full rounded-full bg-ink py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              className="btn-primary btn-block"
             >
               {busy ? "Updating…" : "Update password"}
             </button>

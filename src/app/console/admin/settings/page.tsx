@@ -150,7 +150,7 @@ export default function AdminSettings() {
                 type="button"
                 onClick={() => switchRole(role)}
                 className={`rounded-full px-3 py-1 text-sm capitalize ${
-                  user?.role === role ? "bg-ink text-lime" : "bg-white"
+                  user?.role === role ? "bg-carrot text-white" : "bg-white"
                 }`}
               >
                 {role}

@@ -35,7 +35,7 @@ function MenuLink({
     <Link
       href={href}
       onClick={onClick}
-      className="block py-0.5 text-[13px] leading-6 text-stone-800 hover:text-teal-800 hover:underline"
+      className="block py-0.5 text-[13px] leading-6 text-stone-800 hover:text-carrot hover:underline"
     >
       {children}
     </Link>
@@ -117,14 +117,14 @@ export function AccountMenu() {
               close();
               openAuth();
             }}
-            className="block w-full rounded-full bg-[#ffd814] py-2 text-center text-sm font-semibold text-ink hover:bg-[#f7ca00]"
+            className="btn-primary btn-block"
           >
             Sign in
           </button>
           <Link
             href={ROUTES.consoleDashboard}
             onClick={close}
-            className="mt-3 block w-full text-center text-[13px] text-stone-800 hover:text-teal-800 hover:underline"
+            className="mt-3 block w-full text-center text-[13px] text-stone-800 hover:text-carrot hover:underline"
           >
             Console
           </Link>
@@ -134,25 +134,25 @@ export function AccountMenu() {
       {open && isAuthenticated && user && (
         <div
           role="menu"
-          className="animate-pop-in absolute right-0 z-50 mt-2 w-[min(calc(100vw-1.5rem),34rem)] origin-top-right overflow-visible rounded-md bg-white text-ink shadow-[0_4px_16px_rgba(0,0,0,0.18)]"
+          className="animate-pop-in absolute right-0 z-50 mt-2 max-h-[min(80vh,36rem)] w-[min(calc(100vw-1.5rem),34rem)] origin-top-right overflow-y-auto overflow-x-hidden rounded-md bg-white text-ink shadow-[0_4px_16px_rgba(0,0,0,0.18)]"
         >
           <div className="absolute -top-2 right-6 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-white" />
 
-          <div className="flex items-center justify-between gap-3 bg-sky-100 px-4 py-2.5">
-            <p className="text-[13px] text-stone-700">
-              Shopping as <span className="font-semibold">{user.name}</span>
+          <div className="flex flex-col gap-1 bg-champagne px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <p className="min-w-0 text-[13px] text-ink/80">
+              Shopping as <span className="font-semibold text-ink">{user.name}</span>
             </p>
             <Link
               href="/account"
               onClick={close}
-              className="shrink-0 text-[13px] font-medium text-teal-800 hover:underline"
+              className="shrink-0 text-[13px] font-medium text-carrot hover:underline"
             >
               Manage profile ›
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 divide-x divide-stone-200">
-            <div className="px-5 py-4">
+          <div className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+            <div className="px-4 py-4 sm:px-5">
               <p className="text-[15px] font-bold">Your shopping</p>
               <div className="mt-2">
                 <MenuLink href="/" onClick={close}>
@@ -173,17 +173,17 @@ export function AccountMenu() {
                   </MenuLink>
                 ))}
                 <MenuLink href="/sell" onClick={close}>
-                  Sell on pinkCarrot
+                  Sell on Pink Carrot
                 </MenuLink>
               </div>
             </div>
 
-            <div className="px-5 py-4">
+            <div className="px-4 py-4 sm:px-5">
               <p className="text-[15px] font-bold">Your Account</p>
               <div className="mt-2 flex flex-col items-start">
                 <button
                   type="button"
-                  className="py-0.5 text-[13px] leading-6 text-stone-800 hover:text-teal-800 hover:underline"
+                  className="py-0.5 text-[13px] leading-6 text-stone-800 hover:text-carrot hover:underline"
                   onClick={() => {
                     logout();
                     close();
@@ -194,7 +194,7 @@ export function AccountMenu() {
                 </button>
                 <button
                   type="button"
-                  className="py-0.5 text-[13px] leading-6 text-stone-800 hover:text-teal-800 hover:underline"
+                  className="py-0.5 text-[13px] leading-6 text-stone-800 hover:text-carrot hover:underline"
                   onClick={() => {
                     logout();
                     close();
@@ -204,7 +204,7 @@ export function AccountMenu() {
                   Sign out
                 </button>
               </div>
-              <div className="my-3 border-t border-stone-200" />
+              <div className="my-3 border-t border-border" />
                 <MenuLink href="/account" onClick={close}>
                   Your Profile
                 </MenuLink>
@@ -228,7 +228,7 @@ export function AccountMenu() {
               </MenuLink>
               {user.role === "buyer" && (
                 <MenuLink href="/sell" onClick={close}>
-                  Sell on pinkCarrot
+                  Sell on Pink Carrot
                 </MenuLink>
               )}
               <MenuLink href={ROUTES.consoleDashboard} onClick={close}>

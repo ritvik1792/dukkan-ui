@@ -13,7 +13,7 @@ export function ReviewPhotos({ urls }: { urls?: string[] }) {
           <button
             key={`${src.slice(0, 32)}-${index}`}
             type="button"
-            className="h-20 w-20 overflow-hidden rounded-xl ring-1 ring-stone-200"
+            className="h-20 w-20 overflow-hidden rounded-xl ring-1 ring-border"
             onClick={() => setOpen(src)}
             aria-label={`View review photo ${index + 1}`}
           >

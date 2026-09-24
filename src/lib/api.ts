@@ -139,6 +139,7 @@ export function resolveMediaUrl(url?: string | null): string | undefined {
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers = new Headers(init.headers);
+  headers.set("X-Source", "O");
   if (!headers.has("Accept")) headers.set("Accept", "application/json");
   const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
   if (init.body && !isForm && !headers.has("Content-Type")) {

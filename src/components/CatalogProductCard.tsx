@@ -47,8 +47,8 @@ export function WishlistButton({
         e.stopPropagation();
         dispatch({ type: "toggleWishlist", catalogProductId });
       }}
-      className={`flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm transition-colors duration-200 ${
-        saved ? "text-amber-500" : "text-stone-500 hover:text-amber-500"
+      className={`flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-sm transition-colors duration-200 ${
+        saved ? "text-ember" : "text-muted hover:text-ember"
       } ${className}`}
     >
       <span className={`flex transition-transform duration-200 ${saved ? "scale-110" : "scale-100"}`}>
@@ -127,7 +127,7 @@ export function CatalogProductCard({
   }
 
   return (
-    <article className="relative flex flex-col rounded-2xl border border-stone-200 bg-white p-3 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
+    <article className="relative flex flex-col rounded-2xl border border-border bg-white p-3 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <div className="relative">
         <Link href={ROUTES.productInfo} onClick={openProduct} className="block">
           <ProductArt hue={offer.product.imageHue} label={offer.product.imageLabel} imageUrl={offer.product.imageUrl} />
@@ -154,15 +154,15 @@ export function CatalogProductCard({
           {offer.product.brand} · {offer.product.unit}
         </p>
       </Link>
-      <div className="mt-auto flex items-center justify-between gap-2 pt-2">
-        <div className="flex min-w-0 items-baseline gap-2">
+      <div className="mt-auto flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-2">
           <span className="text-base font-bold">{formatInr(listing?.sellerPrice ?? offer.fromPrice)}</span>
           {listing && listing.basePrice > listing.sellerPrice && (
             <span className="text-xs text-stone-400 line-through">
               {formatInr(listing.basePrice)}
             </span>
           )}
-          {off > 0 && <span className="text-xs font-semibold text-teal-700">{off}% off</span>}
+          {off > 0 && <span className="text-xs font-semibold text-carrot">{off}% off</span>}
         </div>
         {listing && <CartQtyStepper listing={listing} />}
       </div>

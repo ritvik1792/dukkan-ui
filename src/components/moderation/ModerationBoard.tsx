@@ -203,7 +203,7 @@ export function ModerationBoard({ mode }: { mode: "admin" | "seller" }) {
               drawerShown ? "translate-x-0" : "translate-x-full"
             }`}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-border bg-white px-5 py-4">
               <div>
                 <h2 className="text-lg font-semibold">{open.productName}</h2>
                 <p className="text-xs text-stone-500">

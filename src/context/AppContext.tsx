@@ -1047,6 +1047,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
             adPlacements: parsed.adPlacements?.length ? parsed.adPlacements : seedAdPlacements,
             moderationCases: parsed.moderationCases ?? seedModerationCases,
             promoTags: parsed.promoTags?.length ? parsed.promoTags : seedPromoTags,
+            categories: (() => {
+              const cached = parsed.categories ?? [];
+              const byId = new Map(cached.map((c) => [c.id, c]));
+              for (const seed of seedCategories) {
+                if (!byId.has(seed.id)) byId.set(seed.id, seed);
+                else {
+                  const prev = byId.get(seed.id)!;
+                  byId.set(seed.id, {
+                    ...prev,
+                    kind: prev.kind ?? seed.kind,
+                    emoji: prev.emoji || seed.emoji,
+                    name: prev.name || seed.name,
+                  });
+                }
+              }
+              return [...byId.values()];
+            })(),
             sessionUserId: parsed.sessionUserId ?? null,
             location: isUsableLocation(parsed.location) ? parsed.location : null,
             locationPromptSeen: parsed.locationPromptSeen ?? false,

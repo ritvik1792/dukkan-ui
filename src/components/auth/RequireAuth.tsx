@@ -34,7 +34,7 @@ export function RequireAuth({
         <button
           type="button"
           onClick={() => openAuth()}
-          className="mt-6 rounded-full bg-ink px-5 py-2 text-sm text-lime hover:opacity-90"
+          className="mt-6 rounded-full bg-carrot px-5 py-2 text-sm text-white hover:opacity-90"
         >
           Sign in with phone
         </button>

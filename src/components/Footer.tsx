@@ -2,6 +2,7 @@
 
 import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { useApp } from "@/context/AppContext";
+import { BRAND } from "@/lib/constants";
 import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
 
@@ -9,10 +10,10 @@ export function Footer() {
   const { state, isAuthenticated } = useApp();
   const { openAuth } = useAuthDialog();
   return (
-    <footer className="site-footer mt-auto border-t border-stone-200 bg-white">
-      <div className="page-shell grid gap-8 py-10 text-sm text-stone-600 md:grid-cols-4">
+    <footer className="site-footer mt-auto border-t border-border bg-cream">
+      <div className="page-shell grid gap-8 py-10 text-sm text-muted md:grid-cols-4">
         <div>
-          <p className="text-base font-semibold text-ink">pinkCarrot</p>
+          <p className="text-base font-semibold text-ink">{BRAND.name}</p>
           <p className="mt-2 max-w-xs">
             Local discovery for products, shops, services, and people — plus booking and
             delivery when you need it. Change how far to look in{" "}

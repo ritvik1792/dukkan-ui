@@ -53,7 +53,7 @@ export function NavigationProgressProvider({ children }: { children: ReactNode }
     <NavigationProgressContext.Provider value={{ pending, start }}>
       {pending && (
         <div className="pointer-events-none fixed inset-x-0 top-0 z-[80] h-0.5 overflow-hidden bg-white/30">
-          <div className="nav-progress h-full w-1/3 rounded-full bg-lime" />
+          <div className="nav-progress h-full w-1/3 rounded-full bg-carrot" />
         </div>
       )}
       {children}

@@ -66,7 +66,7 @@ export default function SellerServiceRequestsPage() {
                   <button
                     type="button"
                     onClick={() => transition(row.id, "ACCEPTED")}
-                    className="rounded-full bg-ink px-3 py-1 text-xs text-lime"
+                    className="rounded-full bg-carrot px-3 py-1 text-xs text-white"
                   >
                     Accept
                   </button>
@@ -83,7 +83,7 @@ export default function SellerServiceRequestsPage() {
           </div>
         ))}
         {!loading && rows.length === 0 && (
-          <p className="rounded-2xl bg-stone-50 p-6 text-sm text-stone-500">No service requests yet.</p>
+          <p className="rounded-2xl bg-cream p-6 text-sm text-stone-500">No service requests yet.</p>
         )}
       </div>
     </div>

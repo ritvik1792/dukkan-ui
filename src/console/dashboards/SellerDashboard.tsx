@@ -66,7 +66,7 @@ export function SellerDashboard() {
       {pendingRequests > 0 && (
         <Link
           href={sellerConsolePath("/requests")}
-          className="mt-4 block rounded-2xl bg-lime/30 p-4 text-sm text-ink"
+          className="mt-4 block rounded-2xl bg-champagne p-4 text-sm text-ink"
         >
           <span className="font-semibold">
             {pendingRequests} availability request{pendingRequests === 1 ? "" : "s"}
@@ -77,7 +77,7 @@ export function SellerDashboard() {
       {application && application.status !== "approved" && (
         <Link
           href={sellerConsolePath("/application")}
-          className="mt-4 block rounded-2xl bg-amber-50 p-4 text-sm text-amber-950"
+          className="mt-4 block rounded-2xl bg-peach/20 p-4 text-sm text-ink"
         >
           Application is {application.status.replaceAll("_", " ")}. Track it here.
         </Link>

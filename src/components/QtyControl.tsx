@@ -41,11 +41,11 @@ export function QtyControl({
     <div
       className={
         compact
-          ? "qty-control relative h-8 w-24 shrink-0 overflow-hidden rounded-lg border border-teal-700 bg-white"
-          : "qty-control relative h-12 w-full overflow-hidden rounded-full border border-teal-700 bg-white"
+          ? "qty-control relative h-9 w-24 shrink-0 overflow-hidden rounded-lg border border-carrot bg-white"
+          : "qty-control relative h-12 w-full overflow-hidden rounded-full border border-carrot bg-white"
       }
     >
-      <div className={`qty-fill absolute inset-0 bg-teal-700 ${empty ? "" : "is-on"}`} />
+      <div className={`qty-fill absolute inset-0 bg-carrot ${empty ? "" : "is-on"}`} />
 
       {variant === "add" && (
         <button
@@ -57,7 +57,7 @@ export function QtyControl({
             if (!empty) return;
             onIncrease();
           }}
-          className={`qty-layer absolute inset-0 z-20 flex items-center justify-center font-bold uppercase tracking-wide text-teal-700 disabled:opacity-50 ${
+          className={`qty-layer absolute inset-0 z-20 flex items-center justify-center font-bold uppercase tracking-wide text-carrot disabled:opacity-50 ${
             compact ? "text-xs" : "text-sm"
           } ${empty ? "is-visible" : ""}`}
           inert={!empty}

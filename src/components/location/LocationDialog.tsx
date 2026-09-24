@@ -134,16 +134,16 @@ function LocationDialog({
           role="dialog"
           aria-modal="true"
           aria-labelledby="location-title"
-          className={`overflow-hidden rounded-[1.75rem] bg-[#f6f1e8] shadow-2xl transition duration-300 ${
+          className={`overflow-hidden rounded-[1.75rem] bg-cream shadow-2xl transition duration-300 ${
             shown ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
           }`}
         >
-          <p className="bg-[#c8a24d] px-4 py-2 text-center text-[11px] font-semibold tracking-wide text-white">
+          <p className="bg-carrot px-4 py-2 text-center text-[11px] font-semibold tracking-wide text-white">
             Nearby shops. Fast delivery.
           </p>
           <div className="max-h-[70vh] overflow-y-auto px-6 pt-5 pb-6">
             <div className="flex justify-center">
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-teal-700 text-white">
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-carrot text-white">
                 <PinIcon />
               </span>
             </div>
@@ -169,7 +169,7 @@ function LocationDialog({
                 type="button"
                 onClick={captureGps}
                 disabled={busy}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-700 py-3 text-sm font-bold text-white hover:bg-teal-800 disabled:opacity-70"
+                className="btn-primary btn-block btn-lg mt-5"
               >
                 <PinIcon className="h-4 w-4" />
                 {busy ? "Getting your location…" : "Use my current location"}
@@ -202,8 +202,8 @@ function LocationDialog({
                       onClick={() => pickArea(item.id)}
                       className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors duration-200 ${
                         active
-                          ? "border-ink bg-lime/30"
-                          : "border-stone-200 bg-white hover:border-stone-300"
+                          ? "border-carrot/40 bg-blush"
+                          : "border-border bg-white hover:border-carrot/30"
                       }`}
                     >
                       <span>

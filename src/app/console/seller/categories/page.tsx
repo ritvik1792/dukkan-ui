@@ -35,7 +35,7 @@ export default function SellerCategoriesPage() {
               onClick={() =>
                 dispatch({ type: "addShopCategory", shopId: shop.id, categoryId: addId })
               }
-              className="rounded-full bg-ink px-4 py-2 text-sm text-lime"
+              className="rounded-full bg-carrot px-4 py-2 text-sm text-white"
             >
               + Add
             </button>

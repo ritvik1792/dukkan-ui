@@ -159,14 +159,36 @@ function SearchResultsView() {
               key={tab.id}
               type="button"
               onClick={() => setFilter(tab.id)}
-              className={`rounded-full px-4 py-2 text-sm font-medium ${
-                filter === tab.id ? "bg-ink text-lime" : "bg-stone-100 text-ink hover:bg-stone-200"
+              className={`rounded-full px-4 py-2 text-sm font-medium transition duration-200 ${
+                filter === tab.id ? "chip-active" : "chip-idle"
               }`}
             >
               {tab.label}
             </button>
           ))}
         </div>
+
+        {showProducts && (
+          <div className="mt-4 flex flex-wrap items-end gap-3 rounded-2xl bg-white p-3 lg:hidden">
+            <div className="min-w-[8rem] flex-1">
+              <Field label="Delivery">
+                <Select value={delivery} onChange={(e) => setDelivery(e.target.value as typeof delivery)}>
+                  <option value="all">Any</option>
+                  <option value="partner">Partner</option>
+                  <option value="shop">Shop itself</option>
+                </Select>
+              </Field>
+            </div>
+            <label className="flex items-center gap-2 pb-2 text-sm">
+              <input
+                type="checkbox"
+                checked={verifiedOnly}
+                onChange={(e) => setVerifiedOnly(e.target.checked)}
+              />
+              GST verified only
+            </label>
+          </div>
+        )}
 
         {loading && <p className="mt-4 text-sm text-stone-500">Searching…</p>}
 

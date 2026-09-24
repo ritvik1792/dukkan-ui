@@ -57,7 +57,7 @@ function RequestsList() {
           );
         })}
         {!loading && rows.length === 0 && (
-          <p className="rounded-2xl bg-stone-50 p-6 text-sm text-stone-500">No requests yet.</p>
+          <p className="rounded-2xl bg-cream p-6 text-sm text-stone-500">No requests yet.</p>
         )}
       </div>
     </div>

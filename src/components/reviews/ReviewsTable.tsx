@@ -178,7 +178,7 @@ export function ReviewsTable({
       value: (row) => row.replyState,
       filter: { kind: "select" },
       render: (row) => (
-        <span className={row.review.sellerReply ? "text-xs" : "text-xs text-amber-700"}>
+        <span className={row.review.sellerReply ? "text-xs" : "text-xs text-ember"}>
           {row.replyState}
         </span>
       ),
@@ -227,7 +227,7 @@ export function ReviewsTable({
               drawerShown ? "translate-x-0" : "translate-x-full"
             }`}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-border bg-white px-5 py-4">
               <div>
                 <h2 className="text-lg font-semibold">Review</h2>
                 <p className="text-xs text-stone-500">
@@ -256,7 +256,7 @@ export function ReviewsTable({
                     </p>
                     <button
                       type="button"
-                      className="rounded-full border border-stone-200 px-3 py-1 text-xs"
+                      className="rounded-full border border-border px-3 py-1 text-xs"
                       onClick={() => toggleHidden(open.review)}
                     >
                       {open.review.hidden ? "Restore" : "Take down"}
@@ -279,7 +279,7 @@ export function ReviewsTable({
                     <button
                       type="button"
                       disabled={!draft.trim()}
-                      className="mt-2 rounded-full bg-ink px-4 py-1.5 text-xs font-semibold text-lime disabled:opacity-40"
+                      className="mt-2 rounded-full bg-carrot px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
                       onClick={() => void sendReply(open.review)}
                     >
                       Post reply

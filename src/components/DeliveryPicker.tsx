@@ -4,7 +4,7 @@ import { useApp } from "@/context/AppContext";
 
 function QuickDeliveryMark() {
   return (
-    <span className="pointer-events-none absolute left-3 top-0 z-10 inline-flex -translate-y-1/2 items-center gap-1 rounded-full bg-emerald-600 py-0.5 pl-1.5 pr-2 text-[10px] font-extrabold uppercase tracking-wider text-white shadow-sm ring-2 ring-white">
+    <span className="pointer-events-none absolute left-3 top-0 z-10 inline-flex -translate-y-1/2 items-center gap-1 rounded-full bg-carrot py-0.5 pl-1.5 pr-2 text-[10px] font-extrabold uppercase tracking-wider text-white shadow-sm ring-2 ring-white">
       <svg viewBox="0 0 12 12" aria-hidden className="h-3 w-3">
         <path
           d="M6.8.4 2.1 6.7h3.2L4.3 11.6l5.6-7.4H6.6L6.8.4z"
@@ -37,7 +37,7 @@ export function DeliveryPicker({
             type="button"
             onClick={() => onChange("partner")}
             className={`w-full rounded-2xl border p-4 pt-5 text-left transition-colors duration-200 ${
-              value === "partner" ? "border-ink bg-ink text-white" : "border-stone-200 bg-white"
+              value === "partner" ? "border-carrot bg-carrot text-white" : "border-border bg-white"
             }`}
           >
             <p className="text-sm font-semibold">Dukkan partner</p>
@@ -53,7 +53,7 @@ export function DeliveryPicker({
           type="button"
           onClick={() => onChange("shop")}
           className={`w-full rounded-2xl border p-4 text-left transition-colors duration-200 ${
-            value === "shop" ? "border-ink bg-ink text-white" : "border-stone-200 bg-white"
+            value === "shop" ? "border-carrot bg-carrot text-white" : "border-border bg-white"
           }`}
         >
           <p className="text-sm font-semibold">Shop delivery</p>

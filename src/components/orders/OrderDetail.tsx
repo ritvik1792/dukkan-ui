@@ -109,7 +109,7 @@ export function OrderDetail({
       <div
         className={
           drawer
-            ? "flex items-start justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4"
+            ? "flex items-start justify-between gap-3 border-b border-border bg-white px-5 py-4"
             : "flex items-start justify-between gap-3"
         }
       >
@@ -190,7 +190,7 @@ export function OrderDetail({
             </div>
             <button
               type="button"
-              className="mt-3 rounded-full border border-stone-200 px-3 py-1.5 text-xs"
+              className="mt-3 rounded-full border border-border px-3 py-1.5 text-xs"
               onClick={saveSchedule}
             >
               Save timelines
@@ -231,7 +231,7 @@ export function OrderDetail({
             {advance && (
               <button
                 type="button"
-                className="mt-4 w-full rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-lime"
+                className="mt-4 w-full rounded-full bg-carrot px-4 py-2.5 text-sm font-semibold text-white"
                 onClick={advanceOrder}
               >
                 {advance.label}
@@ -269,7 +269,7 @@ export function OrderDetail({
                 <li key={`${event.status}-${event.at}`} className="flex gap-3">
                   <span
                     className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
-                      index === timeline.length - 1 ? "bg-teal-700" : "bg-stone-300"
+                      index === timeline.length - 1 ? "bg-carrot" : "bg-stone-300"
                     }`}
                   />
                   <div>
@@ -362,7 +362,7 @@ export function OrderDetail({
                           />
                           <button
                             type="button"
-                            className="mt-2 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-lime"
+                            className="mt-2 rounded-full bg-carrot px-3 py-1.5 text-xs font-semibold text-white"
                             onClick={() => {
                               const body = reviewDrafts[review.id]?.trim();
                               if (!body) return;

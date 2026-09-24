@@ -130,7 +130,7 @@ export function ModerationThread({
             <li
               key={event.id}
               className={`rounded-2xl px-4 py-3 text-sm ${
-                event.authorRole === "admin" ? "bg-cream" : "bg-stone-50"
+                event.authorRole === "admin" ? "bg-cream" : "bg-cream"
               }`}
             >
               <p className="text-xs font-medium text-stone-500">
@@ -164,7 +164,7 @@ export function ModerationThread({
                   type="button"
                   disabled={!body.trim()}
                   onClick={submit}
-                  className="rounded-full bg-ink px-4 py-1.5 text-xs font-semibold text-lime disabled:opacity-40"
+                  className="rounded-full bg-carrot px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
                 >
                   Send
                 </button>
@@ -174,7 +174,7 @@ export function ModerationThread({
                     setReply(null);
                     setBody("");
                   }}
-                  className="rounded-full border border-stone-200 px-4 py-1.5 text-xs"
+                  className="rounded-full border border-border px-4 py-1.5 text-xs"
                 >
                   Cancel
                 </button>
@@ -189,8 +189,8 @@ export function ModerationThread({
                   onClick={() => setReply(item)}
                   className={`rounded-full px-4 py-1.5 text-xs ${
                     item.primary
-                      ? "bg-ink font-semibold text-lime"
-                      : "border border-stone-200 bg-white"
+                      ? "bg-carrot font-semibold text-white"
+                      : "border border-border bg-white"
                   }`}
                 >
                   {item.label}

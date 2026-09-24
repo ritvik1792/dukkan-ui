@@ -47,16 +47,16 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
       <h1 className="text-2xl font-semibold">{user.name}</h1>
       <div className="mt-6 flex flex-col gap-6 md:flex-row md:items-start">
         <aside className="w-full shrink-0 md:w-56">
-          <nav className="rounded-2xl bg-white p-3">
-            <ul className="space-y-1">
+          <nav className="dash-nav">
+            <ul className="flex gap-2 overflow-x-auto pb-1 md:flex-col md:space-y-1 md:overflow-visible md:rounded-2xl md:bg-white md:p-3">
               {links.map((link) => {
                 const active = linkActive(link.href, pathname, tab);
                 return (
-                  <li key={link.href}>
+                  <li key={link.href} className="shrink-0 md:w-full">
                     <Link
                       href={link.href}
-                      className={`block rounded-xl px-3 py-2 text-sm ${
-                        active ? "bg-ink text-lime" : "hover:bg-stone-100"
+                      className={`block whitespace-nowrap rounded-xl px-3 py-2.5 text-sm transition duration-200 ${
+                        active ? "bg-carrot text-white" : "bg-white hover:bg-blush md:bg-transparent"
                       }`}
                     >
                       {link.label}
@@ -64,10 +64,10 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
                   </li>
                 );
               })}
-              <li>
+              <li className="shrink-0 md:w-full">
                 <Link
                   href={ROUTES.consoleDashboard}
-                  className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-stone-100"
+                  className="mt-0 block whitespace-nowrap rounded-xl bg-white px-3 py-2 text-left text-sm hover:bg-blush md:mt-1 md:bg-transparent"
                 >
                   Console
                 </Link>

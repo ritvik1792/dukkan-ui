@@ -42,7 +42,7 @@ export function ShopDetailSheet({
           shown ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-border bg-white px-5 py-4">
           <div>
             <p className="text-xs uppercase tracking-wider text-stone-400">Dukkan</p>
             <h2 className="text-lg font-semibold">{shop.name}</h2>
@@ -167,7 +167,7 @@ export function ShopDetailSheet({
                   type="button"
                   onClick={() => setPane(item.id)}
                   className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition ${
-                    pane === item.id ? "bg-ink text-lime" : "text-stone-600 hover:bg-white"
+                    pane === item.id ? "bg-carrot text-white" : "text-stone-600 hover:bg-white"
                   }`}
                 >
                   {item.label}
@@ -243,7 +243,7 @@ function ShopEmployees({ shop }: { shop: Shop }) {
 
 function EmployeeRow({ employee }: { employee: ShopEmployee }) {
   return (
-    <li className="flex items-start justify-between gap-3 rounded-xl bg-stone-50 px-3 py-2.5">
+    <li className="flex items-start justify-between gap-3 rounded-xl bg-cream px-3 py-2.5">
       <div>
         <p className="text-sm font-medium">{employee.name}</p>
         <p className="text-xs text-stone-500">
@@ -284,7 +284,7 @@ function ShopTransportList({ shop, partners }: { shop: Shop; partners: Partner[]
               {partnerFleet.map((partner) => (
                 <li
                   key={partner.id}
-                  className="flex items-start justify-between gap-3 rounded-xl bg-stone-50 px-3 py-2.5"
+                  className="flex items-start justify-between gap-3 rounded-xl bg-cream px-3 py-2.5"
                 >
                   <div>
                     <p className="text-sm font-medium">{partner.name}</p>
@@ -308,7 +308,7 @@ function ShopTransportList({ shop, partners }: { shop: Shop; partners: Partner[]
 
 function TransportRow({ vehicle }: { vehicle: ShopTransport }) {
   return (
-    <li className="flex items-start justify-between gap-3 rounded-xl bg-stone-50 px-3 py-2.5">
+    <li className="flex items-start justify-between gap-3 rounded-xl bg-cream px-3 py-2.5">
       <div>
         <p className="text-sm font-medium">{vehicle.label}</p>
         <p className="text-xs text-stone-500">

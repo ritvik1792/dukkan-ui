@@ -203,7 +203,7 @@ export default function SellerOrders() {
               return (
                 <tr
                   key={order.id}
-                  className="cursor-pointer border-b last:border-0 transition-colors duration-150 hover:bg-stone-50"
+                  className="cursor-pointer border-b last:border-0 transition-colors duration-150 hover:bg-blush/60"
                   onClick={() => openOrder(order.id)}
                 >
                   <td className="px-4 py-3">
@@ -217,7 +217,7 @@ export default function SellerOrders() {
                   <td className="max-w-[220px] truncate px-4 py-3" title={itemLabel}>
                     {itemLabel}
                     {ticketCount > 0 && (
-                      <span className="ml-2 text-xs text-amber-800">{ticketCount} ticket</span>
+                      <span className="ml-2 text-xs text-ember">{ticketCount} ticket</span>
                     )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -239,7 +239,7 @@ export default function SellerOrders() {
                     {next ? (
                       <button
                         type="button"
-                        className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-lime"
+                        className="rounded-full bg-carrot px-3 py-1.5 text-xs font-semibold text-white"
                         onClick={(e) => {
                           e.stopPropagation();
                           advanceOrder(order);

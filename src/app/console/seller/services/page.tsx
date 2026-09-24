@@ -188,7 +188,7 @@ export default function SellerServicesPage() {
           </Select>
         </Field>
         <div className="flex gap-2">
-          <button type="submit" className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-lime">
+          <button type="submit" className="rounded-full bg-carrot px-4 py-2 text-sm font-semibold text-white">
             {editing ? "Save" : "Create"}
           </button>
           {editing && (

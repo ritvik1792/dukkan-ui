@@ -53,7 +53,7 @@ export function LocationCapture({
   const accuracy = formatAccuracy(accuracyM);
 
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-3">
+    <div className="rounded-xl border border-border bg-white p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-medium text-ink">{label}</p>
@@ -89,7 +89,7 @@ export function LocationCapture({
             type="button"
             onClick={capture}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-lime disabled:opacity-70"
+            className="inline-flex items-center gap-1.5 rounded-full bg-carrot px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-70"
           >
             <PinIcon className="h-3.5 w-3.5" />
             {busy ? "Locating…" : value ? "Update" : "Use current location"}

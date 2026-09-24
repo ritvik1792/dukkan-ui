@@ -228,7 +228,7 @@ export default function AdminAdsPage() {
         <div className="flex justify-end gap-2" onClick={(event) => event.stopPropagation()}>
           <button
             type="button"
-            className="rounded-full border border-stone-200 px-3 py-1 text-xs"
+            className="rounded-full border border-border px-3 py-1 text-xs"
             onClick={() =>
               dispatch({ type: "upsertAd", ad: { ...row.ad, active: !row.ad.active } })
             }
@@ -237,7 +237,7 @@ export default function AdminAdsPage() {
           </button>
           <button
             type="button"
-            className="rounded-full border border-stone-200 px-3 py-1 text-xs text-red-700"
+            className="rounded-full border border-border px-3 py-1 text-xs text-red-700"
             onClick={() => {
               dispatch({ type: "deleteAd", adId: row.ad.id });
               showAlert({ tone: "success", title: "Ad removed" });
@@ -312,7 +312,7 @@ export default function AdminAdsPage() {
         <div className="flex justify-end gap-2" onClick={(event) => event.stopPropagation()}>
           <button
             type="button"
-            className="rounded-full border border-stone-200 px-3 py-1 text-xs"
+            className="rounded-full border border-border px-3 py-1 text-xs"
             onClick={() =>
               dispatch({
                 type: "upsertAdPlacement",
@@ -324,7 +324,7 @@ export default function AdminAdsPage() {
           </button>
           <button
             type="button"
-            className="rounded-full border border-stone-200 px-3 py-1 text-xs text-red-700"
+            className="rounded-full border border-border px-3 py-1 text-xs text-red-700"
             onClick={() => {
               dispatch({ type: "deleteAdPlacement", placementId: row.placement.id });
               showAlert({
@@ -355,7 +355,7 @@ export default function AdminAdsPage() {
         </div>
         <button
           type="button"
-          className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-lime"
+          className="rounded-full bg-carrot px-4 py-2 text-sm font-semibold text-white"
           onClick={() =>
             setPanel(section === "ads" ? { kind: "ad" } : { kind: "placement" })
           }
@@ -391,7 +391,7 @@ export default function AdminAdsPage() {
           type="button"
           onClick={() => setSection("placements")}
           className={`rounded-full px-4 py-1.5 ${
-            section === "placements" ? "bg-ink font-semibold text-lime" : "text-stone-600"
+            section === "placements" ? "bg-carrot font-semibold text-white" : "text-stone-600"
           }`}
         >
           Placement tags & rotation
@@ -400,7 +400,7 @@ export default function AdminAdsPage() {
           type="button"
           onClick={() => setSection("ads")}
           className={`rounded-full px-4 py-1.5 ${
-            section === "ads" ? "bg-ink font-semibold text-lime" : "text-stone-600"
+            section === "ads" ? "bg-carrot font-semibold text-white" : "text-stone-600"
           }`}
         >
           Ads
@@ -447,7 +447,7 @@ export default function AdminAdsPage() {
               drawerShown ? "translate-x-0" : "translate-x-full"
             }`}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-border bg-white px-5 py-4">
               <div>
                 <h2 className="text-lg font-semibold">
                   {panel.kind === "ad"
