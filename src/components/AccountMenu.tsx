@@ -173,7 +173,7 @@ export function AccountMenu() {
                   </MenuLink>
                 ))}
                 <MenuLink href="/sell" onClick={close}>
-                  Sell on GreenOwl
+                  Sell on pinkCarrot
                 </MenuLink>
               </div>
             </div>
@@ -228,7 +228,7 @@ export function AccountMenu() {
               </MenuLink>
               {user.role === "buyer" && (
                 <MenuLink href="/sell" onClick={close}>
-                  Sell on GreenOwl
+                  Sell on pinkCarrot
                 </MenuLink>
               )}
               <MenuLink href={ROUTES.consoleDashboard} onClick={close}>

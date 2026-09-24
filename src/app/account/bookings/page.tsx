@@ -31,7 +31,7 @@ function BookingsList() {
   return (
     <div>
       <h2 className="text-xl font-semibold">Your bookings</h2>
-      <p className="mt-1 text-sm text-stone-500">Scheduled services you requested on GreenOwl.</p>
+      <p className="mt-1 text-sm text-stone-500">Scheduled services you requested on pinkCarrot.</p>
       {loading && <p className="mt-6 text-sm text-stone-500">Loading…</p>}
       <div className="mt-6 space-y-3">
         {rows.map((booking) => {

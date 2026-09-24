@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GreenOwl — products, shops & services near you",
+  title: "pinkCarrot — products, shops & services near you",
   description:
-    "Discover local products, shops, services, and people near you. Book appointments or request help on GreenOwl.",
+    "Discover local products, shops, services, and people near you. Book appointments or request help on pinkCarrot.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -11,7 +11,7 @@ export const GEO_MAX_AGE_MS = 5 * 60_000;
 export const AREA_LABEL_MAX_KM = 15;
 
 export const BRAND = {
-  name: "GreenOwl",
+  name: "pinkCarrot",
   tagline: "Products, shops & services near you.",
 };
 

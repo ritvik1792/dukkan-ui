@@ -3,6 +3,7 @@
 import { LogoMark } from "@/components/LogoMark";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useApp } from "@/context/AppContext";
+import { BRAND } from "@/lib/constants";
 import { adminConsolePath, isStaffRole, ROUTES, sellerConsolePath } from "@/lib/routes";
 import Link from "next/link";
 
@@ -16,7 +17,7 @@ export function ConsoleHeader() {
         <Link href={home} className="flex items-center gap-2">
           <LogoMark />
           <div className="leading-tight">
-            <div className="text-lg font-bold tracking-tight">GreenOwl</div>
+            <div className="text-lg font-bold tracking-tight">{BRAND.name}</div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-lime">Console</div>
           </div>
         </Link>

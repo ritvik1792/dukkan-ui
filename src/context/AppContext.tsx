@@ -984,7 +984,7 @@ type AppContextValue = {
   signup: (input: {
     name: string;
     email: string;
-    phone?: string;
+    phone: string;
     password: string;
   }) => Promise<User>;
   loginWithPhone: (phone: string, name?: string) => User;
@@ -1191,7 +1191,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const signup = async (input: {
       name: string;
       email: string;
-      phone?: string;
+      phone: string;
       password: string;
     }) => {
       const res = await signupRequest(input);

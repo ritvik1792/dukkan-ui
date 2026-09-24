@@ -1,9 +1,11 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-ink: #0b1f1a;
-  --color-lime: #c8f542;
-  --color-cream: #f6f1e8;
+  --color-ink: #2a1810;
+  --color-lime: #e8722a;
+  --color-cream: #fceef3;
+  --color-carrot: #e8722a;
+  --color-blush: #f9d5e5;
   --color-background: var(--color-cream);
   --color-foreground: var(--color-ink);
   --font-sans: var(--font-geist-sans);
@@ -15,7 +17,10 @@ html {
 }
 
 body {
-  background: var(--color-cream);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #ffe6f0 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #ffe0cc 0%, transparent 50%),
+    var(--color-cream);
   color: var(--color-ink);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
@@ -79,7 +84,7 @@ button:not(:disabled):active,
 }
 
 select option {
-  color: #0b1f1a;
+  color: #2a1810;
 }
 
 @keyframes alert-in {

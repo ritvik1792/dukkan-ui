@@ -9,6 +9,7 @@ import { LocationChip } from "@/components/location/LocationChip";
 import { useApp } from "@/context/AppContext";
 import { afterPaint } from "@/lib/drawer";
 import { useMotionRouter } from "@/lib/motion";
+import { BRAND } from "@/lib/constants";
 import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
@@ -57,7 +58,7 @@ export function Header() {
         <Link href="/" className="flex items-center gap-2">
           <LogoMark />
           <div className="leading-tight">
-            <div className="text-lg font-bold tracking-tight">GreenOwl</div>
+            <div className="text-lg font-bold tracking-tight">{BRAND.name}</div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-lime">Near you</div>
           </div>
         </Link>
@@ -189,7 +190,7 @@ export function Header() {
                 </>
               )}
               <Link href="/sell" onClick={() => setMenuOpen(false)} className="block py-1">
-                Sell on GreenOwl
+                Sell on pinkCarrot
               </Link>
             </div>
           </div>

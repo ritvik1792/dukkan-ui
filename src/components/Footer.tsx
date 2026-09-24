@@ -12,7 +12,7 @@ export function Footer() {
     <footer className="site-footer mt-auto border-t border-stone-200 bg-white">
       <div className="page-shell grid gap-8 py-10 text-sm text-stone-600 md:grid-cols-4">
         <div>
-          <p className="text-base font-semibold text-ink">GreenOwl</p>
+          <p className="text-base font-semibold text-ink">pinkCarrot</p>
           <p className="mt-2 max-w-xs">
             Local discovery for products, shops, services, and people — plus booking and
             delivery when you need it. Change how far to look in{" "}
@@ -80,7 +80,7 @@ export function Footer() {
             )}
             {state.apiStatus === "offline" &&
               "API offline — showing local catalogue until the backend is reachable."}
-            {state.apiStatus === "connecting" && "Connecting to the Dukkan API…"}
+            {state.apiStatus === "connecting" && "Connecting to the API…"}
           </p>
         </div>
       </div>

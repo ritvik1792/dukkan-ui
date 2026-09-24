@@ -114,6 +114,8 @@ const PUBLIC_API_PATHS = new Set([
   "/api/auth/signup",
   "/api/auth/otp/request",
   "/api/auth/otp/verify",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
   "/api/search",
   "/api/services",
   "/api/providers",
@@ -474,7 +476,7 @@ export function loginRequest(email: string, password: string) {
 export function signupRequest(input: {
   name: string;
   email: string;
-  phone?: string;
+  phone: string;
   password: string;
 }) {
   return apiFetch<AuthResponse>("/api/auth/signup", {
@@ -483,6 +485,7 @@ export function signupRequest(input: {
   });
 }
 
+/** Optional / future phone verification — not required for signup or login. */
 export function requestOtp(input: { phone?: string; email?: string; purpose?: string }) {
   return apiFetch<OtpRequestResponse>("/api/auth/otp/request", {
     method: "POST",
@@ -490,10 +493,25 @@ export function requestOtp(input: { phone?: string; email?: string; purpose?: st
   });
 }
 
+/** Optional / future phone verification — not required for signup or login. */
 export function verifyOtp(input: { phone?: string; email?: string; code: string; purpose?: string }) {
   return apiFetch<AuthResponse>("/api/auth/otp/verify", {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+export function forgotPasswordRequest(email: string) {
+  return apiFetch<{ message: string }>("/api/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function resetPasswordRequest(token: string, password: string) {
+  return apiFetch<{ message: string }>("/api/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
   });
 }
 

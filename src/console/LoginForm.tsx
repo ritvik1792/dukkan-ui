@@ -70,7 +70,7 @@ export function ConsoleLoginForm({
       </div>
       <h1 className="mt-4 text-center text-2xl font-semibold">Sign in to Console</h1>
       <p className="mt-2 text-center text-sm text-stone-500">
-        Sellers and admins only. Email and password — not phone OTP.
+        Sellers and admins only. Email and password — OTP is not required.
       </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
         <Field label="Email">
@@ -102,6 +102,10 @@ export function ConsoleLoginForm({
         </button>
       </form>
       <p className="mt-6 text-center text-sm text-stone-500">
+        <Link href={ROUTES.forgotPassword} className="underline">
+          Forgot password?
+        </Link>
+        {" · "}
         Need an account?{" "}
         <Link href={ROUTES.signup} className="underline">
           Sign up

@@ -1,10 +1,46 @@
 export function LogoMark({ className = "h-8 w-8" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <rect width="32" height="32" rx="8" fill="#C8F542" />
+    <svg
+      viewBox="0 0 32 32"
+      className={className}
+      aria-hidden
+      role="img"
+    >
+      <title>pinkCarrot</title>
+      {/* Soft pink tile */}
+      <rect width="32" height="32" rx="9" fill="#F9D5E5" />
+      {/* Leaf / greens */}
       <path
-        d="M8 21.5V10.5h6.2c3.4 0 5.6 1.9 5.6 5.5S17.6 21.5 14.2 21.5H8zm3.1-2.4h2.9c1.8 0 2.8-1 2.8-3.1s-1-3.1-2.8-3.1h-2.9v6.2zM22.2 21.5c-2.3 0-3.8-1.4-3.8-3.6 0-2.3 1.6-3.6 4.2-3.6h2.2v-.4c0-1-.6-1.5-1.8-1.5-1 0-1.7.3-2.3.9l-1.5-1.7c1-1 2.4-1.6 4.1-1.6 2.8 0 4.5 1.5 4.5 4.1v7.4h-2.9v-1.3c-.6.9-1.7 1.3-2.7 1.3zm.6-2.2c1.1 0 1.9-.7 1.9-1.7v-.5h-1.7c-1.1 0-1.6.4-1.6 1.1 0 .7.5 1.1 1.4 1.1z"
-        fill="#0B1F1A"
+        d="M16.2 4.2c-.2 1.8.4 3.2 1.6 4.1-1.4-.1-2.6.5-3.4 1.6-.1-1.5.4-2.9 1.5-3.9-.9.2-1.8.8-2.4 1.7C14.2 6.2 15.2 4.8 16.2 4.2z"
+        fill="#3D8B4F"
+      />
+      <path
+        d="M18.4 5.1c.9 1.2 1.1 2.6.7 3.8 1-.7 1.5-1.9 1.4-3.1-.7.1-1.4.3-2.1.7z"
+        fill="#2F6B3C"
+      />
+      {/* Cute rounded carrot body */}
+      <path
+        d="M17.8 9.2c2.4 1.1 4.4 4.8 3.2 10.2-.7 3.1-2.6 6.2-4.8 8.1-.4.3-.9.1-1.1-.3C12.8 23 11.4 19.2 11.6 15.6c.2-3.4 2.3-6.1 4.6-6.9.5-.2 1.1-.1 1.6.5z"
+        fill="#E8722A"
+      />
+      {/* Soft highlight */}
+      <path
+        d="M16.8 11.1c1.3.5 2.5 2.4 2.4 5.1-.1 1.8-.8 3.5-1.7 4.8-.2.3-.6.2-.7-.1.7-1.4 1.1-3 1.2-4.5.1-2-.7-3.5-1.6-4.2-.2-.2-.1-.5.4-1.1z"
+        fill="#F4A261"
+        opacity="0.9"
+      />
+      {/* Friendly eyes */}
+      <circle cx="15.2" cy="15.2" r="1.05" fill="#2A1810" />
+      <circle cx="18.3" cy="14.6" r="1.05" fill="#2A1810" />
+      <circle cx="15.45" cy="14.95" r="0.35" fill="#FFF8F2" />
+      <circle cx="18.55" cy="14.35" r="0.35" fill="#FFF8F2" />
+      {/* Smile */}
+      <path
+        d="M15.4 17.3c.7.7 1.9.8 2.7.2"
+        fill="none"
+        stroke="#2A1810"
+        strokeWidth="0.7"
+        strokeLinecap="round"
       />
     </svg>
   );
