@@ -12,6 +12,14 @@ steps:
       - -t
       - ${_IMAGE}
       - .
+  # Push before deploy. `gcloud run deploy --image=...:latest` resolves the
+  # tag from Artifact Registry, not the image just built on this VM. The
+  # implicit `images:` push runs after all steps, so deploy-first ships the
+  # previous :latest digest (exactly what happened for dukkan-ui-00002).
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_IMAGE}
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     args:
       - gcloud
