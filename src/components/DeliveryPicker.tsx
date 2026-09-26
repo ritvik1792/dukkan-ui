@@ -26,7 +26,7 @@ export function DeliveryPicker({
   onChange: (mode: DeliveryMode) => void;
 }) {
   const { state } = useApp();
-  const modes = shopDeliveryModes(shop);
+  const modes = shopDeliveryModes(shop, state.settings.quickDeliveryEnabled);
 
   return (
     <div className="grid gap-2 pt-3 sm:grid-cols-2">

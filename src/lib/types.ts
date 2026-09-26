@@ -172,6 +172,8 @@ export type PlatformSettings = {
   requestMaxShops: number;
   offerExpirySeconds: number;
   requestMaxWaves: number;
+  /** Dukkan partner / quick delivery. Off until an admin turns it on. */
+  quickDeliveryEnabled: boolean;
 };
 
 export type Category = {
@@ -669,6 +671,8 @@ export type SellerApplication = {
   gstin: string;
   categoryIds: string[];
   notes: string;
+  /** Ops note: what to change, or why the request was sent back. */
+  reviewNote?: string;
   submittedAt: string;
 };
 

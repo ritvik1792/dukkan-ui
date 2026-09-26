@@ -5,6 +5,7 @@ import { CategoryBrowse } from "@/components/CategoryNav";
 import { ServiceListingCard } from "@/components/discovery/HitCards";
 import { HorizontalScroller } from "@/components/HorizontalScroller";
 import { ShopCard } from "@/components/ShopCard";
+import { LocationChip } from "@/components/location/LocationChip";
 import { useLocationDialog } from "@/components/location/LocationDialog";
 import { SearchSuggest } from "@/components/search/SearchSuggest";
 import { useApp } from "@/context/AppContext";
@@ -17,15 +18,27 @@ import { useEffect, useMemo, useState } from "react";
 
 export default function HomePage() {
   const { nearbyShops, locationLabel, shopRadiusKm, state, origin } = useApp();
-  const { openLocation } = useLocationDialog();
   const hydrated = useIsHydrated();
   const displayLocation = hydrated ? locationLabel : "Connaught Place";
+  const quickDelivery = state.settings.quickDeliveryEnabled;
   const [nearbyServices, setNearbyServices] = useState<ServiceSearchHit[]>([]);
 
-  const topRated = useMemo(
+  const rankedShops = useMemo(
     () => [...nearbyShops].sort((a, b) => b.rating - a.rating || a.distanceKm - b.distanceKm),
     [nearbyShops],
   );
+  const highlyRated = useMemo(() => {
+    const featured = rankedShops.filter((shop) => shop.rating >= 4);
+    if (featured.length === 0 || featured.length === rankedShops.length) return [];
+    return featured.slice(0, 8);
+  }, [rankedShops]);
+  const highlyRatedIds = useMemo(
+    () => new Set(highlyRated.map((shop) => shop.id)),
+    [highlyRated],
+  );
+  const shopsNearYou = highlyRatedIds.size
+    ? nearbyShops.filter((shop) => !highlyRatedIds.has(shop.id))
+    : nearbyShops;
 
   useEffect(() => {
     let cancelled = false;
@@ -84,22 +97,16 @@ export default function HomePage() {
               Order food &amp; groceries. Discover local shops. <span className="text-rose-100">Dukkan it!</span>
             </h1>
             <p className="mt-2 text-xs font-medium text-rose-100 sm:text-base">
-              Everything in your neighborhood — direct from local stores, instant delivery &amp; expert services
+              {quickDelivery
+                ? "Everything in your neighborhood — direct from local stores, instant delivery & expert services"
+                : "Everything in your neighborhood — direct from local stores and expert services"}
             </p>
           </div>
 
-          {/* Unified Location & Search Bar */}
-          <div className="mx-auto max-w-3xl">
+          {/* Unified Location & Search Bar — z-20 so autocomplete sits above promo cards */}
+          <div className="relative z-20 mx-auto max-w-3xl">
             <div className="flex flex-col gap-2 rounded-2xl bg-white/10 p-2 backdrop-blur-md sm:flex-row sm:items-center sm:rounded-full sm:bg-white sm:p-1.5 sm:shadow-lg sm:ring-1 sm:ring-black/5">
-              <button
-                type="button"
-                onClick={openLocation}
-                className="flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-left text-xs font-semibold text-ink transition hover:bg-rose-50 sm:rounded-full sm:bg-transparent sm:py-2.5 sm:text-sm"
-              >
-                <span className="text-rose-600">📍</span>
-                <span className="max-w-[160px] truncate sm:max-w-[200px]">{displayLocation}</span>
-                <span className="text-[10px] text-muted">▾</span>
-              </button>
+              <LocationChip tone="hero" className="min-w-0 sm:max-w-[280px]" />
 
               <div className="hidden h-6 w-px bg-stone-200 sm:block" />
 
@@ -129,7 +136,11 @@ export default function HomePage() {
           </div>
 
           {/* The 3 Core Pillars (Dukkan, Delivery, Service) */}
-          <div className="mx-auto grid max-w-4xl grid-cols-1 gap-3.5 pt-2 sm:grid-cols-3 sm:gap-4">
+          <div
+            className={`mx-auto grid max-w-4xl grid-cols-1 gap-3.5 pt-2 sm:gap-4 ${
+              quickDelivery ? "sm:grid-cols-3" : "sm:grid-cols-2"
+            }`}
+          >
             {/* Pillar 1: DUKKAN */}
             <Link
               href="/search?filter=shops"
@@ -160,6 +171,7 @@ export default function HomePage() {
             </Link>
 
             {/* Pillar 2: DELIVERY */}
+            {quickDelivery && (
             <Link
               href="/search?filter=products"
               className="group relative flex flex-col justify-between overflow-hidden rounded-3xl bg-white p-5 text-ink shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
@@ -187,6 +199,7 @@ export default function HomePage() {
                 </div>
               </div>
             </Link>
+            )}
 
             {/* Pillar 3: SERVICE */}
             <Link
@@ -226,22 +239,24 @@ export default function HomePage() {
         {/* Home-hero ad bar + companion “Highly rated” strip that historically sat with it */}
         <AdCarousel ads={state.advertisements} />
 
-        {topRated.length > 0 && (
+        {highlyRated.length > 0 && (
           <HorizontalScroller title="Highly rated near you">
-            {topRated.map((shop) => (
-              <ShopCard key={`rated-${shop.id}`} shop={shop} />
+            {highlyRated.map((shop) => (
+              <ShopCard key={shop.id} shop={shop} />
             ))}
           </HorizontalScroller>
         )}
 
-        <HorizontalScroller title={`Shops near ${displayLocation}`}>
-          {nearbyShops.map((shop) => (
-            <ShopCard key={shop.id} shop={shop} />
-          ))}
-          {nearbyShops.length === 0 && (
-            <NoNearby label={displayLocation} radiusKm={shopRadiusKm} />
-          )}
-        </HorizontalScroller>
+        {(shopsNearYou.length > 0 || highlyRated.length === 0) && (
+          <HorizontalScroller title={`Shops near ${displayLocation}`}>
+            {shopsNearYou.map((shop) => (
+              <ShopCard key={shop.id} shop={shop} />
+            ))}
+            {shopsNearYou.length === 0 && (
+              <NoNearby label={displayLocation} radiusKm={shopRadiusKm} />
+            )}
+          </HorizontalScroller>
+        )}
 
         {nearbyServices.length > 0 && (
           <HorizontalScroller title="Services near you">

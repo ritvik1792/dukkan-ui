@@ -1,8 +1,8 @@
 import type { DeliveryMode, Listing, Shop } from "@/lib/types";
 
-export function shopDeliveryModes(shop: Shop): DeliveryMode[] {
+export function shopDeliveryModes(shop: Shop, quickDeliveryEnabled = false): DeliveryMode[] {
   const modes: DeliveryMode[] = [];
-  if (shop.partnerDeliveryEnabled) modes.push("partner");
+  if (quickDeliveryEnabled && shop.partnerDeliveryEnabled) modes.push("partner");
   if (shop.shopDeliveryEnabled) modes.push("shop");
   return modes;
 }
@@ -18,8 +18,9 @@ export function landedCost(listing: Listing, shop: Shop, mode: DeliveryMode) {
 export function cheapestLanded(
   listing: Listing,
   shop: Shop,
+  quickDeliveryEnabled = false,
 ): { mode: DeliveryMode; fee: number; total: number } | null {
-  const modes = shopDeliveryModes(shop);
+  const modes = shopDeliveryModes(shop, quickDeliveryEnabled);
   if (modes.length === 0) return null;
   return modes
     .map((mode) => ({

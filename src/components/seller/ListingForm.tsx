@@ -1,11 +1,12 @@
 "use client";
 
 import { Field, FileButton, Select, TextArea, TextInput } from "@/components/ui/Field";
+import { Toggle } from "@/components/ui/Toggle";
 import { useApp } from "@/context/AppContext";
-import type { CatalogProduct, Listing, ProductTag } from "@/lib/types";
+import { uniqueMediaUrls } from "@/lib/mediaUrls";
+import type { CatalogProduct, CategoryKind, Listing, ProductTag } from "@/lib/types";
 import { persistImageFile } from "@/lib/images";
-import { eligiblePromoTags, snapshotTag, tagRuleSummary } from "@/lib/tags";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 export type ListingFormValue = {
   name: string;
@@ -20,9 +21,14 @@ export type ListingFormValue = {
   color: string;
   quality: string;
   warranty: string;
+  /** Preserved on edit; attach/detach offers later via Sales & coupons. */
   tags: ProductTag[];
   mainImage: string;
   gallery: string[];
+  durationMinutes: number;
+  bookingEnabled: boolean;
+  requestEnabled: boolean;
+  serviceArea: string;
 };
 
 export function listingToForm(listing: Listing, product: CatalogProduct): ListingFormValue {
@@ -41,7 +47,11 @@ export function listingToForm(listing: Listing, product: CatalogProduct): Listin
     warranty: listing.warranty ?? "",
     tags: listing.tags,
     mainImage: product.imageUrl ?? "",
-    gallery: product.galleryUrls ?? [],
+    gallery: uniqueMediaUrls(product.galleryUrls ?? [], product.imageUrl),
+    durationMinutes: 30,
+    bookingEnabled: true,
+    requestEnabled: true,
+    serviceArea: "",
   };
 }
 
@@ -61,19 +71,26 @@ const emptyForm: ListingFormValue = {
   tags: [],
   mainImage: "",
   gallery: [],
+  durationMinutes: 30,
+  bookingEnabled: true,
+  requestEnabled: true,
+  serviceArea: "",
 };
 
 export function blankListingForm(categoryId = "grocery"): ListingFormValue {
   return { ...emptyForm, categoryId };
 }
 
+function discountPercent(basePrice: number, sellerPrice: number) {
+  if (basePrice <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((1 - sellerPrice / basePrice) * 100)));
+}
+
 export function ListingForm({
   initial,
   submitLabel,
-  compact,
   hideCategory,
   lockedCategoryId,
-  shopId,
   onSubmit,
 }: {
   initial?: ListingFormValue;
@@ -89,13 +106,14 @@ export function ListingForm({
   const [form, setForm] = useState<ListingFormValue>(initial ?? emptyForm);
   const [mainFileName, setMainFileName] = useState("");
   const [galleryFileName, setGalleryFileName] = useState("");
-  const eligible = useMemo(
-    () => eligiblePromoTags(state.promoTags, shopId),
-    [state.promoTags, shopId],
-  );
+  const categoryId = lockedCategoryId || form.categoryId;
+  const kind: CategoryKind | undefined = categories.find((category) => category.id === categoryId)?.kind;
+  const serviceListing = kind === "SERVICE";
+  const productCategories = categories.filter((category) => category.kind !== "SERVICE");
+  const serviceCategories = categories.filter((category) => category.kind === "SERVICE");
 
   function set<K extends keyof ListingFormValue>(key: K, value: ListingFormValue[K]) {
-    setForm((f) => ({ ...f, [key]: value }));
+    setForm((current) => ({ ...current, [key]: value }));
   }
 
   async function onMainFile(files: FileList | null) {
@@ -103,7 +121,11 @@ export function ListingForm({
     if (!file) return;
     setMainFileName(file.name);
     const url = await persistImageFile(file);
-    set("mainImage", url);
+    setForm((current) => ({
+      ...current,
+      mainImage: url,
+      gallery: uniqueMediaUrls(current.gallery, url),
+    }));
   }
 
   async function onGalleryFiles(files: FileList | null) {
@@ -114,24 +136,32 @@ export function ListingForm({
     for (const file of picked) {
       next.push(await persistImageFile(file));
     }
-    setForm((f) => ({ ...f, gallery: [...f.gallery, ...next].slice(0, 8) }));
+    setForm((current) => ({
+      ...current,
+      gallery: uniqueMediaUrls([...current.gallery, ...next], current.mainImage).slice(0, 8),
+    }));
   }
 
-  const tagBox = compact ? "rounded-2xl border border-border p-3" : "rounded-2xl bg-white p-4";
+  const discount = discountPercent(form.basePrice, form.sellerPrice);
 
   return (
     <form
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit(
-          lockedCategoryId ? { ...form, categoryId: lockedCategoryId } : form,
-        );
+        const next = lockedCategoryId ? { ...form, categoryId: lockedCategoryId } : form;
+        onSubmit({
+          ...next,
+          gallery: uniqueMediaUrls(next.gallery, next.mainImage),
+        });
       }}
     >
       <div>
-        <p className="text-sm font-medium">Main picture</p>
-        <div className="mt-1">
+        <p className="text-sm font-medium">{serviceListing ? "Service images" : "Product images"}</p>
+        <p className="mt-0.5 text-xs text-stone-400">
+          {serviceListing ? "Main picture, plus any extra shots of the service." : "Main picture, plus any extra product shots."}
+        </p>
+        <div className="mt-2">
           <FileButton
             accept="image/*"
             buttonLabel="Choose picture"
@@ -154,7 +184,10 @@ export function ListingForm({
             multiple
             buttonLabel="Choose pictures"
             fileName={galleryFileName}
-            onChange={(e) => void onGalleryFiles(e.target.files)}
+            onChange={(e) => {
+              void onGalleryFiles(e.target.files);
+              e.target.value = "";
+            }}
           />
         </div>
         {form.gallery.length > 0 && (
@@ -165,7 +198,10 @@ export function ListingForm({
                 type="button"
                 className="relative h-16 w-16 overflow-hidden rounded-xl"
                 onClick={() =>
-                  setForm((f) => ({ ...f, gallery: f.gallery.filter((_, i) => i !== index) }))
+                  setForm((current) => ({
+                    ...current,
+                    gallery: current.gallery.filter((_, i) => i !== index),
+                  }))
                 }
                 aria-label="Remove picture"
               >
@@ -176,107 +212,140 @@ export function ListingForm({
           </div>
         )}
       </div>
-      <Field label="Product name">
+      <Field label={serviceListing ? "Service name" : "Product name"}>
         <TextInput required value={form.name} onChange={(e) => set("name", e.target.value)} />
       </Field>
-      <Field label="Brand">
-        <TextInput value={form.brand} onChange={(e) => set("brand", e.target.value)} />
-      </Field>
+      {!serviceListing && (
+        <Field label="Brand">
+          <TextInput value={form.brand} onChange={(e) => set("brand", e.target.value)} />
+        </Field>
+      )}
       {!hideCategory && (
-        <Field label="Category">
+        <Field label={serviceListing ? "Service type" : "Product category"}>
           <Select value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
+            <optgroup label="Products">
+              {productCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.emoji} {category.name}
+                </option>
+              ))}
+            </optgroup>
+            {serviceCategories.length > 0 && (
+              <optgroup label="Services">
+                {serviceCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.emoji} {category.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </Select>
         </Field>
       )}
-      <Field label="Description">
+      <Field label={serviceListing ? "Service description" : "Product description"}>
         <TextArea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Base price ₹">
-          <TextInput
-            type="number"
-            value={form.basePrice}
-            onChange={(e) => set("basePrice", Number(e.target.value))}
-          />
-        </Field>
-        <Field label="Seller price ₹">
-          <TextInput
-            type="number"
-            value={form.sellerPrice}
-            onChange={(e) => set("sellerPrice", Number(e.target.value))}
-          />
-        </Field>
-        <Field label="Stock">
-          <TextInput
-            type="number"
-            value={form.stock}
-            onChange={(e) => set("stock", Number(e.target.value))}
-          />
-        </Field>
-        <Field label="Unit">
-          <TextInput value={form.unit} onChange={(e) => set("unit", e.target.value)} />
-        </Field>
-        <Field label="Colour" hint="optional">
-          <TextInput value={form.color} onChange={(e) => set("color", e.target.value)} />
-        </Field>
-        <Field label="Quality" hint="optional">
-          <TextInput value={form.quality} onChange={(e) => set("quality", e.target.value)} />
-        </Field>
-        <Field label="Warranty" hint="optional">
-          <TextInput
-            value={form.warranty}
-            onChange={(e) => set("warranty", e.target.value)}
-            placeholder="12 months, 7-day replacement"
-          />
-        </Field>
-      </div>
-      <div className={tagBox}>
-        <p className="text-sm font-semibold">Tags / sale / coupon</p>
-        <p className="mt-1 text-xs text-stone-500">
-          Choose from your tags and platform tags. Create new ones under Sales & coupons.
-        </p>
-        <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto">
-          {eligible.map((tag) => {
-            const selected = form.tags.some((item) => item.id === tag.id);
-            return (
-              <li key={tag.id}>
-                <label className="flex cursor-pointer items-start gap-2 rounded-xl px-1 py-1 text-sm">
-                  <input
-                    type="checkbox"
-                    className="mt-1"
-                    checked={selected}
-                    onChange={() =>
-                      setForm((current) => ({
-                        ...current,
-                        tags: selected
-                          ? current.tags.filter((item) => item.id !== tag.id)
-                          : [...current.tags, snapshotTag(tag)],
-                      }))
-                    }
-                  />
-                  <span>
-                    <span className="font-medium">
-                      {tag.label}
-                      {tag.owner === "admin" ? " · Platform" : ""}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-stone-400">{tagRuleSummary(tag)}</span>
-                  </span>
-                </label>
-              </li>
-            );
-          })}
-          {eligible.length === 0 && (
-            <li className="text-sm text-stone-500">No active tags yet. Add one from Sales & coupons.</li>
-          )}
-        </ul>
-      </div>
+      {serviceListing ? (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Starting price ₹">
+              <TextInput
+                type="number"
+                min={0}
+                value={form.sellerPrice}
+                onChange={(e) => set("sellerPrice", Number(e.target.value))}
+              />
+            </Field>
+            <Field label="Duration (minutes)">
+              <TextInput
+                type="number"
+                min={0}
+                value={form.durationMinutes}
+                onChange={(e) => set("durationMinutes", Number(e.target.value))}
+              />
+            </Field>
+          </div>
+          <Field label="Service area">
+            <TextInput
+              value={form.serviceArea}
+              onChange={(e) => set("serviceArea", e.target.value)}
+              placeholder="e.g. South Delhi"
+            />
+          </Field>
+          <div className="space-y-3 rounded-2xl border border-border p-3">
+            <p className="text-sm font-medium">Service availability</p>
+            <Toggle
+              label="Bookings"
+              hint="Customers can book a time."
+              checked={form.bookingEnabled}
+              onChange={(checked) => set("bookingEnabled", checked)}
+            />
+            <Toggle
+              label="Requests"
+              hint="Customers can ask if you are available."
+              checked={form.requestEnabled}
+              onChange={(checked) => set("requestEnabled", checked)}
+            />
+          </div>
+        </>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Price ₹">
+            <TextInput
+              type="number"
+              min={0}
+              value={form.sellerPrice}
+              onChange={(e) => set("sellerPrice", Number(e.target.value))}
+            />
+          </Field>
+          <Field label="MRP ₹">
+            <TextInput
+              type="number"
+              min={0}
+              value={form.basePrice}
+              onChange={(e) => set("basePrice", Number(e.target.value))}
+            />
+          </Field>
+          <Field label="Discount %">
+            <TextInput
+              type="number"
+              min={0}
+              max={100}
+              value={discount}
+              onChange={(e) => {
+                const percent = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                set("sellerPrice", Math.round(form.basePrice * (1 - percent / 100)));
+              }}
+            />
+          </Field>
+          <Field label="Stock">
+            <TextInput
+              type="number"
+              min={0}
+              value={form.stock}
+              onChange={(e) => set("stock", Number(e.target.value))}
+            />
+          </Field>
+          <Field label="Quantity / unit">
+            <TextInput value={form.unit} onChange={(e) => set("unit", e.target.value)} />
+          </Field>
+          <Field label="Colour" hint="optional">
+            <TextInput value={form.color} onChange={(e) => set("color", e.target.value)} />
+          </Field>
+          <Field label="Quality" hint="optional">
+            <TextInput value={form.quality} onChange={(e) => set("quality", e.target.value)} />
+          </Field>
+          <Field label="Warranty" hint="optional">
+            <TextInput
+              value={form.warranty}
+              onChange={(e) => set("warranty", e.target.value)}
+              placeholder="12 months, 7-day replacement"
+            />
+          </Field>
+        </div>
+      )}
       <button type="submit" className="rounded-full bg-carrot px-5 py-2.5 text-sm font-semibold text-white">
-        {submitLabel}
+        {serviceListing ? submitLabel.replace(/product/i, "service") : submitLabel}
       </button>
     </form>
   );

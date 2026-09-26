@@ -34,6 +34,7 @@ export function defaultConsolePath(role?: string) {
   return ROUTES.consoleLogin;
 }
 
+/** Seller and admin open the console. Buyers do not. Admin is checked separately. */
 export function isStaffRole(role?: string | null) {
   return role === "admin" || role === "seller";
 }

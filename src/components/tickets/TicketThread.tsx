@@ -29,9 +29,6 @@ export function TicketThread({
   const shop = shopById(ticket.shopId ?? "");
   const assignees = shopStaff(state.users, shop);
   const assigned = state.users.find((u) => u.id === ticket.assignedToUserId);
-  const relatedOrder = ticket.orderId
-    ? state.orders.find((order) => order.id === ticket.orderId)
-    : undefined;
 
   async function send() {
     const body = draft.trim();
@@ -79,7 +76,6 @@ export function TicketThread({
                   ) : (
                     ticket.orderId
                   ))}
-                {relatedOrder?.paymentRefId ? ` · ${relatedOrder.paymentRefId}` : ""}
               </p>
             </div>
             <StatusPill>

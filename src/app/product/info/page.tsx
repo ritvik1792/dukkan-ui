@@ -10,6 +10,7 @@ import { TagBadge } from "@/components/TagBadge";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
 import { createProductRequest, mapProductRequest } from "@/lib/api";
+import { uniqueMediaUrls } from "@/lib/mediaUrls";
 import { formatInr, formatRelativeAgo, percentOff } from "@/lib/format";
 import { visibleListingTags } from "@/lib/tags";
 import { formatDistance } from "@/lib/geo";
@@ -82,11 +83,11 @@ export default function ProductInfoPage() {
       .flatMap((listing) => {
         const shop = shopById(listing.shopId);
         if (!shop || !nearbyIds.has(listing.shopId)) return [];
-        const best = cheapestLanded(listing, shop);
+        const best = cheapestLanded(listing, shop, state.settings.quickDeliveryEnabled);
         return [{ listing, shop, best }];
       })
       .sort((a, b) => (a.best?.total ?? Infinity) - (b.best?.total ?? Infinity));
-  }, [listings, nearbyIds, shopById]);
+  }, [listings, nearbyIds, shopById, state.settings.quickDeliveryEnabled]);
 
   const defaultOffer = offers.find((o) => o.shop.id === preferShopId) ?? offers[0];
   const selected = offers.find((o) => o.listing.id === listingId) ?? defaultOffer;
@@ -123,10 +124,10 @@ export default function ProductInfoPage() {
 
   const { listing, shop } = selected;
   const productName = product.name;
-  const fee = deliveryFeeFor(shop, mode);
-  const off = percentOff(listing.basePrice, listing.sellerPrice);
-  const modes = shopDeliveryModes(shop);
+  const modes = shopDeliveryModes(shop, state.settings.quickDeliveryEnabled);
   const activeMode = modes.includes(mode) ? mode : modes[0];
+  const fee = activeMode ? deliveryFeeFor(shop, activeMode) : 0;
+  const off = percentOff(listing.basePrice, listing.sellerPrice);
   const avg =
     reviews.length === 0
       ? 0
@@ -136,7 +137,7 @@ export default function ProductInfoPage() {
     setListingId(next.id);
     const shopNext = shopById(next.shopId);
     if (shopNext) {
-      const best = cheapestLanded(next, shopNext);
+      const best = cheapestLanded(next, shopNext, state.settings.quickDeliveryEnabled);
       if (best) setMode(best.mode);
     }
   }
@@ -257,11 +258,9 @@ export default function ProductInfoPage() {
             />
             <WishlistButton catalogProductId={product.id} className="absolute right-3 top-3 z-10" />
           </div>
-          {product.galleryUrls && product.galleryUrls.length > 0 && (
+          {uniqueMediaUrls([product.imageUrl, ...(product.galleryUrls ?? [])]).length > 1 && (
             <div className="mt-3 flex gap-2 overflow-x-auto">
-              {[product.imageUrl, ...product.galleryUrls]
-                .filter((src): src is string => Boolean(src))
-                .filter((src, index, all) => all.indexOf(src) === index)
+              {uniqueMediaUrls([product.imageUrl, ...(product.galleryUrls ?? [])])
                 .map((src) => (
                   <button
                     key={src.slice(0, 48)}
@@ -310,7 +309,10 @@ export default function ProductInfoPage() {
               : "Out of stock"}
           </p>
           <p className="mt-1 text-sm text-stone-500">
-            Delivery typically {state.settings.partnerEtaMinutes} min · Sold by {shop.name}
+            {activeMode === "partner"
+              ? `Delivery typically ${state.settings.partnerEtaMinutes} min · `
+              : ""}
+            Sold by {shop.name}
           </p>
           {(listing.color || listing.quality || listing.warranty) && (
             <p className="mt-2 text-sm text-stone-500">

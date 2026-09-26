@@ -156,11 +156,11 @@ export function AdminDashboard() {
         <section className="rounded-2xl bg-white p-5">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <h2 className="font-semibold">Complaints & support</h2>
-              <p className="text-sm text-stone-500">Monitor and reply to any ticket on the platform.</p>
+              <h2 className="font-semibold">Issues</h2>
+              <p className="text-sm text-stone-500">Buyer complaints, other requests, and blocked products.</p>
             </div>
             <Link href={adminConsolePath("/tickets")} className="text-sm underline">
-              Manage tickets
+              Open issues
             </Link>
           </div>
           <ul className="mt-4 space-y-2">

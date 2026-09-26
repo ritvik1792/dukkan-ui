@@ -15,7 +15,6 @@ export function ReviewCard({
   productName,
   shopName,
   buyerName,
-  paymentRefId,
   canAddPhotos = false,
   onOpenOrder,
   children,
@@ -24,7 +23,6 @@ export function ReviewCard({
   productName?: string;
   shopName?: string;
   buyerName?: string;
-  paymentRefId?: string;
   canAddPhotos?: boolean;
   onOpenOrder?: (orderId: string) => void;
   children?: ReactNode;
@@ -53,7 +51,7 @@ export function ReviewCard({
       )}
       {shopName && <p className="text-xs text-stone-500">{shopName}</p>}
       <p className="mt-1 text-sm text-stone-600">{review.body}</p>
-      {(buyerName || review.orderId || paymentRefId) && (
+      {(buyerName || review.orderId) && (
         <p className="mt-2 text-xs text-stone-400">
           {buyerName ? `${buyerName} · ` : ""}
           {formatDate(review.createdAt)}
@@ -65,7 +63,6 @@ export function ReviewCard({
               className="underline decoration-stone-300 hover:decoration-ink"
             />
           )}
-          {paymentRefId ? ` · ${paymentRefId}` : ""}
         </p>
       )}
       <ReviewPhotos urls={review.imageUrls} />

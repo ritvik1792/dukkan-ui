@@ -23,8 +23,9 @@ export default function CartPage() {
         listingById,
         shopById,
         catalogById,
+        quickDeliveryEnabled: state.settings.quickDeliveryEnabled,
       }),
-    [state.cart, listingById, shopById, catalogById],
+    [state.cart, listingById, shopById, catalogById, state.settings.quickDeliveryEnabled],
   );
   const summary = cartSummary(shipments);
 

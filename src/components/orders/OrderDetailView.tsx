@@ -9,10 +9,12 @@ export function OrderDetailView({
   orderId,
   backHref,
   backLabel,
+  mode: modeOverride,
 }: {
   orderId: string;
   backHref: string;
   backLabel: string;
+  mode?: "seller" | "buyer";
 }) {
   const { state, user } = useApp();
   const router = useMotionRouter();
@@ -27,7 +29,7 @@ export function OrderDetailView({
   const canView = Boolean(
     user && order && (user.role === "admin" || order.buyerId === user.id || ownsShop),
   );
-  const mode = user?.role === "admin" || ownsShop ? "seller" : "buyer";
+  const mode = modeOverride ?? (user?.role === "admin" || ownsShop ? "seller" : "buyer");
 
   if (!state.hydrated) {
     return <p className="text-sm text-stone-500">Loading…</p>;

@@ -12,6 +12,7 @@ import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
 import { randomBrandHue } from "@/lib/constants";
+import { listingGallery } from "@/lib/publishListing";
 import { formatInr } from "@/lib/format";
 import { afterPaint } from "@/lib/drawer";
 import { adminConsolePath } from "@/lib/routes";
@@ -179,7 +180,7 @@ export default function AdminProducts() {
         imageLabel: existing?.imageLabel || form.name.slice(0, 8),
         imageHue: existing?.imageHue ?? randomBrandHue(),
         imageUrl: form.mainImage || undefined,
-        galleryUrls: form.gallery,
+        galleryUrls: listingGallery(form),
       },
     });
     dispatch({

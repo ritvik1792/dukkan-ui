@@ -110,8 +110,7 @@ export function tagRuleSummary(tag: PromoTag) {
       tag.coupon.discountType === "percent"
         ? `${tag.coupon.discountValue}%`
         : formatInr(tag.coupon.discountValue);
-    const pays = tag.coupon.paymentMethods.map((method) => titleCase(method)).join(", ");
-    return `${off} off over ${formatInr(tag.coupon.minPrice)}, max ${formatInr(tag.coupon.maxDiscount)}${pays ? ` · ${pays}` : ""}`;
+    return `${off} off over ${formatInr(tag.coupon.minPrice)}, max ${formatInr(tag.coupon.maxDiscount)}`;
   }
   return titleCase(tag.kind);
 }

@@ -24,7 +24,8 @@ type ShopLookup = { shops: Shop[] };
 
 export function notificationHref(item: AppNotification, role?: string) {
   if (item.kind === "stock_confirmation") {
-    return sellerConsolePath("/requests");
+    const q = item.requestId ? `?request=${encodeURIComponent(item.requestId)}` : "";
+    return `${sellerConsolePath("/requests")}${q}`;
   }
   if (item.kind === "review" && item.reviewId) {
     const q = `review=${encodeURIComponent(item.reviewId)}`;

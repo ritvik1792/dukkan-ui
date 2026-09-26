@@ -1,7 +1,6 @@
-"use client";
+import { adminConsolePath } from "@/lib/routes";
+import { redirect } from "next/navigation";
 
-import { ModerationBoard } from "@/components/moderation/ModerationBoard";
-
-export default function AdminModeration() {
-  return <ModerationBoard mode="admin" />;
+export default function AdminModerationRedirect() {
+  redirect(`${adminConsolePath("/tickets")}?tab=blocked`);
 }

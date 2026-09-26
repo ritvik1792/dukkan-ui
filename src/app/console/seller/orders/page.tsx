@@ -6,7 +6,7 @@ import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
 import { mapOrder, patchOrderRequest } from "@/lib/api";
-import { formatDate, formatInr, paymentMethodLabel } from "@/lib/format";
+import { formatDate, formatInr } from "@/lib/format";
 import {
   nextOrderAdvance,
   normalizeOrderStatus,
@@ -59,7 +59,7 @@ export default function SellerOrders() {
       const items = order.items
         .map((item) => catalogById(item.catalogProductId)?.name ?? "")
         .join(" ");
-      return `${order.id} ${order.paymentRefId ?? ""} ${shop?.name ?? ""} ${buyer?.name ?? ""} ${order.address} ${items}`
+      return `${order.id} ${shop?.name ?? ""} ${buyer?.name ?? ""} ${order.address} ${items}`
         .toLowerCase()
         .includes(q);
     });
@@ -134,7 +134,7 @@ export default function SellerOrders() {
           <TextInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Order, payment ref, customer, product"
+            placeholder="Order, customer, product"
           />
         </Field>
         <Field label="Status">
@@ -209,7 +209,6 @@ export default function SellerOrders() {
                   <td className="px-4 py-3">
                     <p className="font-medium">{order.id}</p>
                     <p className="text-xs text-stone-400">
-                      {order.paymentRefId ? `${order.paymentRefId} · ` : ""}
                       {shop?.name} · {formatDate(order.createdAt)}
                     </p>
                   </td>
@@ -222,11 +221,6 @@ export default function SellerOrders() {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {formatInr(order.total)}
-                    {order.paymentMethod ? (
-                      <span className="block text-xs text-stone-400">
-                        {paymentMethodLabel(order.paymentMethod)}
-                      </span>
-                    ) : null}
                   </td>
                   <td className="px-4 py-3">
                     <StatusPill>{orderStatusLabel(status)}</StatusPill>

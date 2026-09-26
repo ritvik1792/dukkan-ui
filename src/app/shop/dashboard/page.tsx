@@ -4,7 +4,6 @@ import { CatalogProductCard } from "@/components/CatalogProductCard";
 import { Field, TextInput } from "@/components/ui/Field";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
-import { useIsHydrated } from "@/lib/hydration";
 import { fetchProviderProfile } from "@/lib/api";
 import { formatInr } from "@/lib/format";
 import { ROUTES } from "@/lib/routes";
@@ -18,7 +17,16 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 
-type ActiveTab = "all" | "products" | "services" | "offers";
+type ListingView = "products" | "services";
+
+function dedupeOffers(offers: UniqueOffer[]) {
+  const seen = new Set<string>();
+  return offers.filter((offer) => {
+    if (seen.has(offer.product.id)) return false;
+    seen.add(offer.product.id);
+    return true;
+  });
+}
 
 function ShopDashboardContent() {
   const params = useSearchParams();
@@ -32,7 +40,11 @@ function ShopDashboardContent() {
   const [categoryId, setCategoryId] = useState("");
   const [q, setQ] = useState("");
   const [services, setServices] = useState<ProviderService[]>([]);
-  const [activeTab, setActiveTab] = useState<ActiveTab>("all");
+  const [listingView, setListingView] = useState<ListingView>("products");
+
+  useEffect(() => {
+    setListingView("products");
+  }, [shopId]);
 
   useEffect(() => {
     if (queryShopId && queryShopId !== state.viewShopId) {
@@ -60,8 +72,9 @@ function ShopDashboardContent() {
       shops: state.shops,
       query: q || undefined,
       categoryId: categoryId || undefined,
+      quickDeliveryEnabled: state.settings.quickDeliveryEnabled,
     });
-    setOffers(localOffers);
+    setOffers(dedupeOffers(localOffers));
     setLoading(false);
 
     let cancelled = false;
@@ -74,7 +87,11 @@ function ShopDashboardContent() {
 
     Promise.all([
       fetchShop(shopId, db),
-      fetchShopCatalog(shopId, db, { query: q, categoryId: categoryId || undefined }),
+      fetchShopCatalog(shopId, db, {
+        query: q,
+        categoryId: categoryId || undefined,
+        quickDeliveryEnabled: state.settings.quickDeliveryEnabled,
+      }),
       fetchProviderProfile(shopId).catch(() => null),
     ]).then(([nextShop, nextOffers, profile]) => {
       if (cancelled) return;
@@ -85,16 +102,15 @@ function ShopDashboardContent() {
         setServices(profile.services.filter((s) => s.status === "ACTIVE"));
       }
       if (nextOffers && nextOffers.length > 0) {
-        setOffers(nextOffers);
+        setOffers(dedupeOffers(nextOffers));
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [shopId, state.shops, state.catalog, state.listings, state.reviews, q, categoryId]);
+  }, [shopId, state.shops, state.catalog, state.listings, state.reviews, state.settings.quickDeliveryEnabled, q, categoryId]);
 
-  const isHydrated = useIsHydrated();
   const shop = profileShop ?? (shopId ? state.shops.find((s) => s.id === shopId) : null) ?? state.shops[0] ?? null;
 
   const ownerPhone = useMemo(() => {
@@ -130,7 +146,7 @@ function ShopDashboardContent() {
       <div className="mx-auto max-w-3xl px-4 py-12 text-center">
         <h1 className="text-2xl font-bold text-ink">No provider selected</h1>
         <p className="mt-2 text-sm text-muted">
-          Open a shop or service provider from home or search to explore their menu &amp; bookings.
+          Open a shop or service provider from home or search to explore their products or services.
         </p>
         <Link href="/" className="btn-primary btn-sm mt-5">
           Browse nearby
@@ -140,10 +156,21 @@ function ShopDashboardContent() {
   }
 
   const nearby = nearbyShops.find((s) => s.id === shop.id);
-  const modes = shopDeliveryModes(shop);
-  const showProducts = shop.productsAllowed !== false;
-  const showServices = services.length > 0 || shop.servicesAllowed;
+  const modes = shopDeliveryModes(shop, state.settings.quickDeliveryEnabled);
+  const productsAllowed = shop.productsAllowed !== false;
+  const servicesAllowed = Boolean(shop.servicesAllowed);
+  const hasBothCapabilities = productsAllowed && servicesAllowed;
   const primaryService = services.find((s) => s.bookingEnabled);
+
+  // Prefer products when both are offered; services-only shops land on services.
+  const activeListing: ListingView = hasBothCapabilities
+    ? listingView
+    : productsAllowed
+      ? "products"
+      : "services";
+  const showProductsSection = productsAllowed && activeListing === "products";
+  const showServicesSection = servicesAllowed && activeListing === "services";
+  const listingLabel = activeListing === "products" ? "Products" : "Services";
 
   const categoryNames = shop.categoryIds
     .map((id) => state.categories.find((c) => c.id === id)?.name)
@@ -153,60 +180,13 @@ function ShopDashboardContent() {
 
   return (
     <div className="page-shell space-y-6 py-6 sm:py-8">
-      {/* ── Breadcrumb & Top Tabs (Swiggy Style: Dineout / Menu / Photos) ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
-        <div className="flex items-center gap-2 text-xs text-muted">
-          <Link href="/" className="hover:text-rose-600">Home</Link>
-          <span>/</span>
-          <Link href="/search?filter=shops" className="hover:text-rose-600">Shops</Link>
-          <span>/</span>
-          <span className="font-semibold text-ink truncate max-w-[200px]">{shop.name}</span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setActiveTab("all")}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-              activeTab === "all" ? "bg-rose-600 text-white shadow-sm" : "text-muted hover:bg-zinc-100"
-            }`}
-          >
-            Overview
-          </button>
-          {showProducts && (
-            <button
-              type="button"
-              onClick={() => setActiveTab("products")}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-                activeTab === "products" ? "bg-rose-600 text-white shadow-sm" : "text-muted hover:bg-zinc-100"
-              }`}
-            >
-              Menu &amp; Products
-            </button>
-          )}
-          {showServices && (
-            <button
-              type="button"
-              onClick={() => setActiveTab("services")}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-                activeTab === "services" ? "bg-rose-600 text-white shadow-sm" : "text-muted hover:bg-zinc-100"
-              }`}
-            >
-              Services &amp; Bookings
-            </button>
-          )}
-          {shopCoupons.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setActiveTab("offers")}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-                activeTab === "offers" ? "bg-rose-600 text-white shadow-sm" : "text-muted hover:bg-zinc-100"
-              }`}
-            >
-              Offers ({shopCoupons.length})
-            </button>
-          )}
-        </div>
+      {/* ── Breadcrumb only (no Overview / Menu tabs) ── */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3 text-xs text-muted">
+        <Link href="/" className="hover:text-rose-600">Home</Link>
+        <span>/</span>
+        <Link href="/search?filter=shops" className="hover:text-rose-600">Shops</Link>
+        <span>/</span>
+        <span className="max-w-[200px] truncate font-semibold text-ink">{shop.name}</span>
       </div>
 
       {/* ── Swiggy Dineout Style Hero Card ── */}
@@ -310,7 +290,7 @@ function ShopDashboardContent() {
 
             {/* Prominent Booking / Order CTA */}
             <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-zinc-100 pt-5">
-              {primaryService && (
+              {primaryService && servicesAllowed && (
                 <Link
                   href={`${ROUTES.serviceBook}?serviceId=${encodeURIComponent(primaryService.id)}`}
                   className="btn-primary btn-md flex-1 text-center font-bold sm:flex-initial"
@@ -318,17 +298,21 @@ function ShopDashboardContent() {
                   📅 Book a Table / Appointment
                 </Link>
               )}
-              {showProducts && (
+              {(productsAllowed || servicesAllowed) && (
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveTab("products");
-                    const el = document.getElementById("shop-products-section");
+                    const targetId =
+                      activeListing === "services"
+                        ? "shop-services-section"
+                        : "shop-products-section";
+                    const el = document.getElementById(targetId);
                     el?.scrollIntoView({ behavior: "smooth" });
                   }}
                   className="btn-secondary btn-md"
                 >
-                  🛍️ Browse Products ({offers.length})
+                  {activeListing === "products" ? "🛍️" : "✨"} Browse {listingLabel} (
+                  {activeListing === "products" ? offers.length : services.length})
                 </button>
               )}
             </div>
@@ -336,8 +320,8 @@ function ShopDashboardContent() {
         </div>
       </div>
 
-      {/* ── Offers for you (Swiggy Style Deal Cards) ── */}
-      {shopCoupons.length > 0 && (activeTab === "all" || activeTab === "offers") && (
+      {/* ── Offers for you ── */}
+      {shopCoupons.length > 0 && (
         <section className="rounded-3xl border border-border bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-bold text-ink sm:text-lg">
@@ -388,13 +372,51 @@ function ShopDashboardContent() {
         </section>
       )}
 
+      {/* ── Capability switch (only when both products + services) ── */}
+      {hasBothCapabilities && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-bold text-ink">{listingLabel}</h2>
+          <div className="inline-flex rounded-full border border-border bg-white p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setListingView("products")}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                activeListing === "products"
+                  ? "bg-rose-600 text-white shadow-sm"
+                  : "text-muted hover:bg-zinc-100"
+              }`}
+            >
+              Products
+            </button>
+            <button
+              type="button"
+              onClick={() => setListingView("services")}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                activeListing === "services"
+                  ? "bg-rose-600 text-white shadow-sm"
+                  : "text-muted hover:bg-zinc-100"
+              }`}
+            >
+              Services
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Services Section ── */}
-      {showServices && (activeTab === "all" || activeTab === "services") && (
-        <section className="rounded-3xl border border-border bg-white p-5 shadow-sm sm:p-6">
+      {showServicesSection && (
+        <section
+          id="shop-services-section"
+          className="rounded-3xl border border-border bg-white p-5 shadow-sm sm:p-6"
+        >
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-ink">Services &amp; Appointments</h2>
-              <p className="text-xs text-muted">Book tables or sessions with instant slot confirmation</p>
+              {!hasBothCapabilities && (
+                <h2 className="text-lg font-bold text-ink">Services</h2>
+              )}
+              <p className="text-xs text-muted">
+                {services.length} {services.length === 1 ? "service" : "services"} available to book
+              </p>
             </div>
           </div>
 
@@ -456,13 +478,15 @@ function ShopDashboardContent() {
         </section>
       )}
 
-      {/* ── Products & Menu Section ── */}
-      {showProducts && (activeTab === "all" || activeTab === "products") && (
+      {/* ── Products Section ── */}
+      {showProductsSection && (
         <section id="shop-products-section" className="rounded-3xl border border-border bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-bold text-ink">Products &amp; Menu</h2>
-              <p className="text-xs text-muted">
+              {!hasBothCapabilities && (
+                <h2 className="text-lg font-bold text-ink">Products</h2>
+              )}
+              <p className={`text-xs text-muted ${hasBothCapabilities ? "" : "mt-0"}`}>
                 {offers.length} {offers.length === 1 ? "item" : "items"} available for order
               </p>
             </div>

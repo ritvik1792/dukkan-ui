@@ -11,16 +11,17 @@ import { useApp } from "@/context/AppContext";
 import { useIsHydrated } from "@/lib/hydration";
 import { afterPaint } from "@/lib/drawer";
 import { BRAND } from "@/lib/constants";
-import { ROUTES } from "@/lib/routes";
+import { isStaffRole, ROUTES } from "@/lib/routes";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export function Header() {
-  const { user, cartCount, state } = useApp();
+  const { user, cartCount } = useApp();
   const { openAuth } = useAuthDialog();
   const isHydrated = useIsHydrated();
   const displayCartCount = isHydrated ? cartCount : 0;
   const displayUser = isHydrated ? user : null;
+  const showConsole = isHydrated && isStaffRole(displayUser?.role);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuShown, setMenuShown] = useState(false);
   const [menuRender, setMenuRender] = useState(false);
@@ -58,21 +59,23 @@ export function Header() {
           </div>
         </Link>
 
-        <LocationChip className="hidden max-w-[220px] shrink-0 md:flex" />
-
         <SearchSuggest
           variant="header"
           className="hidden min-w-0 flex-1 md:block"
           onNavigated={() => setMenuOpen(false)}
         />
 
+        <LocationChip className="hidden max-w-sm shrink md:block" />
+
         <nav className="ml-auto flex shrink-0 items-center gap-0.5 text-sm sm:gap-1">
-          <Link
-            href={ROUTES.consoleDashboard}
-            className="hidden rounded-xl px-3 py-2 hover:bg-white/10 sm:block"
-          >
-            Console
-          </Link>
+          {showConsole && (
+            <Link
+              href={ROUTES.consoleDashboard}
+              className="hidden rounded-xl px-3 py-2 hover:bg-white/10 sm:block"
+            >
+              Console
+            </Link>
+          )}
           <NotificationBell />
           <Link
             href="/cart"
@@ -93,20 +96,14 @@ export function Header() {
         </nav>
       </div>
 
-      <div className="page-shell flex gap-2 pb-3 md:hidden">
-        <LocationChip className="max-w-[9.5rem] shrink-0 px-2 py-1.5" />
+      <div className="page-shell space-y-2 pb-3 md:hidden">
+        <LocationChip className="w-full" />
         <SearchSuggest
           variant="header"
-          className="min-w-0 flex-1"
+          className="min-w-0"
           onNavigated={() => setMenuOpen(false)}
         />
       </div>
-
-      {state.settings.showDemoRoleSwitcher && displayUser && (
-        <div className="bg-white/5 px-4 py-1 text-center text-[11px] text-white/60">
-          Demo preview is on in admin settings
-        </div>
-      )}
 
       {menuRender && (
         <div className="fixed inset-0 z-50 flex">
@@ -149,13 +146,15 @@ export function Header() {
                   <Link href="/account/tickets" onClick={() => setMenuOpen(false)} className="block rounded-lg px-1 py-2.5">
                     Support
                   </Link>
-                  <Link
-                    href={ROUTES.consoleDashboard}
-                    onClick={() => setMenuOpen(false)}
-                    className="block rounded-lg px-1 py-2.5"
-                  >
-                    Console
-                  </Link>
+                  {showConsole && (
+                    <Link
+                      href={ROUTES.consoleDashboard}
+                      onClick={() => setMenuOpen(false)}
+                      className="block rounded-lg px-1 py-2.5"
+                    >
+                      Console
+                    </Link>
+                  )}
                 </>
               ) : (
                 <>
@@ -169,13 +168,6 @@ export function Header() {
                   >
                     Sign in
                   </button>
-                  <Link
-                    href={ROUTES.consoleDashboard}
-                    onClick={() => setMenuOpen(false)}
-                    className="block rounded-lg px-1 py-2.5"
-                  >
-                    Console
-                  </Link>
                 </>
               )}
               <Link href="/sell" onClick={() => setMenuOpen(false)} className="block rounded-lg px-1 py-2.5">

@@ -4,9 +4,10 @@ import { ShopOpsSettings } from "@/components/seller/ShopOpsSettings";
 import { StatCard } from "@/components/ui/StatCard";
 import { useApp } from "@/context/AppContext";
 import { fetchMerchantRequests } from "@/lib/api";
-import { formatInr } from "@/lib/format";
+import { formatInr, titleCase } from "@/lib/format";
 import { isShopOpenNow, shopHoursLabel } from "@/lib/shopOps";
 import { sellerAnalytics } from "@/services/analytics";
+import { sellerAwaitingApproval } from "@/console/nav";
 import { sellerConsolePath, storefrontUrl } from "@/lib/routes";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -52,11 +53,33 @@ export function SellerDashboard() {
   }, [user]);
 
   if (!user) return null;
+  const awaiting = sellerAwaitingApproval(user, state.shops, state.applications);
+  const application = state.applications.find((a) => a.userId === user.id);
+  if (awaiting) {
+    return (
+      <div className="animate-fade-up">
+        <h1 className="text-2xl font-semibold">Seller dashboard</h1>
+        <p className="mt-1 text-sm text-stone-500">
+          Your account is waiting for admin approval. Dashboard and Issues are available until then.
+        </p>
+        <div className="mt-6 rounded-2xl bg-white p-5">
+          <p className="font-semibold">{application?.businessName ?? "Seller application"}</p>
+          <p className="mt-1 text-sm text-stone-500">
+            Status: {application ? titleCase(application.status) : "Pending review"}
+          </p>
+          <Link
+            href={sellerConsolePath("/tickets")}
+            className="mt-4 inline-block rounded-full bg-carrot px-4 py-2 text-sm font-semibold text-white"
+          >
+            Issues
+          </Link>
+        </div>
+      </div>
+    );
+  }
   const myShops = state.shops.filter(
     (s) => s.ownerUserId === user.id || s.id === user.shopId,
   );
-  const application = state.applications.find((a) => a.userId === user.id);
-
   return (
     <div className="animate-fade-up">
       <h1 className="text-2xl font-semibold">Seller dashboard</h1>

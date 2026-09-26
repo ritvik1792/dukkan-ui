@@ -3,7 +3,14 @@
 import { ListingForm, type ListingFormValue } from "@/components/seller/ListingForm";
 import { useApp } from "@/context/AppContext";
 import { findCatalogByName } from "@/services/catalog";
-import { mapCatalogProduct, mapListing, upsertCatalogRequest, upsertListingRequest } from "@/lib/api";
+import {
+  createSellerService,
+  mapCatalogProduct,
+  mapListing,
+  upsertCatalogRequest,
+  upsertListingRequest,
+} from "@/lib/api";
+import { isServiceListingCategory, listingGallery, servicePayloadFromListing } from "@/lib/publishListing";
 import { randomBrandHue } from "@/lib/constants";
 import { createId } from "@/lib/ids";
 import { useMotionRouter } from "@/lib/motion";
@@ -19,6 +26,11 @@ export default function NewProductPage() {
 
   async function save(form: ListingFormValue) {
     if (!shop) return;
+    if (isServiceListingCategory(state.categories, form.categoryId)) {
+      await createSellerService(servicePayloadFromListing(form), shop.id);
+      router.push(sellerConsolePath("/services"));
+      return;
+    }
     const existing = findCatalogByName(state.catalog, form.name, form.brand || "Unbranded");
     const catalogPayload = {
       name: form.name,
@@ -29,7 +41,7 @@ export default function NewProductPage() {
       imageLabel: form.name.slice(0, 8),
       imageHue: existing?.imageHue ?? randomBrandHue(),
       imageUrl: form.mainImage || undefined,
-      galleryUrls: form.gallery,
+      galleryUrls: listingGallery(form),
     };
     try {
       const product = mapCatalogProduct(

@@ -3,7 +3,7 @@
 import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { useApp } from "@/context/AppContext";
 import { categories } from "@/data/seed";
-import { ROUTES } from "@/lib/routes";
+import { isStaffRole, ROUTES } from "@/lib/routes";
 import Link from "next/link";
 import { useMotionRouter } from "@/lib/motion";
 import { useEffect, useRef, useState } from "react";
@@ -121,13 +121,6 @@ export function AccountMenu() {
           >
             Sign in
           </button>
-          <Link
-            href={ROUTES.consoleDashboard}
-            onClick={close}
-            className="mt-3 block w-full text-center text-[13px] text-stone-800 hover:text-carrot hover:underline"
-          >
-            Console
-          </Link>
         </div>
       )}
 
@@ -231,9 +224,11 @@ export function AccountMenu() {
                   Sell on Pink Carrot
                 </MenuLink>
               )}
-              <MenuLink href={ROUTES.consoleDashboard} onClick={close}>
-                Console
-              </MenuLink>
+              {isStaffRole(user.role) && (
+                <MenuLink href={ROUTES.consoleDashboard} onClick={close}>
+                  Console
+                </MenuLink>
+              )}
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { ShopOpsSettings } from "@/components/seller/ShopOpsSettings";
 import { Field, TextInput } from "@/components/ui/Field";
+import { Toggle } from "@/components/ui/Toggle";
 import { useApp } from "@/context/AppContext";
 import { mapShop, patchShopRequest } from "@/lib/api";
 import type { Shop } from "@/lib/types";
@@ -45,38 +46,38 @@ export default function SellerSettingsPage() {
       <section className="rounded-2xl bg-white p-5">
         <h2 className="font-semibold">Delivery fees</h2>
         <p className="text-sm text-stone-500">
-          Choose whether Dukkan partners deliver, your shop delivers, fees, and minimum order.
+          {state.settings.quickDeliveryEnabled
+            ? "Choose whether Dukkan partners deliver, your shop delivers, fees, and minimum order."
+            : "Shop delivery, fees, and minimum order. Quick delivery is off until an admin turns it on."}
         </p>
         <div className="mt-4 space-y-4">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={shop.partnerDeliveryEnabled}
-              onChange={(e) => persist({ ...shop, partnerDeliveryEnabled: e.target.checked })}
-            />
-            Delivery by Dukkan partner
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={shop.shopDeliveryEnabled}
-              onChange={(e) => persist({ ...shop, shopDeliveryEnabled: e.target.checked })}
-            />
-            Delivery by this dukkan
-          </label>
-          <Field label="Partner delivery fee ₹">
-            <TextInput
-              type="number"
-              value={shop.partnerDeliveryFee}
-              onBlur={(e) => persist({ ...shop, partnerDeliveryFee: Number(e.target.value) })}
-              onChange={(e) =>
-                dispatch({
-                  type: "upsertShop",
-                  shop: { ...shop, partnerDeliveryFee: Number(e.target.value) },
-                })
-              }
-            />
-          </Field>
+          {state.settings.quickDeliveryEnabled && (
+            <>
+              <Toggle
+                label="Delivery by Dukkan partner"
+                checked={shop.partnerDeliveryEnabled}
+                onChange={(checked) => persist({ ...shop, partnerDeliveryEnabled: checked })}
+              />
+              <Field label="Partner delivery fee ₹">
+                <TextInput
+                  type="number"
+                  value={shop.partnerDeliveryFee}
+                  onBlur={(e) => persist({ ...shop, partnerDeliveryFee: Number(e.target.value) })}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "upsertShop",
+                      shop: { ...shop, partnerDeliveryFee: Number(e.target.value) },
+                    })
+                  }
+                />
+              </Field>
+            </>
+          )}
+          <Toggle
+            label="Delivery by this dukkan"
+            checked={shop.shopDeliveryEnabled}
+            onChange={(checked) => persist({ ...shop, shopDeliveryEnabled: checked })}
+          />
           <Field label="Shop delivery fee ₹">
             <TextInput
               type="number"

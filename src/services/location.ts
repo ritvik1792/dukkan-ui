@@ -158,6 +158,128 @@ function shortAddress(formatted: string | undefined) {
     .join(", ");
 }
 
+export type PlaceSuggestion = {
+  id: string;
+  label: string;
+  area?: string;
+  coordinates: Coordinates;
+};
+
+/** Place search. Titles use the matched place name, not the city it sits in. */
+export async function searchPlaces(query: string, bias?: Coordinates): Promise<PlaceSuggestion[]> {
+  const text = query.trim();
+  if (text.length < 2) return [];
+  const params = new URLSearchParams({
+    q: text,
+    format: "jsonv2",
+    addressdetails: "1",
+    limit: "8",
+    countrycodes: "in",
+  });
+  if (bias) {
+    const pad = 0.6;
+    params.set(
+      "viewbox",
+      `${bias.lng - pad},${bias.lat + pad},${bias.lng + pad},${bias.lat - pad}`,
+    );
+  }
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error("Place search failed");
+  const raw = (await res.json()) as Array<{
+    place_id?: number;
+    name?: string;
+    lat?: string;
+    lon?: string;
+    display_name?: string;
+    address?: Record<string, string | undefined>;
+  }>;
+  const needle = text.toLowerCase();
+  const distinctive = needle
+    .split(/\s+/)
+    .filter((word) => word.length >= 3 && !GENERIC_PLACE_WORDS.has(word));
+  const mustMatch = distinctive[0] ?? needle;
+
+  const hits = raw.flatMap((item) => {
+    const lat = Number(item.lat);
+    const lng = Number(item.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+    const address = item.address ?? {};
+    const displayParts = (item.display_name ?? "")
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const label =
+      clean(item.name) ||
+      displayParts[0] ||
+      firstText(address.suburb, address.neighbourhood, address.road) ||
+      "Pinned place";
+    const city = firstText(
+      address.city,
+      address.town,
+      address.state_district,
+      address.village,
+      address.state,
+    );
+    const state = clean(address.state);
+    const area = [city, state && state !== city ? state : undefined]
+      .filter((part) => part && part.toLowerCase() !== label.toLowerCase())
+      .join(", ");
+    const haystack = `${label} ${area} ${item.display_name ?? ""}`.toLowerCase();
+    if (mustMatch && !haystack.includes(mustMatch)) return [];
+    return [
+      {
+        id: `place-${item.place_id ?? `${lat},${lng}`}`,
+        label,
+        area: area || undefined,
+        coordinates: { lat, lng },
+      },
+    ];
+  });
+
+  const seen = new Set<string>();
+  return hits
+    .sort((a, b) => rankPlace(b, needle, bias) - rankPlace(a, needle, bias))
+    .filter((hit) => {
+      const key = `${hit.label.toLowerCase()}|${(hit.area ?? "").toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 6);
+}
+
+const GENERIC_PLACE_WORDS = new Set(["nagar", "colony", "road", "marg", "street", "sector", "block"]);
+
+function rankPlace(hit: PlaceSuggestion, needle: string, bias?: Coordinates) {
+  const label = hit.label.toLowerCase();
+  let score = 0;
+  if (label === needle) score += 50;
+  else if (label.startsWith(needle)) score += 30;
+  else if (label.includes(needle)) score += 15;
+  if (bias) {
+    const dLat = hit.coordinates.lat - bias.lat;
+    const dLng = hit.coordinates.lng - bias.lng;
+    score -= Math.hypot(dLat, dLng) * 8;
+  }
+  return score;
+}
+
+export function manualLocation(input: {
+  coordinates: Coordinates;
+  label: string;
+  area?: string;
+}): UserLocation {
+  return {
+    coordinates: input.coordinates,
+    label: input.label,
+    area: input.area,
+    source: "manual",
+    capturedAt: new Date().toISOString(),
+  };
+}
+
 export function areaLocation(neighborhood: Neighborhood): UserLocation {
   return {
     coordinates: neighborhood.coordinates,

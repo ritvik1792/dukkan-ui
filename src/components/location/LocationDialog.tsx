@@ -1,9 +1,17 @@
 "use client";
 
+import { LocationMap } from "@/components/location/LocationMap";
 import { useApp } from "@/context/AppContext";
 import { afterPaint } from "@/lib/drawer";
 import { geoErrorMessage, readGeoPermission, type GeoPermission } from "@/lib/geolocation";
-import { locationSummary } from "@/services/location";
+import type { Coordinates } from "@/lib/types";
+import {
+  locationSummary,
+  manualLocation,
+  resolveGpsLocation,
+  searchPlaces,
+  type PlaceSuggestion,
+} from "@/services/location";
 import { usePathname } from "next/navigation";
 import {
   createContext,
@@ -61,12 +69,19 @@ function LocationDialog({
   onClose: () => void;
   firstRun: boolean;
 }) {
-  const { location, shopRadiusKm, detectLocation, setAreaLocation, state } = useApp();
+  const { location, shopRadiusKm, detectLocation, setAreaLocation, state, dispatch } = useApp();
   const neighborhoods = state.neighborhoods;
   const [shown, setShown] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [permission, setPermission] = useState<GeoPermission>("prompt");
+  const [mode, setMode] = useState<"search" | "map">("search");
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [pin, setPin] = useState<Coordinates | null>(location?.coordinates ?? null);
+  const [pinLabel, setPinLabel] = useState("");
+  const [pinBusy, setPinBusy] = useState(false);
 
   useEffect(() => {
     const cancel = afterPaint(() => setShown(true));
@@ -109,6 +124,56 @@ function LocationDialog({
     setAreaLocation(id);
     onClose();
   }
+
+  function chooseSuggestion(place: PlaceSuggestion) {
+    dispatch({ type: "setLocation", location: manualLocation(place) });
+    onClose();
+  }
+
+  async function choosePin() {
+    if (!pin) return;
+    setPinBusy(true);
+    setError("");
+    try {
+      const next = await resolveGpsLocation({ coordinates: pin }, neighborhoods);
+      dispatch({
+        type: "setLocation",
+        location: { ...next, source: "manual" },
+      });
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not use that pin");
+    } finally {
+      setPinBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    const text = query.trim();
+    if (mode !== "search" || text.length < 2) {
+      setSuggestions([]);
+      setSearching(false);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const timer = window.setTimeout(() => {
+      searchPlaces(text, location?.coordinates)
+        .then((hits) => {
+          if (!cancelled) setSuggestions(hits);
+        })
+        .catch(() => {
+          if (!cancelled) setSuggestions([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false);
+        });
+    }, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [query, mode, location?.coordinates]);
 
   const blocked = permission === "denied" || permission === "unsupported";
 
@@ -184,36 +249,127 @@ function LocationDialog({
               </p>
             )}
 
-            <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-wider text-stone-400">
-              <span className="h-px flex-1 bg-stone-300" />
-              or pick an area
-              <span className="h-px flex-1 bg-stone-300" />
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMode("search")}
+                className={`rounded-full px-3 py-2 text-sm font-semibold ${
+                  mode === "search" ? "bg-carrot text-white" : "bg-white text-ink"
+                }`}
+              >
+                Search
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("map")}
+                className={`rounded-full px-3 py-2 text-sm font-semibold ${
+                  mode === "map" ? "bg-carrot text-white" : "bg-white text-ink"
+                }`}
+              >
+                Select on map
+              </button>
             </div>
 
-            <ul className="space-y-2">
-              {neighborhoods.map((item) => {
-                const active =
-                  location?.source === "area" && location.label === item.name;
-                return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => pickArea(item.id)}
-                      className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors duration-200 ${
-                        active
-                          ? "border-carrot/40 bg-blush"
-                          : "border-border bg-white hover:border-carrot/30"
-                      }`}
-                    >
-                      <span>
-                        <span className="font-medium text-ink">{item.name}</span>
-                        <span className="block text-xs text-stone-500">{item.area}</span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            {mode === "search" ? (
+              <>
+                <label className="mt-4 block text-sm">
+                  <span className="sr-only">Search location</span>
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search area, street, or place"
+                    className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-carrot"
+                    autoComplete="off"
+                  />
+                </label>
+                {searching && (
+                  <p className="mt-2 text-center text-xs text-stone-500">Looking up places…</p>
+                )}
+                {query.trim().length >= 2 && suggestions.length > 0 && (
+                  <ul className="mt-2 space-y-2">
+                    {suggestions.map((place) => (
+                      <li key={place.id}>
+                        <button
+                          type="button"
+                          onClick={() => chooseSuggestion(place)}
+                          className="flex w-full flex-col rounded-xl border border-border bg-white px-3 py-2.5 text-left text-sm hover:border-carrot/30"
+                        >
+                          <span className="font-medium text-ink">{place.label}</span>
+                          {place.area && (
+                            <span className="text-xs text-stone-500">{place.area}</span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {query.trim().length >= 2 && !searching && suggestions.length === 0 && (
+                  <p className="mt-2 text-center text-xs text-stone-500">
+                    No places match “{query.trim()}”.
+                  </p>
+                )}
+                {query.trim().length < 2 && (
+                  <>
+                    <div className="my-4 flex items-center gap-3 text-[11px] uppercase tracking-wider text-stone-400">
+                      <span className="h-px flex-1 bg-stone-300" />
+                      or pick an area
+                      <span className="h-px flex-1 bg-stone-300" />
+                    </div>
+                    <ul className="space-y-2">
+                      {neighborhoods.map((item) => {
+                        const active = location?.source === "area" && location.label === item.name;
+                        return (
+                          <li key={item.id}>
+                            <button
+                              type="button"
+                              onClick={() => pickArea(item.id)}
+                              className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors duration-200 ${
+                                active
+                                  ? "border-carrot/40 bg-blush"
+                                  : "border-border bg-white hover:border-carrot/30"
+                              }`}
+                            >
+                              <span>
+                                <span className="font-medium text-ink">{item.name}</span>
+                                <span className="block text-xs text-stone-500">{item.area}</span>
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
+                )}
+              </>
+            ) : (
+              <div className="mt-4">
+                <p className="mb-2 text-center text-xs text-stone-500">
+                  Tap the map to drop a pin.
+                </p>
+                <LocationMap
+                  center={location?.coordinates}
+                  pin={pin}
+                  onPick={(coordinates) => {
+                    setPin(coordinates);
+                    setPinLabel("Finding that place…");
+                    resolveGpsLocation({ coordinates }, neighborhoods)
+                      .then((next) => setPinLabel(locationSummary(next)))
+                      .catch(() => setPinLabel("Pinned location"));
+                  }}
+                />
+                {pinLabel && (
+                  <p className="mt-2 text-center text-sm text-ink">{pinLabel}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={choosePin}
+                  disabled={!pin || pinBusy}
+                  className="btn-primary btn-block mt-3"
+                >
+                  {pinBusy ? "Saving…" : "Use this pin"}
+                </button>
+              </div>
+            )}
 
             <button
               type="button"

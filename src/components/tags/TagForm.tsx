@@ -2,14 +2,7 @@
 
 import { Field, Select, TextInput } from "@/components/ui/Field";
 import { useApp } from "@/context/AppContext";
-import { CARD_NETWORKS, COUPON_PAY_METHODS } from "@/lib/tags";
-import type {
-  CardBrand,
-  CouponPayMethod,
-  DiscountType,
-  PromoTag,
-  TagKind,
-} from "@/lib/types";
+import type { DiscountType, PromoTag, TagKind } from "@/lib/types";
 import { useMemo, useState } from "react";
 
 export function blankTagForm(kind: TagKind = "sale"): TagFormValue {
@@ -24,9 +17,6 @@ export function blankTagForm(kind: TagKind = "sale"): TagFormValue {
     couponMax: 80,
     discountType: "percent",
     discountValue: 10,
-    paymentMethods: ["upi"],
-    cardNetworks: ["visa", "mastercard", "rupay"],
-    cardBanks: "",
     listingIds: [],
   };
 }
@@ -42,9 +32,6 @@ export type TagFormValue = {
   couponMax: number;
   discountType: DiscountType;
   discountValue: number;
-  paymentMethods: CouponPayMethod[];
-  cardNetworks: CardBrand[];
-  cardBanks: string;
   listingIds: string[];
 };
 
@@ -60,9 +47,6 @@ export function tagToForm(tag: PromoTag): TagFormValue {
     couponMax: tag.coupon?.maxDiscount ?? 80,
     discountType: tag.coupon?.discountType ?? "percent",
     discountValue: tag.coupon?.discountValue ?? 10,
-    paymentMethods: tag.coupon?.paymentMethods ?? ["upi"],
-    cardNetworks: tag.coupon?.creditCard?.networks ?? ["visa", "mastercard", "rupay"],
-    cardBanks: tag.coupon?.creditCard?.banks ?? "",
     listingIds: tag.listingIds,
   };
 }
@@ -91,10 +75,7 @@ export function formToTag(
             maxDiscount: Math.max(0, form.couponMax),
             discountType: form.discountType,
             discountValue: Math.max(0, form.discountValue),
-            paymentMethods: form.paymentMethods,
-            creditCard: form.paymentMethods.includes("credit_card")
-              ? { networks: form.cardNetworks, banks: form.cardBanks.trim() }
-              : undefined,
+            paymentMethods: [],
           }
         : undefined,
     listingIds: form.listingIds,
@@ -141,24 +122,6 @@ export function TagForm({
       listingIds: current.listingIds.includes(id)
         ? current.listingIds.filter((item) => item !== id)
         : [...current.listingIds, id],
-    }));
-  }
-
-  function togglePay(method: CouponPayMethod) {
-    setForm((current) => ({
-      ...current,
-      paymentMethods: current.paymentMethods.includes(method)
-        ? current.paymentMethods.filter((item) => item !== method)
-        : [...current.paymentMethods, method],
-    }));
-  }
-
-  function toggleNetwork(network: CardBrand) {
-    setForm((current) => ({
-      ...current,
-      cardNetworks: current.cardNetworks.includes(network)
-        ? current.cardNetworks.filter((item) => item !== network)
-        : [...current.cardNetworks, network],
     }));
   }
 
@@ -279,69 +242,6 @@ export function TagForm({
               />
             </Field>
           </div>
-          <div>
-            <p className="text-sm font-medium">Payment methods</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {COUPON_PAY_METHODS.map((method) => (
-                <label
-                  key={method.id}
-                  className={`rounded-full border px-3 py-1 text-xs ${
-                    form.paymentMethods.includes(method.id)
-                      ? "border-carrot/40 bg-blush"
-                      : "border-border bg-white"
-                  } ${lockRules ? "opacity-70" : "cursor-pointer"}`}
-                >
-                  <input
-                    type="checkbox"
-                    className="sr-only"
-                    disabled={lockRules}
-                    checked={form.paymentMethods.includes(method.id)}
-                    onChange={() => togglePay(method.id)}
-                  />
-                  {method.label}
-                </label>
-              ))}
-            </div>
-          </div>
-          {form.paymentMethods.includes("credit_card") && (
-            <div className="rounded-2xl border border-border p-3">
-              <p className="text-sm font-semibold">Credit card rules</p>
-              <p className="mt-1 text-xs text-stone-500">
-                Restrict this coupon to card networks and issuing banks.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {CARD_NETWORKS.map((network) => (
-                  <label
-                    key={network.id}
-                    className={`rounded-full border px-3 py-1 text-xs ${
-                      form.cardNetworks.includes(network.id)
-                        ? "border-carrot/40 bg-blush"
-                        : "border-border bg-white"
-                    } ${lockRules ? "opacity-70" : "cursor-pointer"}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      disabled={lockRules}
-                      checked={form.cardNetworks.includes(network.id)}
-                      onChange={() => toggleNetwork(network.id)}
-                    />
-                    {network.label}
-                  </label>
-                ))}
-              </div>
-              <div className="mt-3">
-                <Field label="Issuing banks" hint="optional, comma separated">
-                  <TextInput
-                    disabled={lockRules}
-                    value={form.cardBanks}
-                    onChange={(event) => set("cardBanks", event.target.value)}
-                    placeholder="HDFC, SBI, ICICI"
-                  />
-                </Field>
-              </div>
-            </div>
-          )}
         </div>
       )}
 

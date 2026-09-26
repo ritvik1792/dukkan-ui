@@ -57,13 +57,25 @@ function StarMark() {
   );
 }
 
-export function ShopCard({ shop }: { shop: NearbyShop }) {
+export function ShopCard({
+  shop,
+  layout = "rail",
+}: {
+  shop: NearbyShop;
+  layout?: "rail" | "grid";
+}) {
   const { selectShop, state } = useApp();
   const categoryNames = shop.categoryIds
     .map((id) => state.categories.find((c) => c.id === id)?.name)
     .filter(Boolean)
     .slice(0, 2);
-  const promos = shopPromoLines(shop, state.listings, state.coupons, state.promoTags);
+  const promos = shopPromoLines(
+    shop,
+    state.listings,
+    state.coupons,
+    state.promoTags,
+    state.settings.quickDeliveryEnabled,
+  );
   const headline = promos[0];
   const more = Math.max(0, promos.length - 1);
 
@@ -71,7 +83,9 @@ export function ShopCard({ shop }: { shop: NearbyShop }) {
     <Link
       href={`${ROUTES.shopDashboard}?id=${encodeURIComponent(shop.id)}`}
       onClick={() => selectShop(shop.id)}
-      className="flex min-w-[16.5rem] flex-[1_0_18rem] snap-start flex-col overflow-hidden rounded-2xl bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] ring-1 ring-border/80 transition duration-300 ease-out hover:-translate-y-1 hover:shadow-lg sm:flex-[1_0_19rem]"
+      className={`flex snap-start flex-col overflow-hidden rounded-2xl bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] ring-1 ring-border/80 transition duration-300 ease-out hover:-translate-y-1 hover:shadow-lg ${
+        layout === "grid" ? "w-full" : "min-w-[16.5rem] flex-[1_0_18rem] sm:flex-[1_0_19rem]"
+      }`}
     >
       <div className="relative">
         <ShopArt shop={shop} />

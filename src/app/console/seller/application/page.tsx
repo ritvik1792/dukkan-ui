@@ -1,9 +1,8 @@
 "use client";
 
-import { StatusPill } from "@/components/ui/StatCard";
+import { ApplicationTracker } from "@/components/seller/ApplicationTracker";
 import { sellerShouldShowApplication } from "@/console/nav";
 import { useApp } from "@/context/AppContext";
-import { formatDate, titleCase } from "@/lib/format";
 import { useMotionRouter } from "@/lib/motion";
 import { ROUTES, storefrontUrl } from "@/lib/routes";
 import Link from "next/link";
@@ -39,32 +38,16 @@ export default function SellerApplicationPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Application tracker</h1>
-      <ul className="mt-6 space-y-4">
+      <h1 className="text-2xl font-semibold">Application</h1>
+      <p className="mt-1 text-sm text-stone-500">
+        Open a step to see what you submitted, what ops asked you to change, and the live status.
+        The submission id is how you and admin track the same request.
+      </p>
+      <div className="mt-6 space-y-4">
         {apps.map((app) => (
-          <li key={app.id} className="rounded-2xl bg-white p-5">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="font-semibold">{app.businessName}</p>
-                <p className="text-sm text-stone-500">
-                  {app.ownerName} · {app.email}
-                </p>
-              </div>
-              <StatusPill>{titleCase(app.status)}</StatusPill>
-            </div>
-            <p className="mt-3 text-sm">{app.address}</p>
-            <p className="mt-1 text-xs text-stone-500">
-              Submitted {formatDate(app.submittedAt)}
-            </p>
-            {app.notes && <p className="mt-2 text-sm text-stone-600">{app.notes}</p>}
-            <ol className="mt-4 space-y-1 text-sm text-stone-600">
-              <li>1. Submitted</li>
-              <li>2. Ops review {app.status === "under_review" || app.status === "approved" ? "✓" : ""}</li>
-              <li>3. Dukkan live {app.status === "approved" ? "✓" : ""}</li>
-            </ol>
-          </li>
+          <ApplicationTracker key={app.id} application={app} mode="seller" />
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

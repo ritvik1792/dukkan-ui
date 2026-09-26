@@ -32,12 +32,14 @@ import {
 import {
   ApiError,
   fetchHealth,
+  fetchSettings,
   getToken,
   loadStorefront,
   loginRequest,
   mapApiUser,
   setToken,
   signupRequest,
+  type SignupInput,
 } from "@/lib/api";
 import { DEFAULT_DELIVERY_RADIUS_KM, STORAGE_KEY } from "@/lib/constants";
 import { requestGeoFix } from "@/lib/geolocation";
@@ -108,6 +110,8 @@ export type AppState = {
   /** Where "nearby" is measured from. Null until the shopper picks or shares one. */
   location: UserLocation | null;
   locationPromptSeen: boolean;
+  /** Shopper’s chosen look-around distance. Null uses their profile, then the platform default. */
+  searchRadiusKm: number | null;
   users: User[];
   shops: Shop[];
   catalog: CatalogProduct[];
@@ -144,6 +148,7 @@ type Action =
   | { type: "setLocation"; location: UserLocation }
   | { type: "clearLocation" }
   | { type: "dismissLocationPrompt" }
+  | { type: "setSearchRadius"; km: number }
   | { type: "setSettings"; settings: PlatformSettings }
   | { type: "addToCart"; item: CartItem }
   | { type: "setQty"; listingId: string; quantity: number }
@@ -177,6 +182,7 @@ type Action =
   | { type: "setTicketHidden"; ticketId: string; hidden: boolean }
   | { type: "setApplicationStatus"; applicationId: string; status: SellerApplication["status"] }
   | { type: "addApplication"; application: SellerApplication }
+  | { type: "upsertApplication"; application: SellerApplication }
   | { type: "addTicket"; ticket: Ticket }
   | { type: "upsertTicket"; ticket: Ticket }
   | { type: "upsertOrder"; order: Order }
@@ -238,6 +244,7 @@ const initialState: AppState = {
   neighborhoodId: "cp",
   location: null,
   locationPromptSeen: false,
+  searchRadiusKm: null,
   users: seedUsers,
   shops: seedShops,
   catalog: seedCatalog,
@@ -272,6 +279,7 @@ function persistable(state: AppState) {
     neighborhoodId: state.neighborhoodId,
     location: state.location,
     locationPromptSeen: state.locationPromptSeen,
+    searchRadiusKm: state.searchRadiusKm,
     users: state.users,
     shops: state.shops,
     catalog: state.catalog,
@@ -342,6 +350,18 @@ function reducer(state: AppState, action: Action): AppState {
     }
     case "dismissLocationPrompt":
       return { ...state, locationPromptSeen: true };
+    case "setSearchRadius": {
+      const searchRadiusKm = clampShopRadiusKm(action.km);
+      return {
+        ...state,
+        searchRadiusKm,
+        users: state.sessionUserId
+          ? state.users.map((user) =>
+              user.id === state.sessionUserId ? { ...user, shopRadiusKm: searchRadiusKm } : user,
+            )
+          : state.users,
+      };
+    }
     case "setSettings":
       return { ...state, settings: action.settings };
     case "addToCart": {
@@ -594,6 +614,17 @@ function reducer(state: AppState, action: Action): AppState {
       };
     case "addApplication":
       return { ...state, applications: [action.application, ...state.applications] };
+    case "upsertApplication": {
+      const exists = state.applications.some((item) => item.id === action.application.id);
+      return {
+        ...state,
+        applications: exists
+          ? state.applications.map((item) =>
+              item.id === action.application.id ? action.application : item,
+            )
+          : [action.application, ...state.applications],
+      };
+    }
     case "setApplicationStatus":
       return {
         ...state,
@@ -985,15 +1016,9 @@ type AppContextValue = {
   listingById: (id: string) => Listing | undefined;
   catalogById: (id: string) => CatalogProduct | undefined;
   login: (email: string, password: string) => Promise<User | null>;
-  signup: (input: {
-    name: string;
-    email: string;
-    phone: string;
-    password: string;
-  }) => Promise<User>;
+  signup: (input: SignupInput) => Promise<User>;
   loginWithPhone: (phone: string, name?: string) => User;
   logout: () => void;
-  switchRole: (role: Role) => void;
   selectShop: (shopId: string) => void;
   selectProduct: (productId: string, preferShopId?: string | null) => void;
   /** Asks the browser for a GPS fix and makes it the active location. Throws `GeoError`. */
@@ -1067,7 +1092,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   });
                 }
               }
-              return [...byId.values()];
+              return [...byId.values()].filter((category) => category.id !== "restaurants");
             })(),
             sessionUserId: parsed.sessionUserId ?? null,
             location: isUsableLocation(parsed.location) ? parsed.location : null,
@@ -1096,20 +1121,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!state.hydrated) return;
     let cancelled = false;
-    if (!getToken()) {
-      fetchHealth()
-        .then((health) => {
-          if (!cancelled) {
-            dispatch({ type: "setApi", status: "online", shopCount: health.shopCount });
-          }
-        })
-        .catch(() => {
-          if (!cancelled) dispatch({ type: "setApi", status: "offline" });
-        });
-      return () => {
-        cancelled = true;
-      };
-    }
     loadStorefront()
       .then((payload) => {
         if (cancelled) return;
@@ -1121,7 +1132,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           advertisements: payload.advertisements,
           settings: { ...defaultSettings, ...payload.settings },
           shopCount: payload.health.shopCount ?? payload.shops.length,
-          categories: payload.categories,
+          categories: payload.categories.filter((category) => category.id !== "restaurants"),
           neighborhoods: payload.neighborhoods,
           partners: payload.partners,
           reviews: payload.reviews,
@@ -1209,7 +1220,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const locationLabel = location ? placeTitle(location) : neighborhood.name;
     const needsLocationPrompt = state.hydrated && !location && !state.locationPromptSeen;
     const shopRadiusKm = clampShopRadiusKm(
-      user?.shopRadiusKm ?? state.settings.deliveryRadiusKm ?? DEFAULT_DELIVERY_RADIUS_KM,
+      state.searchRadiusKm ??
+        user?.shopRadiusKm ??
+        state.settings.deliveryRadiusKm ??
+        DEFAULT_DELIVERY_RADIUS_KM,
     );
     const nearbyShops = shopsInRadius(state.shops, origin, shopRadiusKm);
     const shopById = (id: string) => state.shops.find((s) => s.id === id);
@@ -1222,6 +1236,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       listingById,
       shopById,
       catalogById,
+      quickDeliveryEnabled: state.settings.quickDeliveryEnabled,
     });
     const cartTotal = cartSummary(shipments).total;
 
@@ -1246,12 +1261,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return found ?? null;
       }
     };
-    const signup = async (input: {
-      name: string;
-      email: string;
-      phone: string;
-      password: string;
-    }) => {
+    const signup = async (input: SignupInput) => {
       const res = await signupRequest(input);
       setToken(res.token);
       const user = mapApiUser(res.user, { password: input.password });
@@ -1261,6 +1271,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     const loginWithPhone = (phone: string, name?: string) => {
       const result = loginOrCreateByPhone(state.users, phone, name);
+      if (result.created && state.sessionUserId) {
+        const current = state.users.find((item) => item.id === state.sessionUserId);
+        if (current) return current;
+      }
       if (result.created) dispatch({ type: "upsertUser", user: result.user });
       dispatch({ type: "login", userId: result.user.id });
       return result.user;
@@ -1268,11 +1282,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const logout = () => {
       setToken(null);
       dispatch({ type: "logout" });
-    };
-
-    const switchRole = (role: Role) => {
-      const next = state.users.find((u) => u.role === role);
-      if (next) dispatch({ type: "login", userId: next.id });
     };
 
     const selectShop = (shopId: string) => {
@@ -1327,7 +1336,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       signup,
       loginWithPhone,
       logout,
-      switchRole,
       selectShop,
       selectProduct,
       detectLocation,
@@ -1391,7 +1399,8 @@ export function useUniqueOffers(query?: string, categoryId?: string) {
         shops: state.shops,
         query,
         categoryId,
+        quickDeliveryEnabled: state.settings.quickDeliveryEnabled,
       }),
-    [state.catalog, state.listings, state.shops, nearbyShops, query, categoryId],
+    [state.catalog, state.listings, state.shops, state.settings.quickDeliveryEnabled, nearbyShops, query, categoryId],
   );
 }

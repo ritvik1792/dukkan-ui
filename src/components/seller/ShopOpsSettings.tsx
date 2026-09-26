@@ -1,6 +1,7 @@
 "use client";
 
 import { Field, TextInput } from "@/components/ui/Field";
+import { Toggle } from "@/components/ui/Toggle";
 import { useApp } from "@/context/AppContext";
 import { mapShop, patchShopRequest } from "@/lib/api";
 import {
@@ -113,15 +114,12 @@ export function ShopOpsSettings({ shop, compact = false }: { shop: Shop; compact
         <p className="text-sm text-stone-500">
           Alerts pop up when you are signed in. If you are signed out, they wait in the bell.
         </p>
-        <div className="mt-4 space-y-2 text-sm">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={shop.notificationsEnabled !== false}
-              onChange={(event) => patch({ notificationsEnabled: event.target.checked })}
-            />
-            Notifications enabled
-          </label>
+        <div className="mt-4 space-y-3">
+          <Toggle
+            label="Notifications"
+            checked={shop.notificationsEnabled !== false}
+            onChange={(checked) => patch({ notificationsEnabled: checked })}
+          />
           {(
             [
               ["orders", "New orders"],
@@ -131,14 +129,12 @@ export function ShopOpsSettings({ shop, compact = false }: { shop: Shop; compact
               ["stockConfirmation", "Stock confirmation requests"],
             ] as const
           ).map(([key, label]) => (
-            <label key={key} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={prefs[key]}
-                onChange={(event) => patchPrefs({ [key]: event.target.checked })}
-              />
-              {label}
-            </label>
+            <Toggle
+              key={key}
+              label={label}
+              checked={prefs[key]}
+              onChange={(checked) => patchPrefs({ [key]: checked })}
+            />
           ))}
         </div>
 
@@ -154,18 +150,14 @@ export function ShopOpsSettings({ shop, compact = false }: { shop: Shop; compact
                 key={step.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-cream px-3 py-2.5"
               >
-                <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="mt-1"
+                <div className="min-w-0 flex-1">
+                  <Toggle
+                    label={step.label}
+                    hint={step.hint}
                     checked={row.enabled}
-                    onChange={(event) => patchSla(step.id, { enabled: event.target.checked })}
+                    onChange={(checked) => patchSla(step.id, { enabled: checked })}
                   />
-                  <span>
-                    <span className="font-medium">{step.label}</span>
-                    <span className="block text-xs text-stone-500">{step.hint}</span>
-                  </span>
-                </label>
+                </div>
                 <label className="flex items-center gap-2 text-xs text-stone-500">
                   After
                   <TextInput

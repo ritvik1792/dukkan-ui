@@ -3,15 +3,15 @@
 import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { useApp } from "@/context/AppContext";
 import { BRAND } from "@/lib/constants";
-import { ROUTES } from "@/lib/routes";
+import { isStaffRole, ROUTES } from "@/lib/routes";
 import Link from "next/link";
 
 export function Footer() {
-  const { state, isAuthenticated } = useApp();
+  const { isAuthenticated, user } = useApp();
   const { openAuth } = useAuthDialog();
   return (
     <footer className="site-footer mt-auto border-t border-border bg-cream">
-      <div className="page-shell grid gap-8 py-10 text-sm text-muted md:grid-cols-4">
+      <div className="page-shell grid gap-8 py-10 text-sm text-muted md:grid-cols-3">
         <div>
           <p className="text-base font-semibold text-ink">{BRAND.name}</p>
           <p className="mt-2 max-w-xs">
@@ -19,8 +19,8 @@ export function Footer() {
             delivery when you need it. Change how far to look in{" "}
             <Link href="/account" className="underline">
               Profile
-            </Link>{" "}
-            (ops default {state.settings.deliveryRadiusKm} km).
+            </Link>
+            .
           </p>
         </div>
         <div>
@@ -63,26 +63,14 @@ export function Footer() {
                 Join as a provider
               </Link>
             </li>
-            <li>
-              <Link href={ROUTES.consoleDashboard} className="hover:text-ink">
-                Provider console
-              </Link>
-            </li>
-          </ul>
-        </div>
-        <div>
-          <p className="font-semibold text-ink">API</p>
-          <p className="mt-2">
-            {state.apiStatus === "online" && (
-              <>
-                Connected to Spring Boot / Postgres
-                {state.apiShopCount != null ? ` · ${state.apiShopCount} shops` : ""}.
-              </>
+            {isStaffRole(user?.role) && (
+              <li>
+                <Link href={ROUTES.consoleDashboard} className="hover:text-ink">
+                  Provider console
+                </Link>
+              </li>
             )}
-            {state.apiStatus === "offline" &&
-              "API offline — showing local catalogue until the backend is reachable."}
-            {state.apiStatus === "connecting" && "Connecting to the API…"}
-          </p>
+          </ul>
         </div>
       </div>
     </footer>

@@ -4,7 +4,6 @@ import { TicketPhotoPicker, useTicketPhotos } from "@/components/tickets/TicketP
 import { TicketThread } from "@/components/tickets/TicketThread";
 import { Field, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { useApp } from "@/context/AppContext";
-import { paymentMethodLabel } from "@/lib/format";
 import { createTicketRequest, mapTicket } from "@/lib/api";
 import { createId } from "@/lib/ids";
 import type { TicketKind } from "@/lib/types";
@@ -117,8 +116,6 @@ export default function AccountTicketsPage() {
               {relatedOrders.map((order) => (
                 <option key={order.id} value={order.id}>
                   {order.id}
-                  {order.paymentRefId ? ` · ${order.paymentRefId}` : ""}
-                  {` · ${paymentMethodLabel(order.paymentMethod)}`}
                 </option>
               ))}
             </Select>

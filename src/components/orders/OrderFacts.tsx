@@ -2,12 +2,8 @@
 
 import { ProductArt } from "@/components/ProductArt";
 import { useApp } from "@/context/AppContext";
-import {
-  formatInr,
-  itemWarranty,
-  paymentMethodLabel,
-  paymentStatusLabel,
-} from "@/lib/format";
+import { formatInr, itemWarranty } from "@/lib/format";
+import { uniqueMediaUrls } from "@/lib/mediaUrls";
 import type { Order } from "@/lib/types";
 import Link from "next/link";
 
@@ -45,28 +41,15 @@ export function OrderIdButton({
 }
 
 export function OrderPaymentFacts({ order }: { order: Order }) {
+  if (!order.discount) return null;
   return (
-    <>
-      <div>
-        <dt className="text-xs text-stone-400">Payment method</dt>
-        <dd>
-          {paymentMethodLabel(order.paymentMethod)} · {paymentStatusLabel(order.paymentStatus)}
-        </dd>
-      </div>
-      <div>
-        <dt className="text-xs text-stone-400">Payment ref</dt>
-        <dd className="font-mono text-xs">{order.paymentRefId ?? "—"}</dd>
-      </div>
-      {order.discount ? (
-        <div>
-          <dt className="text-xs text-stone-400">Promo savings</dt>
-          <dd>
-            {formatInr(order.discount)}
-            {order.couponCode ? ` · ${order.couponCode}` : ""}
-          </dd>
-        </div>
-      ) : null}
-    </>
+    <div>
+      <dt className="text-xs text-stone-400">Promo savings</dt>
+      <dd>
+        {formatInr(order.discount)}
+        {order.couponCode ? ` · ${order.couponCode}` : ""}
+      </dd>
+    </div>
   );
 }
 
@@ -78,9 +61,7 @@ export function OrderLineItems({ order }: { order: Order }) {
       {order.items.map((item) => {
         const product = catalogById(item.catalogProductId);
         const listing = listingById(item.listingId);
-        const photos = [product?.imageUrl, ...(product?.galleryUrls ?? [])].filter(
-          (src): src is string => Boolean(src),
-        );
+        const photos = uniqueMediaUrls(product?.galleryUrls ?? [], product?.imageUrl);
         return (
           <li key={item.listingId} className="flex gap-3">
             <ProductArt

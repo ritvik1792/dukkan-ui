@@ -1,71 +1,91 @@
 "use client";
 
-import { Field, Select } from "@/components/ui/Field";
+import { CategoryMultiSelect, isProductCategory, isServiceCategory } from "@/components/ui/CategoryMultiSelect";
 import { useApp } from "@/context/AppContext";
-import { categories } from "@/data/seed";
+import { mapShop, patchShopRequest } from "@/lib/api";
+import { storefrontUrl } from "@/lib/routes";
+import Link from "next/link";
 import { useState } from "react";
 
 export default function SellerCategoriesPage() {
   const { user, state, dispatch } = useApp();
-  const [addId, setAddId] = useState("snacks");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   if (!user) return null;
   const shop = state.shops.find((s) => s.ownerUserId === user.id) ?? state.shops.find((s) => s.id === user.shopId);
 
-  if (!shop) return <p>No dukkan profile yet.</p>;
+  if (!shop) {
+    return (
+      <p>
+        No dukkan profile yet.{" "}
+        <Link href={storefrontUrl("/sell")} className="underline">
+          Apply to sell
+        </Link>
+      </p>
+    );
+  }
 
-  const available = categories.filter((c) => !shop.categoryIds.includes(c.id));
+  const productCategories = state.categories.filter(isProductCategory);
+  const serviceCategories = state.categories.filter(isServiceCategory);
+  const selected = shop.categoryIds;
+
+  async function persist(nextIds: string[]) {
+    setBusy(true);
+    setError("");
+    dispatch({
+      type: "upsertShop",
+      shop: { ...shop, categoryIds: nextIds },
+    });
+    try {
+      const raw = await patchShopRequest(shop.id, { categoryIds: nextIds });
+      dispatch({ type: "upsertShop", shop: mapShop(raw) });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save categories");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Categories</h1>
-        {available.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Field label="">
-              <Select value={addId} onChange={(e) => setAddId(e.target.value)}>
-                {available.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <button
-              type="button"
-              onClick={() =>
-                dispatch({ type: "addShopCategory", shopId: shop.id, categoryId: addId })
-              }
-              className="rounded-full bg-carrot px-4 py-2 text-sm text-white"
-            >
-              + Add
-            </button>
-          </div>
-        )}
-      </div>
-      <ul className="mt-6 space-y-2">
-        {shop.categoryIds.map((id) => {
-          const c = categories.find((x) => x.id === id);
-          return (
-            <li
-              key={id}
-              className="flex items-center justify-between rounded-2xl bg-white px-4 py-3"
-            >
-              <span>
-                {c?.emoji} {c?.name ?? id}
-              </span>
-              <button
-                type="button"
-                onClick={() =>
-                  dispatch({ type: "removeShopCategory", shopId: shop.id, categoryId: id })
-                }
-                className="text-xs text-stone-500"
-              >
-                Remove
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      <h1 className="text-2xl font-semibold">Categories</h1>
+      <p className="mt-1 text-sm text-stone-500">
+        Multi-select product and service categories. Add services here any time; admin enables
+        bookings after review.
+      </p>
+      {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
+      <section className="mt-6 space-y-3 rounded-2xl bg-white p-5">
+        <h2 className="font-semibold">Products</h2>
+        <CategoryMultiSelect
+          categories={productCategories}
+          selectedIds={selected}
+          onChange={(ids) => {
+            const serviceIds = selected.filter((id) => serviceCategories.some((c) => c.id === id) && !productCategories.some((c) => c.id === id));
+            persist(Array.from(new Set([...ids, ...serviceIds])));
+          }}
+        />
+      </section>
+      <section className="mt-4 space-y-3 rounded-2xl bg-white p-5">
+        <h2 className="font-semibold">Services</h2>
+        <p className="text-sm text-stone-500">
+          After you add a service category, list offerings on the Services page once admin enables
+          them — or keep editing categories here.
+        </p>
+        <CategoryMultiSelect
+          categories={serviceCategories}
+          selectedIds={selected}
+          onChange={(ids) => {
+            const productIds = selected.filter((id) => productCategories.some((c) => c.id === id) && !serviceCategories.some((c) => c.id === id));
+            persist(Array.from(new Set([...productIds, ...ids])));
+          }}
+        />
+      </section>
+      {busy && <p className="mt-3 text-xs text-stone-400">Saving…</p>}
+      <p className="mt-4 text-sm">
+        <Link href={storefrontUrl("/sell")} className="underline">
+          Add more from the sell form
+        </Link>
+      </p>
     </div>
   );
 }

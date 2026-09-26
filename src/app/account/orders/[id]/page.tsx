@@ -8,6 +8,11 @@ export default function AccountOrderDetailPage() {
   const orderId = decodeURIComponent(params.id);
 
   return (
-    <OrderDetailView orderId={orderId} backHref="/account/orders" backLabel="Back to orders" />
+    <OrderDetailView
+      orderId={orderId}
+      backHref="/account/orders"
+      backLabel="Back to orders"
+      mode="buyer"
+    />
   );
 }

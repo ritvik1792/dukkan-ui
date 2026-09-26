@@ -208,7 +208,7 @@ export function ReviewsTable({
         columns={columns}
         rowKey={(row) => row.review.id}
         onRowClick={(row) => setOpenId(row.review.id)}
-        searchPlaceholder="Search title, body, product, customer, order, payment ref"
+        searchPlaceholder="Search title, body, product, customer, order"
         searchText={(row) => `${row.review.body} ${row.review.id} ${row.paymentRefId}`}
         initialSort={{ columnId: "created", dir: "desc" }}
         emptyMessage={emptyMessage}
@@ -244,7 +244,6 @@ export function ReviewsTable({
                 productName={open.productName}
                 shopName={open.shopName}
                 buyerName={open.buyerName}
-                paymentRefId={open.paymentRefId || undefined}
                 onOpenOrder={setOpenOrderId}
               >
                 {mode === "admin" && (

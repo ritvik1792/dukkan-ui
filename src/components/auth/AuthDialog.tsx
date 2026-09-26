@@ -1,6 +1,7 @@
 "use client";
 
 import { LogoMark } from "@/components/LogoMark";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useApp } from "@/context/AppContext";
 import { afterPaint } from "@/lib/drawer";
 import { BRAND } from "@/lib/constants";
@@ -166,16 +167,16 @@ function EmailPasswordAuthDialog({
                   className="w-full bg-transparent py-3 outline-none"
                 />
               </label>
-              <label className="block rounded-2xl border border-border bg-white px-3">
+              <label className="block rounded-2xl border border-border bg-white">
                 <span className="sr-only">Password</span>
-                <input
+                <PasswordInput
+                  bare
                   required
-                  type="password"
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
-                  className="w-full bg-transparent py-3 outline-none"
+                  className="w-full bg-transparent py-3 pl-3 pr-10 outline-none"
                 />
               </label>
               {error && <p className="text-center text-sm text-red-700">{error}</p>}

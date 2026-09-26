@@ -118,7 +118,6 @@ export function OrderDetail({
           <h2 className={drawer ? "text-lg font-semibold" : "text-2xl font-semibold"}>{order.id}</h2>
           <p className="mt-1 text-xs text-stone-500">
             {shop?.name} · {order.deliveryMode === "partner" ? "Partner" : "Shop delivery"}
-            {order.paymentRefId ? ` · ${order.paymentRefId}` : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -135,9 +134,25 @@ export function OrderDetail({
         <section className="rounded-2xl bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">Details</p>
           <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+            {mode === "seller" && (
+              <div>
+                <dt className="text-xs text-stone-400">Customer</dt>
+                <dd>{buyer?.name ?? order.buyerId}</dd>
+              </div>
+            )}
             <div>
-              <dt className="text-xs text-stone-400">Customer</dt>
-              <dd>{buyer?.name ?? order.buyerId}</dd>
+              <dt className="text-xs text-stone-400">Payment</dt>
+              <dd>
+                {order.paymentStatus === "paid"
+                  ? "Paid"
+                  : order.paymentMethod === "cod" || order.paymentStatus === "cod"
+                    ? "Cash on delivery"
+                    : "Pending"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-stone-400">Delivery fee</dt>
+              <dd>{formatInr(order.deliveryFee)}</dd>
             </div>
             <div>
               <dt className="text-xs text-stone-400">Placed</dt>
@@ -275,7 +290,7 @@ export function OrderDetail({
                   <div>
                     <p className="text-sm font-medium">{orderStatusLabel(event.status)}</p>
                     <p className="text-xs text-stone-500">{formatDate(event.at)}</p>
-                    {planned && (
+                    {mode === "seller" && planned && (
                       <p className="text-xs text-stone-400">Planned {formatDate(planned)}</p>
                     )}
                   </div>

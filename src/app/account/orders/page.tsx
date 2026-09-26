@@ -3,7 +3,7 @@
 import { OrderDetailSheet } from "@/components/orders/OrderDetailSheet";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useApp } from "@/context/AppContext";
-import { formatDate, formatInr, paymentMethodLabel } from "@/lib/format";
+import { formatDate, formatInr } from "@/lib/format";
 import { normalizeOrderStatus, orderStatusLabel } from "@/lib/orders";
 import { afterPaint } from "@/lib/drawer";
 import { useEffect, useMemo, useState } from "react";
@@ -22,13 +22,6 @@ export default function AccountOrdersPage() {
     return state.orders.filter((o) => o.buyerId === user.id);
   }, [state.orders, state.shops, user]);
   const selected = orders.find((o) => o.id === selectedId);
-  const ownsSelected = Boolean(
-    user &&
-      selected &&
-      state.shops.some(
-        (s) => s.id === selected.shopId && (s.ownerUserId === user.id || user.role === "admin"),
-      ),
-  );
 
   useEffect(() => {
     if (!selectedId) return;
@@ -60,10 +53,7 @@ export default function AccountOrdersPage() {
                   <StatusPill>{orderStatusLabel(status)}</StatusPill>
                 </div>
                 <p className="mt-1 text-sm text-stone-500">
-                  {shop?.name} · {order.deliveryMode} · {formatInr(order.total)}
-                  {order.paymentMethod ? ` · ${paymentMethodLabel(order.paymentMethod)}` : ""}
-                  {order.paymentRefId ? ` · ${order.paymentRefId}` : ""} ·{" "}
-                  {formatDate(order.createdAt)}
+                  {shop?.name} · {order.deliveryMode} · {formatInr(order.total)} · {formatDate(order.createdAt)}
                 </p>
                 {partner && (
                   <p className="mt-1 text-xs text-stone-500">
@@ -86,7 +76,7 @@ export default function AccountOrdersPage() {
       {selected && (
         <OrderDetailSheet
           order={selected}
-          mode={ownsSelected ? "seller" : "buyer"}
+          mode="buyer"
           shown={drawerShown}
           onClose={closeSheet}
         />

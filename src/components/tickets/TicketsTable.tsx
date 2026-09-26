@@ -96,7 +96,6 @@ export function TicketsTable({
           <p className="text-xs text-stone-400">
             {row.ticket.id}
             {row.ticket.orderId ? ` · ${row.ticket.orderId}` : ""}
-            {row.paymentRefId ? ` · ${row.paymentRefId}` : ""}
           </p>
         </div>
       ),
@@ -176,7 +175,7 @@ export function TicketsTable({
         columns={columns}
         rowKey={(row) => row.ticket.id}
         onRowClick={(row) => setOpenId(row.ticket.id)}
-        searchPlaceholder="Search subject, message, dukkan, customer, order, payment ref"
+        searchPlaceholder="Search subject, message, dukkan, customer, order"
         searchText={(row) => `${row.ticket.id} ${row.paymentRefId}`}
         initialSort={{ columnId: "updated", dir: "desc" }}
         emptyMessage={emptyMessage}

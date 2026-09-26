@@ -41,11 +41,18 @@ export function uniqueCatalogOffers(params: {
   shops: Shop[];
   query?: string;
   categoryId?: string;
+  quickDeliveryEnabled?: boolean;
 }): UniqueOffer[] {
   const q = (params.query ?? "").trim().toLowerCase();
   const shopById = new Map(params.shops.map((s) => [s.id, s]));
+  const seenProductIds = new Set<string>();
 
   return params.catalog
+    .filter((product) => {
+      if (seenProductIds.has(product.id)) return false;
+      seenProductIds.add(product.id);
+      return true;
+    })
     .filter((product) => {
       if (params.categoryId && product.categoryId !== params.categoryId) return false;
       if (!q) return true;
@@ -62,8 +69,8 @@ export function uniqueCatalogOffers(params: {
         const shopA = shopById.get(a.shopId);
         const shopB = shopById.get(b.shopId);
         if (!shopA || !shopB) return a.sellerPrice - b.sellerPrice;
-        const ca = cheapestLanded(a, shopA)?.total ?? Infinity;
-        const cb = cheapestLanded(b, shopB)?.total ?? Infinity;
+        const ca = cheapestLanded(a, shopA, params.quickDeliveryEnabled)?.total ?? Infinity;
+        const cb = cheapestLanded(b, shopB, params.quickDeliveryEnabled)?.total ?? Infinity;
         return ca - cb;
       });
       const best = ranked[0] ?? null;
@@ -93,6 +100,7 @@ export function shopPromoLines(
   listings: Listing[],
   coupons: Coupon[],
   promoTags: PromoTag[] = [],
+  quickDeliveryEnabled = false,
 ): string[] {
   const lines: string[] = [];
   const seen = new Set<string>();
@@ -129,7 +137,7 @@ export function shopPromoLines(
     }
   }
 
-  if (shop.partnerDeliveryEnabled) push("Partner delivery nearby");
+  if (quickDeliveryEnabled && shop.partnerDeliveryEnabled) push("Partner delivery nearby");
   else if (shop.shopDeliveryEnabled) push("Shop delivery available");
 
   return lines;

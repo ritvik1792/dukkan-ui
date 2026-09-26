@@ -32,6 +32,7 @@ export const defaultSettings: PlatformSettings = {
   requestMaxShops: 20,
   offerExpirySeconds: 900,
   requestMaxWaves: 3,
+  quickDeliveryEnabled: false,
 };
 
 export const neighborhoods: Neighborhood[] = [
@@ -77,7 +78,6 @@ export const categories: Category[] = [
   { id: "beauty", name: "Beauty", emoji: "✨", kind: "SERVICE" },
   { id: "fitness", name: "Fitness", emoji: "💪", kind: "SERVICE" },
   { id: "tutors", name: "Tutors", emoji: "📚", kind: "SERVICE" },
-  { id: "restaurants", name: "Restaurants", emoji: "🍽️", kind: "BOTH" },
   { id: "auto-services", name: "Auto Services", emoji: "🚗", kind: "SERVICE" },
 ];
 
@@ -1213,6 +1213,7 @@ export const applications: SellerApplication[] = [
     gstin: "",
     categoryIds: ["electronics"],
     notes: "Second dukkan for cables and chargers.",
+    reviewNote: "Send a GSTIN, or confirm this shop does not have one.",
     submittedAt: "2026-08-22T09:00:00.000Z",
   },
 ];

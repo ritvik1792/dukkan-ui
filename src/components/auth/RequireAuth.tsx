@@ -2,6 +2,7 @@
 
 import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { useApp } from "@/context/AppContext";
+import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
 import { useEffect, type ReactNode } from "react";
 
@@ -29,7 +30,11 @@ export function RequireAuth({
       <div className="mx-auto max-w-md px-4 py-16 text-center">
         <h1 className="text-xl font-semibold">Sign in to continue</h1>
         <p className="mt-2 text-sm text-stone-500">
-          Use your phone number. New numbers create a buyer account.
+          Sign in, or{" "}
+          <Link href={ROUTES.signup} className="underline">
+            create an account
+          </Link>{" "}
+          and pick shop categories and services on the same form.
         </p>
         <button
           type="button"

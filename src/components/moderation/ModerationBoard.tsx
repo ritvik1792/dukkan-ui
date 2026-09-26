@@ -29,7 +29,13 @@ type Row = {
   waitingOn: string;
 };
 
-export function ModerationBoard({ mode }: { mode: "admin" | "seller" }) {
+export function ModerationBoard({
+  mode,
+  hideHeading = false,
+}: {
+  mode: "admin" | "seller";
+  hideHeading?: boolean;
+}) {
   const { user, state, shopById, catalogById } = useApp();
   const [openId, setOpenId] = useState<string | null>(null);
   const [drawerShown, setDrawerShown] = useState(false);
@@ -151,16 +157,20 @@ export function ModerationBoard({ mode }: { mode: "admin" | "seller" }) {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">
-        {mode === "admin" ? "Moderation queue" : "Hidden & overridden products"}
-      </h1>
-      <p className="mt-1 text-sm text-stone-500">
-        {mode === "admin"
-          ? "Every hide and override with the explanation the seller was given. Answer disputes and republish requests here."
-          : "Read why admin hid or changed a listing. Dispute the decision, or fix the listing and apply to republish."}
-      </p>
+      {!hideHeading && (
+        <>
+          <h1 className="text-2xl font-semibold">
+            {mode === "admin" ? "Moderation queue" : "Hidden & overridden products"}
+          </h1>
+          <p className="mt-1 text-sm text-stone-500">
+            {mode === "admin"
+              ? "Every hide and override with the explanation the seller was given. Answer disputes and republish requests here."
+              : "Read why admin hid or changed a listing. Dispute the decision, or fix the listing and apply to republish."}
+          </p>
+        </>
+      )}
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className={hideHeading ? "grid gap-3 sm:grid-cols-2 xl:grid-cols-4" : "mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"}>
         <StatCard
           label={mode === "admin" ? "Needs your reply" : "Needs your action"}
           value={myQueue}

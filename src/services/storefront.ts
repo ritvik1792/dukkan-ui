@@ -30,7 +30,7 @@ export async function fetchShop(shopId: string, db: StorefrontDb): Promise<Shop 
 export async function fetchShopCatalog(
   shopId: string,
   db: StorefrontDb,
-  filters?: { query?: string; categoryId?: string },
+  filters?: { query?: string; categoryId?: string; quickDeliveryEnabled?: boolean },
 ): Promise<UniqueOffer[]> {
   let catalog = db.catalog;
   let listings = db.listings.filter((listing) => listing.shopId === shopId);
@@ -56,6 +56,7 @@ export async function fetchShopCatalog(
     shops,
     query: filters?.query,
     categoryId: filters?.categoryId,
+    quickDeliveryEnabled: filters?.quickDeliveryEnabled,
   });
 }
 

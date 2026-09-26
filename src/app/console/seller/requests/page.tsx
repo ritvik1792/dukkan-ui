@@ -13,6 +13,7 @@ import { formatInr } from "@/lib/format";
 import { sellerConsolePath } from "@/lib/routes";
 import type { ProductRequest } from "@/lib/types";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 type InboxRow = {
@@ -39,6 +40,7 @@ function expiryLabel(expiresAt: string) {
 export default function SellerAvailabilityInbox() {
   const { catalogById, shopById } = useApp();
   const { showAlert } = useAlert();
+  const requestedId = useSearchParams().get("request");
   const [rows, setRows] = useState<InboxRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -78,6 +80,12 @@ export default function SellerAvailabilityInbox() {
       window.clearInterval(countdown);
     };
   }, [refresh]);
+
+  useEffect(() => {
+    if (!requestedId) return;
+    if (!rows.some((row) => row.request.id === requestedId)) return;
+    setActiveId(requestedId);
+  }, [requestedId, rows]);
 
   async function open(id: string) {
     setActiveId(id);

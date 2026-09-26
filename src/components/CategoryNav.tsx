@@ -1,14 +1,10 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
-import {
-  CATEGORY_GROUPS,
-  CATEGORY_HUES,
-  POPULAR_CATEGORY_IDS,
-} from "@/lib/constants";
+import { CATEGORY_HUES, POPULAR_CATEGORY_IDS } from "@/lib/constants";
 import type { Category } from "@/lib/types";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 export function CategoryList({
   activeId,
@@ -81,16 +77,20 @@ export function CategoryChips({
 function CategoryCircleLink({
   category,
   index = 0,
+  fill = false,
 }: {
   category: Category;
   index?: number;
+  fill?: boolean;
 }) {
   const hue = CATEGORY_HUES[category.id] ?? 350;
   return (
     <Link
       href={`/search?category=${category.id}`}
       style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
-      className="category-circle group flex w-[4.75rem] shrink-0 snap-start flex-col items-center text-center sm:w-[5.5rem]"
+      className={`category-circle group flex flex-col items-center text-center ${
+        fill ? "w-full min-w-0" : "w-[4.75rem] shrink-0 snap-start sm:w-[5.5rem]"
+      }`}
     >
       <div
         className="flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-border/80 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-105 group-hover:shadow-md group-hover:ring-rose-200 sm:h-[4.75rem] sm:w-[4.75rem]"
@@ -128,30 +128,19 @@ export function CategoryCircles({ categories }: { categories?: Category[] }) {
  */
 export function CategoryBrowse() {
   const { state, user } = useApp();
-  const [groupId, setGroupId] = useState(CATEGORY_GROUPS[0]?.id ?? "popular");
 
   const visible = useMemo(() => {
-    const group = CATEGORY_GROUPS.find((g) => g.id === groupId) ?? CATEGORY_GROUPS[0];
     const byId = new Map(state.categories.map((c) => [c.id, c]));
-    const ids =
-      group.categoryIds === "popular"
-        ? POPULAR_CATEGORY_IDS
-        : group.categoryIds;
-    return ids.map((id) => byId.get(id)).filter((c): c is Category => Boolean(c));
-  }, [groupId, state.categories]);
+    const picked = POPULAR_CATEGORY_IDS.map((id) => byId.get(id)).filter(
+      (c): c is Category => Boolean(c),
+    );
+    const pickedIds = new Set(picked.map((c) => c.id));
+    const rest = state.categories.filter((c) => !pickedIds.has(c.id));
+    return [...picked, ...rest];
+  }, [state.categories]);
 
   const firstName = user?.name ? user.name.trim().split(" ")[0] : "";
   const title = firstName ? `${firstName}, what's on your mind?` : "What's on your mind?";
-
-  const scrollLeft = () => {
-    const el = document.getElementById("category-scroll-container");
-    if (el) el.scrollBy({ left: -260, behavior: "smooth" });
-  };
-
-  const scrollRight = () => {
-    const el = document.getElementById("category-scroll-container");
-    if (el) el.scrollBy({ left: 260, behavior: "smooth" });
-  };
 
   return (
     <section className="animate-fade-up">
@@ -164,66 +153,20 @@ export function CategoryBrowse() {
             Explore fresh foods, daily essentials &amp; local picks
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <button
-            type="button"
-            onClick={scrollLeft}
-            aria-label="Scroll left"
-            className="hidden h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-muted shadow-sm transition hover:bg-blush hover:text-rose-700 sm:flex"
-          >
-            ←
-          </button>
-          <button
-            type="button"
-            onClick={scrollRight}
-            aria-label="Scroll right"
-            className="hidden h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-muted shadow-sm transition hover:bg-blush hover:text-rose-700 sm:flex"
-          >
-            →
-          </button>
-          <Link
-            href="/search"
-            className="ml-0.5 text-xs font-semibold text-rose-700 underline-offset-2 hover:underline sm:text-sm"
-          >
-            View all
-          </Link>
-        </div>
+        <Link
+          href="/search"
+          className="shrink-0 text-xs font-semibold text-rose-700 underline-offset-2 hover:underline sm:text-sm"
+        >
+          View all
+        </Link>
       </div>
 
-      <div
-        role="tablist"
-        aria-label="Category groups"
-        className="no-scrollbar mb-2.5 flex gap-2 overflow-x-auto pb-0.5"
-      >
-        {CATEGORY_GROUPS.map((group) => {
-          const active = group.id === groupId;
-          return (
-            <button
-              key={group.id}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setGroupId(group.id)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition duration-200 md:text-sm ${
-                active ? "chip-active" : "chip-idle text-ink/80"
-              }`}
-            >
-              {group.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div
-        id="category-scroll-container"
-        key={groupId}
-        className="no-scrollbar -mx-0.5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-0.5 pb-0.5 sm:gap-3.5"
-      >
+      <div className="no-scrollbar flex w-full flex-nowrap gap-x-3 overflow-x-auto pb-1 sm:gap-x-4">
         {visible.map((c, i) => (
           <CategoryCircleLink key={c.id} category={c} index={i} />
         ))}
         {visible.length === 0 && (
-          <p className="py-3 text-sm text-muted">No categories in this group yet.</p>
+          <p className="py-3 text-sm text-muted">No categories yet.</p>
         )}
       </div>
     </section>

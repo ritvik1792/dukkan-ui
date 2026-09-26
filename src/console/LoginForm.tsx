@@ -2,6 +2,7 @@
 
 import { LogoMark } from "@/components/LogoMark";
 import { Field, TextInput } from "@/components/ui/Field";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useApp } from "@/context/AppContext";
 import { isStaffRole, ROUTES, safeConsoleNext } from "@/lib/routes";
 import { validateEmail } from "@/services/auth";
@@ -84,8 +85,7 @@ export function ConsoleLoginForm({
           />
         </Field>
         <Field label="Password">
-          <TextInput
-            type="password"
+          <PasswordInput
             autoComplete="current-password"
             required
             value={password}

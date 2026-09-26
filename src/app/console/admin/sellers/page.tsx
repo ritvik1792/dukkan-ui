@@ -2,6 +2,7 @@
 
 import { ShopNameButton, useShopPeek } from "@/components/shops/ShopPeek";
 import { StatusPill } from "@/components/ui/StatCard";
+import { Toggle } from "@/components/ui/Toggle";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
 import { mapShop, patchShopRequest } from "@/lib/api";
@@ -79,21 +80,22 @@ export default function AdminSellers() {
               <StatusPill>{titleCase(shop.status)}</StatusPill>
             </div>
             <div
-              className="mt-4 flex flex-wrap gap-2"
+              className="mt-4 space-y-2"
               onClick={(event) => event.stopPropagation()}
             >
               {CAP_TOGGLES.map(({ key, label }) => (
-                <label
+                <Toggle
                   key={key}
-                  className="flex items-center gap-2 rounded-full border px-3 py-1 text-xs"
-                >
-                  <input
-                    type="checkbox"
-                    checked={Boolean(shop[key])}
-                    onChange={() => toggle(shop, key)}
-                  />
-                  {label}
-                </label>
+                  label={label}
+                  hint={
+                    key === "quickDeliveryAllowed" && !state.settings.quickDeliveryEnabled
+                      ? "Turn on Quick delivery in Settings first."
+                      : undefined
+                  }
+                  disabled={key === "quickDeliveryAllowed" && !state.settings.quickDeliveryEnabled}
+                  checked={Boolean(shop[key])}
+                  onChange={() => toggle(shop, key)}
+                />
               ))}
             </div>
             <div

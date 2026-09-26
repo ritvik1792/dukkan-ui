@@ -1,7 +1,6 @@
-"use client";
+import { sellerConsolePath } from "@/lib/routes";
+import { redirect } from "next/navigation";
 
-import { ModerationBoard } from "@/components/moderation/ModerationBoard";
-
-export default function SellerModeration() {
-  return <ModerationBoard mode="seller" />;
+export default function SellerModerationRedirect() {
+  redirect(`${sellerConsolePath("/tickets")}?tab=blocked`);
 }

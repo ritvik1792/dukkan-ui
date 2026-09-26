@@ -8,27 +8,25 @@ import { StatusPill } from "@/components/ui/StatCard";
 import { useApp } from "@/context/AppContext";
 import { mapApiUser, updateProfileRequest } from "@/lib/api";
 import { MAX_SHOP_RADIUS_KM, MIN_SHOP_RADIUS_KM } from "@/lib/constants";
-import { cardBrandLabel, formatDate, formatPhone, titleCase } from "@/lib/format";
+import { formatDate, formatPhone, titleCase } from "@/lib/format";
 import { formatCoordinates } from "@/lib/geo";
 import { createId } from "@/lib/ids";
 import { locationSummary } from "@/services/location";
 import {
-  cardBrandFromNumber,
   clampShopRadiusKm,
   findUserByEmail,
   formatAddressLine,
-  maskCardNumber,
   normalizePhone,
   validateBuyerProfile,
   validatePinCode,
 } from "@/services/auth";
-import { ROUTES } from "@/lib/routes";
+import { isStaffRole, ROUTES, sellerConsolePath } from "@/lib/routes";
 import { useMotionRouter } from "@/lib/motion";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
-type ProfileTab = "details" | "addresses" | "payments";
+type ProfileTab = "details" | "addresses";
 
 export default function AccountSettingsPage() {
   const { user, isAuthenticated, state, shopById } = useApp();
@@ -36,7 +34,7 @@ export default function AccountSettingsPage() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const tab: ProfileTab =
-    tabParam === "addresses" || tabParam === "payments" ? tabParam : "details";
+    tabParam === "addresses" ? tabParam : "details";
 
   if (!state.hydrated) {
     return <p className="p-8 text-sm text-stone-500">Loading…</p>;
@@ -48,7 +46,7 @@ export default function AccountSettingsPage() {
         <p className="text-xs uppercase tracking-wider text-stone-400">Profile</p>
         <h1 className="mt-1 text-xl font-semibold">Sign in to manage your profile</h1>
         <p className="mt-2 text-sm text-stone-500">
-          Phone OTP login saves your details, addresses, and cards.
+          Phone OTP login saves your details and addresses.
         </p>
         <button
           type="button"
@@ -57,7 +55,6 @@ export default function AccountSettingsPage() {
         >
           Sign in with phone
         </button>
-        <ConsoleEntry />
       </div>
     );
   }
@@ -69,7 +66,8 @@ export default function AccountSettingsPage() {
       {tab === "details" && (
         <>
           <RadiusSection />
-          <ConsoleSection />
+          {isStaffRole(user.role) && <ConsoleSection />}
+          <OfferingsSection />
           <ProfileSection />
           <section className="space-y-3 rounded-2xl bg-white p-5">
             <div className="flex items-start justify-between gap-3">
@@ -101,7 +99,6 @@ export default function AccountSettingsPage() {
         </>
       )}
       {tab === "addresses" && <AddressBook />}
-      {tab === "payments" && <PaymentBook />}
     </div>
   );
 }
@@ -152,16 +149,11 @@ function RadiusSection() {
           min={MIN_SHOP_RADIUS_KM}
           max={MAX_SHOP_RADIUS_KM}
           value={shopRadiusKm}
-          onChange={(e) =>
-            {
-              const shopRadiusKm = clampShopRadiusKm(Number(e.target.value));
-              dispatch({
-                type: "upsertUser",
-                user: { ...user, shopRadiusKm },
-              });
-              void updateProfileRequest({ shopRadiusKm }).catch(() => undefined);
-            }
-          }
+          onChange={(e) => {
+            const next = clampShopRadiusKm(Number(e.target.value));
+            dispatch({ type: "setSearchRadius", km: next });
+            void updateProfileRequest({ shopRadiusKm: next }).catch(() => undefined);
+          }}
         />
       </Field>
     </section>
@@ -368,136 +360,6 @@ function AddressBook() {
   );
 }
 
-function PaymentBook() {
-  const { user, dispatch } = useApp();
-  const [name, setName] = useState(user?.name ?? "");
-  const [number, setNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [error, setError] = useState("");
-  const cards = user?.cards ?? [];
-
-  if (!user) return null;
-
-  function add(e: FormEvent) {
-    e.preventDefault();
-    const digits = number.replace(/\D/g, "");
-    if (name.trim().length < 2) {
-      setError("Enter the name on the card.");
-      return;
-    }
-    if (digits.length < 12) {
-      setError("Enter a card number.");
-      return;
-    }
-    if (!/^\d{2}\/\d{2}$/.test(expiry)) {
-      setError("Enter expiry as MM/YY.");
-      return;
-    }
-    dispatch({
-      type: "saveCard",
-      setDefault: cards.length === 0,
-      card: {
-        id: createId("card"),
-        brand: cardBrandFromNumber(digits),
-        last4: maskCardNumber(digits),
-        expiry,
-        name: name.trim(),
-      },
-    });
-    setNumber("");
-    setExpiry("");
-    setError("");
-  }
-
-  return (
-    <div className="space-y-6">
-      <section className="space-y-4 rounded-2xl bg-white p-5">
-        <div>
-          <h2 className="font-semibold">Saved payment methods</h2>
-          <p className="text-sm text-stone-500">Credit and debit cards. We only keep the last 4 digits.</p>
-        </div>
-        <ul className="space-y-2">
-          {cards.map((card) => {
-            const isDefault = user.defaultCardId === card.id;
-            return (
-              <li key={card.id} className="rounded-2xl border border-border p-3 text-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium">
-                      {cardBrandLabel(card.brand)} · •••• {card.last4}
-                      {isDefault ? <span className="ml-2 text-xs text-carrot">Default</span> : null}
-                    </p>
-                    <p className="mt-0.5 text-stone-500">
-                      {card.name} · Expires {card.expiry}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 gap-2">
-                    {!isDefault && (
-                      <button
-                        type="button"
-                        className="text-xs underline"
-                        onClick={() => dispatch({ type: "setDefaultCard", cardId: card.id })}
-                      >
-                        Default
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="text-xs text-red-700 underline"
-                      onClick={() => dispatch({ type: "deleteCard", cardId: card.id })}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-          {cards.length === 0 && <p className="text-sm text-stone-500">No saved cards yet.</p>}
-        </ul>
-      </section>
-      <section className="rounded-2xl bg-white p-5">
-        <form onSubmit={add} className="space-y-3">
-          <div>
-            <h2 className="font-semibold">Add a new card</h2>
-            <p className="mt-1 text-sm text-stone-500">Add a credit or debit card for checkout.</p>
-          </div>
-          <Field label="Name on card">
-            <TextInput value={name} onChange={(e) => setName(e.target.value)} />
-          </Field>
-          <Field label="Card number">
-            <TextInput
-              inputMode="numeric"
-              autoComplete="cc-number"
-              value={number}
-              onChange={(e) =>
-                setNumber(e.target.value.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 "))
-              }
-              placeholder="XXXX XXXX XXXX XXXX"
-            />
-          </Field>
-          <Field label="Expiry">
-            <TextInput
-              inputMode="numeric"
-              autoComplete="cc-exp"
-              placeholder="MM/YY"
-              value={expiry}
-              onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
-                setExpiry(digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits);
-              }}
-            />
-          </Field>
-          {error && <p className="text-sm text-red-700">{error}</p>}
-          <button type="submit" className="rounded-full bg-carrot px-4 py-2 text-sm text-white">
-            Save card
-          </button>
-        </form>
-      </section>
-    </div>
-  );
-}
-
 function ConsoleSection() {
   const router = useMotionRouter();
   return (
@@ -521,13 +383,47 @@ function ConsoleSection() {
   );
 }
 
-function ConsoleEntry() {
+function OfferingsSection() {
+  const { user, state } = useApp();
+  if (!user) return null;
+  const shop =
+    state.shops.find((item) => item.id === user.shopId) ??
+    state.shops.find((item) => item.ownerUserId === user.id);
+  const selling = user.role === "seller" || Boolean(shop);
+
   return (
-    <p className="mt-8 text-sm text-stone-500">
-      Seller or admin?{" "}
-      <Link href={ROUTES.consoleDashboard} className="underline">
-        Open Console
-      </Link>
-    </p>
+    <section className="space-y-3 rounded-2xl bg-white p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">{selling ? "Products & services" : "Sell on Pink Carrot"}</h2>
+          <p className="text-sm text-stone-500">
+            {selling
+              ? "Add more shop categories or services to the same profile. You don’t need a second account."
+              : "Offer products, services, or both from this account. You can add more later."}
+          </p>
+        </div>
+        <Link
+          href="/sell"
+          className="shrink-0 rounded-full bg-carrot px-4 py-2 text-sm text-white"
+        >
+          {selling ? "Add more" : "Start selling"}
+        </Link>
+      </div>
+      {selling && (
+        <p className="text-sm text-stone-500">
+          <Link href={sellerConsolePath("/categories")} className="underline">
+            Manage categories
+          </Link>
+          {shop?.servicesAllowed ? (
+            <>
+              {" · "}
+              <Link href={sellerConsolePath("/services")} className="underline">
+                Manage services
+              </Link>
+            </>
+          ) : null}
+        </p>
+      )}
+    </section>
   );
 }

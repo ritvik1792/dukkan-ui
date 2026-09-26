@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/format";
 import { useMotionRouter } from "@/lib/motion";
 import { notificationHref } from "@/lib/notifications";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 function BellIcon({ className }: { className?: string }) {
   return (
@@ -30,6 +31,8 @@ export function NotificationBell({ tone = "dark" }: { tone?: "dark" | "light" })
   const router = useMotionRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelStyle, setPanelStyle] = useState<{ top: number; right: number } | null>(null);
 
   const mine = useMemo(
     () =>
@@ -45,7 +48,9 @@ export function NotificationBell({ tone = "dark" }: { tone?: "dark" | "light" })
 
   useEffect(() => {
     function onClick(event: MouseEvent) {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (ref.current?.contains(target) || panelRef.current?.contains(target)) return;
+      setOpen(false);
     }
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);
@@ -57,6 +62,25 @@ export function NotificationBell({ tone = "dark" }: { tone?: "dark" | "light" })
       document.removeEventListener("keydown", onKey);
     };
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function place() {
+      const rect = ref.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPanelStyle({
+        top: rect.bottom + 8,
+        right: Math.max(12, window.innerWidth - rect.right),
+      });
+    }
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open]);
 
   if (!user) return null;
 
@@ -89,8 +113,14 @@ export function NotificationBell({ tone = "dark" }: { tone?: "dark" | "light" })
           {unreadCount > 9 ? "9+" : unreadCount}
         </span>
       </button>
-      {open && (
-        <div className="absolute right-0 z-50 mt-2 w-[min(20.5rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-border bg-white text-ink shadow-xl">
+      {open &&
+        panelStyle &&
+        createPortal(
+        <div
+          ref={panelRef}
+          style={{ top: panelStyle.top, right: panelStyle.right }}
+          className="fixed z-[80] w-[min(20.5rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-border bg-white text-ink shadow-xl"
+        >
           <div className="flex items-center justify-between border-b px-3 py-2">
             <p className="text-sm font-semibold">Notifications</p>
             {unreadCount > 0 && (
@@ -124,7 +154,8 @@ export function NotificationBell({ tone = "dark" }: { tone?: "dark" | "light" })
               <li className="px-3 py-8 text-center text-sm text-stone-500">No notifications yet.</li>
             )}
           </ul>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

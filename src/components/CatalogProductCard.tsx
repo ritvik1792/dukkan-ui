@@ -67,7 +67,7 @@ function CartQtyStepper({ listing }: { listing: Listing }) {
   function deliveryMode() {
     const shop = shopById(listing.shopId);
     if (!shop) return "partner" as const;
-    return cheapestLanded(listing, shop)?.mode ?? "partner";
+    return cheapestLanded(listing, shop, state.settings.quickDeliveryEnabled)?.mode ?? "shop";
   }
 
   function increase() {

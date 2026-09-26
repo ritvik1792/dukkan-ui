@@ -1,12 +1,13 @@
 "use client";
 
 import { Field, TextInput } from "@/components/ui/Field";
+import { Toggle } from "@/components/ui/Toggle";
 import { useApp } from "@/context/AppContext";
 import { patchSettingsRequest } from "@/lib/api";
 import type { PlatformSettings } from "@/lib/types";
 
 export default function AdminSettings() {
-  const { state, dispatch, switchRole, user } = useApp();
+  const { state, dispatch } = useApp();
   const s = state.settings;
 
   function persist(next: PlatformSettings) {
@@ -20,6 +21,7 @@ export default function AdminSettings() {
       requestMaxShops: next.requestMaxShops,
       offerExpirySeconds: next.offerExpirySeconds,
       requestMaxWaves: next.requestMaxWaves,
+      quickDeliveryEnabled: next.quickDeliveryEnabled,
     }).catch(() => undefined);
   }
 
@@ -30,6 +32,12 @@ export default function AdminSettings() {
         Radius, partner ETA, availability request waves, and demo role live here.
       </p>
       <div className="mt-6 space-y-4">
+        <Toggle
+          label="Quick delivery"
+          hint="Off until you turn it on. Dukkan does not offer partner quick delivery yet."
+          checked={Boolean(s.quickDeliveryEnabled)}
+          onChange={(checked) => persist({ ...s, quickDeliveryEnabled: checked })}
+        />
         <Field label="Discovery radius (km)">
           <TextInput
             type="number"
@@ -133,31 +141,12 @@ export default function AdminSettings() {
           />
         </Field>
 
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={s.showDemoRoleSwitcher}
-            onChange={(e) => persist({ ...s, showDemoRoleSwitcher: e.target.checked })}
-          />
-          Show demo role switcher on Account
-        </label>
-        <div>
-          <p className="text-sm font-medium">Preview as role</p>
-          <div className="mt-2 flex gap-2">
-            {(["buyer", "seller", "admin"] as const).map((role) => (
-              <button
-                key={role}
-                type="button"
-                onClick={() => switchRole(role)}
-                className={`rounded-full px-3 py-1 text-sm capitalize ${
-                  user?.role === role ? "bg-carrot text-white" : "bg-white"
-                }`}
-              >
-                {role}
-              </button>
-            ))}
-          </div>
-        </div>
+        <p className="text-sm text-stone-600">
+          Each person has one role. There can be many buyers, many sellers, and many admins.
+          A new signup does not replace or delete an existing account. Admin can use the shop
+          and the whole console. Sellers can use the shop and the seller console. Buyers stay
+          on the shop.
+        </p>
       </div>
     </div>
   );

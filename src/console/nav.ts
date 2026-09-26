@@ -7,11 +7,10 @@ export const adminNav = [
   { href: adminConsolePath("/sellers"), label: "Providers" },
   { href: adminConsolePath("/delivery"), label: "Delivery" },
   { href: adminConsolePath("/products"), label: "Products" },
-  { href: adminConsolePath("/moderation"), label: "Moderation" },
+  { href: adminConsolePath("/tickets"), label: "Issues" },
   { href: adminConsolePath("/ads"), label: "Ads" },
   { href: adminConsolePath("/tags"), label: "Tags" },
   { href: adminConsolePath("/reviews"), label: "Reviews" },
-  { href: adminConsolePath("/tickets"), label: "Support" },
   { href: adminConsolePath("/settings"), label: "Settings" },
 ];
 
@@ -21,7 +20,7 @@ export const sellerNav = [
   { href: sellerConsolePath("/categories"), label: "Categories" },
   { href: sellerConsolePath("/products"), label: "Inventory", requires: "products" as const },
   { href: sellerConsolePath("/services"), label: "Services", requires: "services" as const },
-  { href: sellerConsolePath("/moderation"), label: "Moderation" },
+  { href: sellerConsolePath("/tickets"), label: "Issues" },
   { href: sellerConsolePath("/promos"), label: "Sales & coupons" },
   { href: sellerConsolePath("/orders"), label: "Orders", requires: "orders" as const },
   { href: sellerConsolePath("/bookings"), label: "Bookings", requires: "bookings" as const },
@@ -32,12 +31,12 @@ export const sellerNav = [
   },
   { href: sellerConsolePath("/requests"), label: "Availability" },
   { href: sellerConsolePath("/reviews"), label: "Reviews" },
-  { href: sellerConsolePath("/tickets"), label: "Complaints" },
   { href: sellerConsolePath("/delivery"), label: "Delivery" },
   { href: sellerConsolePath("/settings"), label: "Settings" },
 ];
 
 const applicationHref = sellerConsolePath("/application");
+const supportHref = sellerConsolePath("/tickets");
 
 export function sellerShouldShowApplication(
   user: Pick<User, "id" | "role" | "shopId">,
@@ -53,6 +52,16 @@ export function sellerShouldShowApplication(
   return !shop || shop.status === "pending";
 }
 
+/** Seller console stays on Dashboard + Support until admin approves the account. */
+export function sellerAwaitingApproval(
+  user: Pick<User, "id" | "role" | "shopId"> | undefined,
+  shops: Shop[],
+  applications: SellerApplication[],
+) {
+  if (!user || user.role !== "seller") return false;
+  return sellerShouldShowApplication(user, shops, applications);
+}
+
 function sellerShop(user: Pick<User, "id" | "shopId"> | undefined, shops: Shop[]) {
   if (!user) return undefined;
   return (
@@ -66,6 +75,12 @@ export function sellerNavFor(
   shops: Shop[],
   applications: SellerApplication[],
 ) {
+  if (sellerAwaitingApproval(user, shops, applications)) {
+    return [
+      { href: ROUTES.consoleDashboard, label: "Dashboard" },
+      { href: supportHref, label: "Issues" },
+    ];
+  }
   let links = sellerNav;
   if (user && !sellerShouldShowApplication(user, shops, applications)) {
     links = links.filter((link) => link.href !== applicationHref);

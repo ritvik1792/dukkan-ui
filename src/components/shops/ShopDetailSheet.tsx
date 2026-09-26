@@ -189,7 +189,8 @@ export function ShopDetailSheet({
 }
 
 function DeliverySettings({ shop, etaMinutes }: { shop: Shop; etaMinutes: number }) {
-  const modes = shopDeliveryModes(shop);
+  const { state } = useApp();
+  const modes = shopDeliveryModes(shop, state.settings.quickDeliveryEnabled);
   return (
     <dl className="grid gap-3 text-sm sm:grid-cols-2">
       <div className="sm:col-span-2">
@@ -202,7 +203,11 @@ function DeliverySettings({ shop, etaMinutes }: { shop: Shop; etaMinutes: number
       </div>
       <div>
         <dt className="text-xs text-stone-400">Dukkan partner</dt>
-        <dd>{shop.partnerDeliveryEnabled ? `On · ${formatInr(shop.partnerDeliveryFee)}` : "Off"}</dd>
+        <dd>
+          {state.settings.quickDeliveryEnabled && shop.partnerDeliveryEnabled
+            ? `On · ${formatInr(shop.partnerDeliveryFee)}`
+            : "Off"}
+        </dd>
       </div>
       <div>
         <dt className="text-xs text-stone-400">Shop delivery</dt>
@@ -214,7 +219,11 @@ function DeliverySettings({ shop, etaMinutes }: { shop: Shop; etaMinutes: number
       </div>
       <div>
         <dt className="text-xs text-stone-400">Partner ETA</dt>
-        <dd>{shop.partnerDeliveryEnabled ? `About ${etaMinutes} min` : "—"}</dd>
+        <dd>
+          {state.settings.quickDeliveryEnabled && shop.partnerDeliveryEnabled
+            ? `About ${etaMinutes} min`
+            : "—"}
+        </dd>
       </div>
     </dl>
   );
@@ -225,7 +234,7 @@ function ShopEmployees({ shop }: { shop: Shop }) {
   if (!shop.shopDeliveryEnabled && employees.length === 0) {
     return (
       <p className="text-sm text-stone-500">
-        This dukkan does not run its own delivery. Orders go with Dukkan partners.
+        This dukkan does not run its own delivery.
       </p>
     );
   }
@@ -257,8 +266,10 @@ function EmployeeRow({ employee }: { employee: ShopEmployee }) {
 }
 
 function ShopTransportList({ shop, partners }: { shop: Shop; partners: Partner[] }) {
+  const { state } = useApp();
   const vehicles = shop.transport ?? [];
-  const partnerFleet = shop.partnerDeliveryEnabled ? partners : [];
+  const partnerFleet =
+    state.settings.quickDeliveryEnabled && shop.partnerDeliveryEnabled ? partners : [];
   if (vehicles.length === 0 && partnerFleet.length === 0) {
     return <p className="text-sm text-stone-500">No vehicles are listed for this dukkan.</p>;
   }

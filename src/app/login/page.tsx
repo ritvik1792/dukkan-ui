@@ -2,6 +2,7 @@
 
 import { LogoMark } from "@/components/LogoMark";
 import { Field, TextInput } from "@/components/ui/Field";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useApp } from "@/context/AppContext";
 import { BRAND } from "@/lib/constants";
 import { useMotionRouter } from "@/lib/motion";
@@ -76,8 +77,7 @@ function LoginForm() {
           />
         </Field>
         <Field label="Password">
-          <TextInput
-            type="password"
+          <PasswordInput
             autoComplete="current-password"
             required
             value={password}

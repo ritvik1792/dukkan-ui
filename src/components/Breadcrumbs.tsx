@@ -2,6 +2,7 @@
 
 import { useApp } from "@/context/AppContext";
 import { categories } from "@/data/seed";
+import { useIsHydrated } from "@/lib/hydration";
 import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -120,9 +121,12 @@ function useAutoCrumbs(): Crumb[] {
 }
 
 export function Breadcrumbs({ items }: { items?: Crumb[] }) {
+  const hydrated = useIsHydrated();
   const auto = useAutoCrumbs();
   const crumbs = items ?? auto;
-  if (crumbs.length === 0) return null;
+  // Shop and product names come from client state, so the server markup must not
+  // paint those crumbs or React reports a hydration error.
+  if (!hydrated || crumbs.length === 0) return null;
 
   return (
     <nav aria-label="Breadcrumb" className="border-b border-border/70 bg-white/70">

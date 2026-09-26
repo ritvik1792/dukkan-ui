@@ -1,7 +1,8 @@
 "use client";
 
 import { LogoMark } from "@/components/LogoMark";
-import { Field, TextInput } from "@/components/ui/Field";
+import { Field } from "@/components/ui/Field";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { ApiError, resetPasswordRequest } from "@/lib/api";
 import { BRAND } from "@/lib/constants";
 import { ROUTES } from "@/lib/routes";
@@ -70,8 +71,7 @@ function ResetPasswordForm() {
           </p>
           <form onSubmit={onSubmit} className="mt-8 space-y-4">
             <Field label="New password">
-              <TextInput
-                type="password"
+              <PasswordInput
                 autoComplete="new-password"
                 required
                 minLength={6}
@@ -80,8 +80,7 @@ function ResetPasswordForm() {
               />
             </Field>
             <Field label="Confirm password">
-              <TextInput
-                type="password"
+              <PasswordInput
                 autoComplete="new-password"
                 required
                 minLength={6}

@@ -1,6 +1,9 @@
 "use client";
 
-import { Field, Select, TextArea, TextInput } from "@/components/ui/Field";
+import { Field, FileButton, Select, TextArea, TextInput } from "@/components/ui/Field";
+import { persistImageFile } from "@/lib/images";
+import { uniqueMediaUrls } from "@/lib/mediaUrls";
+import { Toggle } from "@/components/ui/Toggle";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
@@ -29,9 +32,12 @@ export default function SellerServicesPage() {
   const [bookingEnabled, setBookingEnabled] = useState(true);
   const [requestEnabled, setRequestEnabled] = useState(true);
   const [status, setStatus] = useState<ServiceStatus>("ACTIVE");
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageName, setImageName] = useState("");
 
   const serviceCategories = state.categories.filter(
-    (c) => c.kind === "SERVICE" || c.kind === "BOTH" || !c.kind,
+    (c) => c.kind === "SERVICE" || c.kind === "BOTH",
   );
 
   function reload() {
@@ -57,6 +63,9 @@ export default function SellerServicesPage() {
     setBookingEnabled(true);
     setRequestEnabled(true);
     setStatus("ACTIVE");
+    setImageUrl("");
+    setImageUrls([]);
+    setImageName("");
   }
 
   function startEdit(service: ProviderService) {
@@ -70,6 +79,9 @@ export default function SellerServicesPage() {
     setBookingEnabled(service.bookingEnabled);
     setRequestEnabled(service.requestEnabled);
     setStatus(service.status);
+    setImageUrl(service.imageUrl ?? "");
+    setImageUrls(uniqueMediaUrls(service.imageUrls ?? [], service.imageUrl));
+    setImageName("");
   }
 
   async function submit(e: FormEvent) {
@@ -84,6 +96,8 @@ export default function SellerServicesPage() {
       serviceArea: serviceArea || undefined,
       bookingEnabled,
       requestEnabled,
+      imageUrl: imageUrl || undefined,
+      imageUrls: uniqueMediaUrls(imageUrls, imageUrl),
       status,
     };
     try {
@@ -129,13 +143,37 @@ export default function SellerServicesPage() {
 
       <form onSubmit={submit} className="space-y-4 rounded-2xl bg-white p-6">
         <h2 className="font-semibold">{editing ? "Edit service" : "Add service"}</h2>
-        <Field label="Name">
+        <div>
+          <p className="text-sm font-medium">Service images</p>
+          <div className="mt-1">
+            <FileButton
+              accept="image/*"
+              buttonLabel="Choose picture"
+              fileName={imageName || (imageUrl ? "Picture added" : "")}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                setImageName(file.name);
+                void persistImageFile(file).then((url) => {
+                  setImageUrl(url);
+                  setImageUrls((current) => uniqueMediaUrls(current, url));
+                });
+              }}
+            />
+          </div>
+          {imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imageUrl} alt="" className="mt-2 h-28 w-full rounded-xl object-cover" />
+          )}
+        </div>
+        <Field label="Service name">
           <TextInput value={name} onChange={(e) => setName(e.target.value)} required />
         </Field>
-        <Field label="Description">
+        <Field label="Service description">
           <TextArea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
         </Field>
-        <Field label="Category">
+        <Field label="Service type">
           <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
             {serviceCategories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -163,23 +201,20 @@ export default function SellerServicesPage() {
         <Field label="Service area">
           <TextInput value={serviceArea} onChange={(e) => setServiceArea(e.target.value)} />
         </Field>
-        <div className="flex flex-wrap gap-4 text-sm">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={bookingEnabled}
-              onChange={(e) => setBookingEnabled(e.target.checked)}
-            />
-            Booking enabled
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={requestEnabled}
-              onChange={(e) => setRequestEnabled(e.target.checked)}
-            />
-            Request enabled
-          </label>
+        <div className="space-y-3 rounded-2xl border border-border p-3">
+          <p className="text-sm font-medium">Service availability</p>
+          <Toggle
+            label="Bookings"
+            hint="Customers can book a time."
+            checked={bookingEnabled}
+            onChange={setBookingEnabled}
+          />
+          <Toggle
+            label="Requests"
+            hint="Customers can ask if you are available."
+            checked={requestEnabled}
+            onChange={setRequestEnabled}
+          />
         </div>
         <Field label="Status">
           <Select value={status} onChange={(e) => setStatus(e.target.value as ServiceStatus)}>

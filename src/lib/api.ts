@@ -1,3 +1,4 @@
+import { uniqueMediaUrls } from "@/lib/mediaUrls";
 import type {
   Advertisement,
   ApplicationStatus,
@@ -358,6 +359,7 @@ export function patchShopRequest(
     quickDeliveryAllowed?: boolean;
     serviceArea?: string;
     profession?: string;
+    categoryIds?: string[];
   },
 ) {
   return apiFetch<RawShop>(`/api/shops/${shopId}`, {
@@ -435,6 +437,7 @@ export function patchSettingsRequest(input: {
   requestMaxShops?: number;
   offerExpirySeconds?: number;
   requestMaxWaves?: number;
+  quickDeliveryEnabled?: boolean;
 }) {
   return apiFetch<PlatformSettings>("/api/settings", {
     method: "PATCH",
@@ -474,12 +477,28 @@ export function loginRequest(email: string, password: string) {
   });
 }
 
-export function signupRequest(input: {
+export type SignupInput = {
   name: string;
   email: string;
   phone: string;
   password: string;
-}) {
+  categoryIds?: string[];
+  serviceCategoryIds?: string[];
+  provideServices?: boolean;
+  businessName?: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
+  gstin?: string;
+  notes?: string;
+  providerType?: ProviderType;
+  profession?: string;
+  serviceArea?: string;
+  partnerDeliveryEnabled?: boolean;
+  shopDeliveryEnabled?: boolean;
+};
+
+export function signupRequest(input: SignupInput) {
   return apiFetch<AuthResponse>("/api/auth/signup", {
     method: "POST",
     body: JSON.stringify(input),
@@ -794,6 +813,11 @@ export function createApplicationRequest(input: {
   address: string;
   gstin?: string;
   categoryIds: string[];
+  serviceCategoryIds?: string[];
+  provideServices?: boolean;
+  providerType?: ProviderType;
+  profession?: string;
+  serviceArea?: string;
   notes?: string;
   partnerDeliveryEnabled?: boolean;
   shopDeliveryEnabled?: boolean;
@@ -806,10 +830,36 @@ export function createApplicationRequest(input: {
   });
 }
 
-export function patchApplicationRequest(id: string, status: ApplicationStatus) {
+/** True when this browser has no API session, or the request never reached the server. */
+export function isLocalApi(err?: unknown): boolean {
+  if (!getToken()) return true;
+  return err instanceof TypeError;
+}
+
+export function patchApplicationRequest(
+  id: string,
+  input: {
+    status?: ApplicationStatus;
+    reviewNote?: string;
+    businessName?: string;
+    ownerName?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    gstin?: string;
+    categoryIds?: string[];
+    notes?: string;
+    profession?: string;
+    serviceArea?: string;
+    partnerDeliveryEnabled?: boolean;
+    shopDeliveryEnabled?: boolean;
+    lat?: number;
+    lng?: number;
+  },
+) {
   return apiFetch<RawApplication>(`/api/applications/${id}`, {
     method: "PATCH",
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(input),
   });
 }
 
@@ -1053,6 +1103,7 @@ export type RawApplication = {
   gstin?: string | null;
   categoryIds?: string[];
   notes?: string | null;
+  reviewNote?: string | null;
   submittedAt: string;
 };
 
@@ -1243,7 +1294,10 @@ export function mapProviderService(raw: RawProviderService): ProviderService {
     bookingEnabled: Boolean(raw.bookingEnabled),
     requestEnabled: raw.requestEnabled !== false,
     imageUrl: resolveMediaUrl(raw.imageUrl),
-    imageUrls: (raw.imageUrls ?? []).map((url) => resolveMediaUrl(url) ?? url),
+    imageUrls: uniqueMediaUrls(
+      (raw.imageUrls ?? []).map((url) => resolveMediaUrl(url) ?? url),
+      resolveMediaUrl(raw.imageUrl),
+    ),
     status: asUpperEnum<ServiceStatus>(raw.status, "ACTIVE"),
     createdAt: asIso(raw.createdAt),
     updatedAt: asIso(raw.updatedAt),
@@ -1565,7 +1619,10 @@ export function mapCatalogProduct(raw: RawCatalogProduct): CatalogProduct {
     imageLabel: raw.imageLabel,
     imageHue: raw.imageHue,
     imageUrl: resolveMediaUrl(raw.imageUrl),
-    galleryUrls: (raw.galleryUrls ?? []).map((url) => resolveMediaUrl(url) ?? url),
+    galleryUrls: uniqueMediaUrls(
+      (raw.galleryUrls ?? []).map((url) => resolveMediaUrl(url) ?? url),
+      resolveMediaUrl(raw.imageUrl),
+    ),
   };
 }
 
@@ -1700,12 +1757,25 @@ export function mapOrder(raw: RawOrder): Order {
   };
 }
 
+function applicationStatus(value: unknown): ApplicationStatus {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (
+    normalized === "submitted" ||
+    normalized === "under_review" ||
+    normalized === "approved" ||
+    normalized === "rejected"
+  ) {
+    return normalized;
+  }
+  return "submitted";
+}
+
 export function mapApplication(raw: RawApplication): SellerApplication {
   return {
     id: raw.id,
     userId: raw.userId,
     shopId: raw.shopId,
-    status: asEnum<ApplicationStatus>(raw.status, "submitted"),
+    status: applicationStatus(raw.status),
     businessName: raw.businessName,
     ownerName: raw.ownerName,
     email: raw.email,
@@ -1714,6 +1784,7 @@ export function mapApplication(raw: RawApplication): SellerApplication {
     gstin: raw.gstin ?? "",
     categoryIds: raw.categoryIds ?? [],
     notes: raw.notes ?? "",
+    reviewNote: raw.reviewNote ?? undefined,
     submittedAt: asIso(raw.submittedAt),
   };
 }

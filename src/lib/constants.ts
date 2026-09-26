@@ -34,7 +34,6 @@ export const CATEGORY_HUES: Record<string, number> = {
   beauty: 350,
   fitness: 10,
   tutors: 30,
-  restaurants: 14,
   "auto-services": 22,
 };
 
@@ -62,7 +61,7 @@ export const CATEGORY_GROUPS: {
   {
     id: "daily",
     label: "Daily & Food",
-    categoryIds: ["grocery", "fresh", "dairy", "snacks", "restaurants"],
+    categoryIds: ["grocery", "fresh", "dairy", "snacks"],
   },
   {
     id: "beauty",
@@ -78,7 +77,6 @@ export const CATEGORY_GROUPS: {
 
 /** Curated everyday essentials shown under Popular (keeps UI clean and uncluttered). */
 export const POPULAR_CATEGORY_IDS = [
-  "restaurants",
   "grocery",
   "fresh",
   "dairy",

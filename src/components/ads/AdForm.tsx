@@ -2,6 +2,7 @@
 
 import { Field, FileButton, TextArea, TextInput } from "@/components/ui/Field";
 import { SearchSelect } from "@/components/ui/SearchSelect";
+import { Toggle } from "@/components/ui/Toggle";
 import { useApp } from "@/context/AppContext";
 import { persistImageFile } from "@/lib/images";
 import type { AdPlacement, Advertisement } from "@/lib/types";
@@ -245,14 +246,12 @@ export function AdForm({
         />
       </Field>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={form.active}
-          onChange={(event) => set("active", event.target.checked)}
-        />
-        Active — include in the rotation
-      </label>
+      <Toggle
+        label="Active"
+        hint="Include this ad in the rotation."
+        checked={form.active}
+        onChange={(checked) => set("active", checked)}
+      />
 
       <button
         type="submit"

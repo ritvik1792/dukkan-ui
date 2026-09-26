@@ -2,6 +2,7 @@
 
 import { useApp } from "@/context/AppContext";
 import { fetchSearch } from "@/lib/api";
+import { isNameMatch, nameRelevance } from "@/lib/searchRank";
 import { useMotionRouter } from "@/lib/motion";
 import { ROUTES } from "@/lib/routes";
 import type { SearchResults } from "@/lib/types";
@@ -54,6 +55,21 @@ function highlightMatch(text: string, query: string) {
   );
 }
 
+function byRelevance(query: string, items: Suggestion[]) {
+  return items
+    .map((item) => ({
+      item,
+      score: nameRelevance(query, [
+        { value: item.label, weight: 1 },
+        { value: item.sublabel, weight: item.kind === "product" ? 0.65 : 0.45 },
+      ]),
+    }))
+    .filter((row) => isNameMatch(row.score))
+    .sort((a, b) => b.score - a.score || a.item.label.localeCompare(b.item.label))
+    .slice(0, MAX_SUGGESTIONS)
+    .map((row) => row.item);
+}
+
 function localSuggestions(
   query: string,
   catalog: { id: string; name: string; brand: string }[],
@@ -61,15 +77,14 @@ function localSuggestions(
     id: string;
     name: string;
     description: string;
+    status?: string;
     providerType?: string;
     profession?: string;
   }[],
 ): Suggestion[] {
-  const needle = query.toLowerCase();
   const out: Suggestion[] = [];
 
   for (const p of catalog) {
-    if (!`${p.name} ${p.brand}`.toLowerCase().includes(needle)) continue;
     out.push({
       key: `product-${p.id}`,
       kind: "product",
@@ -78,27 +93,25 @@ function localSuggestions(
       href: `/product/${p.id}`,
       productId: p.id,
     });
-    if (out.length >= MAX_SUGGESTIONS) return out;
   }
 
   for (const s of shops) {
-    if (!`${s.name} ${s.description}`.toLowerCase().includes(needle)) continue;
+    if (s.status && s.status !== "active") continue;
     const isPerson = s.providerType === "INDIVIDUAL";
     out.push({
       key: `${isPerson ? "person" : "shop"}-${s.id}`,
       kind: isPerson ? "person" : "shop",
       label: s.name,
       sublabel: isPerson ? s.profession || "Provider" : "Shop",
-      href: ROUTES.shopDashboard,
+      href: `${ROUTES.shopDashboard}?id=${encodeURIComponent(s.id)}`,
       shopId: s.id,
     });
-    if (out.length >= MAX_SUGGESTIONS) return out;
   }
 
-  return out;
+  return byRelevance(query, out);
 }
 
-function fromRemote(remote: SearchResults): Suggestion[] {
+function fromRemote(query: string, remote: SearchResults): Suggestion[] {
   const out: Suggestion[] = [];
 
   for (const p of remote.products) {
@@ -110,7 +123,6 @@ function fromRemote(remote: SearchResults): Suggestion[] {
       href: `/product/${p.id}`,
       productId: p.id,
     });
-    if (out.length >= MAX_SUGGESTIONS) return out;
   }
   for (const s of remote.shops) {
     out.push({
@@ -118,10 +130,9 @@ function fromRemote(remote: SearchResults): Suggestion[] {
       kind: "shop",
       label: s.name,
       sublabel: "Shop",
-      href: ROUTES.shopDashboard,
+      href: `${ROUTES.shopDashboard}?id=${encodeURIComponent(s.id)}`,
       shopId: s.id,
     });
-    if (out.length >= MAX_SUGGESTIONS) return out;
   }
   for (const s of remote.services) {
     const href = s.bookingEnabled
@@ -134,7 +145,6 @@ function fromRemote(remote: SearchResults): Suggestion[] {
       sublabel: s.providerName,
       href,
     });
-    if (out.length >= MAX_SUGGESTIONS) return out;
   }
   for (const p of remote.people) {
     out.push({
@@ -142,12 +152,11 @@ function fromRemote(remote: SearchResults): Suggestion[] {
       kind: "person",
       label: p.name,
       sublabel: p.profession || "Provider",
-      href: ROUTES.shopDashboard,
+      href: `${ROUTES.shopDashboard}?id=${encodeURIComponent(p.id)}`,
       shopId: p.id,
     });
-    if (out.length >= MAX_SUGGESTIONS) return out;
   }
-  return out;
+  return byRelevance(query, out);
 }
 
 export function SearchSuggest({
@@ -193,7 +202,7 @@ export function SearchSuggest({
       fetchSearch({ q, lat: origin.lat, lng: origin.lng })
         .then((remote) => {
           if (cancelled) return;
-          const remoteItems = fromRemote(remote);
+          const remoteItems = fromRemote(q, remote);
           setItems(remoteItems.length ? remoteItems : fallback);
           setOpen(true);
           setActive(-1);

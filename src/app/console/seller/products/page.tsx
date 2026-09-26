@@ -8,11 +8,20 @@ import {
 } from "@/components/seller/ListingForm";
 import { TagBadge } from "@/components/TagBadge";
 import { Field, Select, TextInput } from "@/components/ui/Field";
+import { Toggle } from "@/components/ui/Toggle";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
-import { deleteListingRequest, mapCatalogProduct, mapListing, upsertCatalogRequest, upsertListingRequest } from "@/lib/api";
+import {
+  createSellerService,
+  deleteListingRequest,
+  mapCatalogProduct,
+  mapListing,
+  upsertCatalogRequest,
+  upsertListingRequest,
+} from "@/lib/api";
+import { isServiceListingCategory, listingGallery, servicePayloadFromListing } from "@/lib/publishListing";
 import { BRAND_FALLBACK_HUE, randomBrandHue } from "@/lib/constants";
 import { formatInr } from "@/lib/format";
 import { createId } from "@/lib/ids";
@@ -168,6 +177,23 @@ export default function SellerProducts() {
 
   async function saveForm(form: ListingFormValue, listing?: Listing) {
     if (!shop) return;
+    if (isServiceListingCategory(state.categories, form.categoryId)) {
+      try {
+        await createSellerService(servicePayloadFromListing(form), shop.id);
+        showAlert({
+          tone: "success",
+          title: "Service published",
+          message: "Buyers can see it with your services.",
+        });
+        closePanel();
+      } catch (err) {
+        showAlert({
+          tone: "error",
+          title: err instanceof Error ? err.message : "Could not save service",
+        });
+      }
+      return;
+    }
     const existing = listing
       ? catalogById(listing.catalogProductId)
       : findCatalogByName(state.catalog, form.name, form.brand || "Unbranded");
@@ -180,7 +206,7 @@ export default function SellerProducts() {
       imageLabel: existing?.imageLabel || form.name.slice(0, 8),
       imageHue: existing?.imageHue ?? randomBrandHue(),
       imageUrl: form.mainImage || undefined,
-      galleryUrls: form.gallery,
+      galleryUrls: listingGallery(form),
     };
     try {
       const product = mapCatalogProduct(await upsertCatalogRequest(catalogPayload, existing?.id));
@@ -476,12 +502,19 @@ export default function SellerProducts() {
             <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
               <div>
                 <h2 className="text-lg font-semibold">
-                  {panel.mode === "create" ? "Add product" : "Edit product"}
+                  {panel.mode === "create"
+                    ? state.categories.find((category) => category.id === chosenCategory)?.kind === "SERVICE"
+                      ? "Add service"
+                      : "Add product"
+                    : "Edit product"}
                 </h2>
                 <p className="text-xs text-stone-500">
                   {panel.mode === "create" && createStep === "category"
-                    ? "Pick a category, then product details slide in."
-                    : "Add pictures, prices, stock, and submit."}
+                    ? "Pick a category. Product and service categories open different fields."
+                    : panel.mode === "create" &&
+                        state.categories.find((category) => category.id === chosenCategory)?.kind === "SERVICE"
+                      ? "Service name, pictures, price, duration, and availability."
+                      : "Pictures, price, MRP, stock, and unit."}
                 </p>
               </div>
               <button type="button" className="text-sm text-stone-500" onClick={closePanel}>
@@ -667,29 +700,16 @@ function BulkEditModal({
           </button>
         </div>
         <div className="mt-4 space-y-4">
-          <div className="flex items-center justify-between rounded-2xl bg-cream px-4 py-3">
-            <div>
-              <p className="text-sm font-semibold">{enabled ? "Enabled" : "Disabled"}</p>
-              <p className="text-xs text-stone-500">
-                {enabled ? "Products stay in stock and can be sold." : "Products are marked out of stock."}
-              </p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={enabled}
-              onClick={() => setEnabled((on) => !on)}
-              className={`relative h-8 w-14 rounded-full transition duration-200 ${
-                enabled ? "bg-carrot" : "bg-stone-300"
-              }`}
-            >
-              <span
-                className={`absolute top-1 left-1 h-6 w-6 rounded-full bg-white shadow transition duration-200 ${
-                  enabled ? "translate-x-6" : "translate-x-0"
-                }`}
-              />
-            </button>
-          </div>
+          <Toggle
+            label="Selling"
+            hint={
+              enabled
+                ? "Products stay in stock and can be sold."
+                : "Products are marked out of stock."
+            }
+            checked={enabled}
+            onChange={setEnabled}
+          />
           <Field label="Category">
             <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
               <option value="">Keep current</option>

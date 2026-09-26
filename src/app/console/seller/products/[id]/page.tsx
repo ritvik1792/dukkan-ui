@@ -2,14 +2,21 @@
 
 import { ListingForm, listingToForm, type ListingFormValue } from "@/components/seller/ListingForm";
 import { useApp } from "@/context/AppContext";
-import { mapCatalogProduct, mapListing, upsertCatalogRequest, upsertListingRequest } from "@/lib/api";
+import {
+  createSellerService,
+  mapCatalogProduct,
+  mapListing,
+  upsertCatalogRequest,
+  upsertListingRequest,
+} from "@/lib/api";
+import { isServiceListingCategory, listingGallery, servicePayloadFromListing } from "@/lib/publishListing";
 import { useMotionRouter } from "@/lib/motion";
 import { sellerConsolePath } from "@/lib/routes";
 import { useParams } from "next/navigation";
 
 export default function EditProductPage() {
   const params = useParams<{ id: string }>();
-  const { listingById, catalogById, dispatch } = useApp();
+  const { listingById, catalogById, dispatch, state } = useApp();
   const router = useMotionRouter();
   const listing = listingById(params.id);
   const product = listing ? catalogById(listing.catalogProductId) : undefined;
@@ -20,6 +27,12 @@ export default function EditProductPage() {
   const currentProduct = product;
 
   async function save(form: ListingFormValue) {
+    if (isServiceListingCategory(state.categories, form.categoryId)) {
+      await createSellerService(servicePayloadFromListing(form), currentListing.shopId);
+      router.push(sellerConsolePath("/services"));
+      return;
+    }
+    const gallery = listingGallery(form);
     const productPatch = {
       ...currentProduct,
       name: form.name,
@@ -28,7 +41,7 @@ export default function EditProductPage() {
       description: form.description,
       unit: form.unit,
       imageUrl: form.mainImage || undefined,
-      galleryUrls: form.gallery,
+      galleryUrls: gallery,
     };
     const listingPatch = {
       ...currentListing,

@@ -1,6 +1,7 @@
 "use client";
 
 import { Field, TextArea, TextInput } from "@/components/ui/Field";
+import { Toggle } from "@/components/ui/Toggle";
 import type { AdPlacement } from "@/lib/types";
 import { useState } from "react";
 
@@ -122,14 +123,12 @@ export function PlacementForm({
         </Field>
       </div>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={form.active}
-          onChange={(event) => set("active", event.target.checked)}
-        />
-        Active — this slot renders on the storefront
-      </label>
+      <Toggle
+        label="Active"
+        hint="This slot renders on the storefront."
+        checked={form.active}
+        onChange={(checked) => set("active", checked)}
+      />
 
       <button
         type="submit"

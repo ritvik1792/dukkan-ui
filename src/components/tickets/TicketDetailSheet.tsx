@@ -62,7 +62,6 @@ export function TicketDetailSheet({
                   openInNewWindow
                 />
               )}
-              {order?.paymentRefId ? ` · ${order.paymentRefId}` : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">

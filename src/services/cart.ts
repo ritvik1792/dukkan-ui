@@ -30,6 +30,7 @@ export type CartLookups = {
   listingById: (id: string) => Listing | undefined;
   shopById: (id: string) => Shop | undefined;
   catalogById: (id: string) => CatalogProduct | undefined;
+  quickDeliveryEnabled?: boolean;
 };
 
 export function listingCartQty(cart: CartItem[], listingId: string) {
@@ -47,6 +48,7 @@ export function cartShipments({
   listingById,
   shopById,
   catalogById,
+  quickDeliveryEnabled = false,
 }: CartLookups): CartShipment[] {
   const byShop = new Map<string, CartShipment>();
 
@@ -72,7 +74,7 @@ export function cartShipments({
       continue;
     }
 
-    const modes = shopDeliveryModes(shop);
+    const modes = shopDeliveryModes(shop, quickDeliveryEnabled);
     const deliveryMode = modes.includes(item.deliveryMode)
       ? item.deliveryMode
       : (modes[0] ?? item.deliveryMode);

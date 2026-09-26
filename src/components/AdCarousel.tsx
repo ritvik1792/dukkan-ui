@@ -72,7 +72,9 @@ export function AdCarousel({
       >
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-gold sm:text-xs">
-            {ad.badge}
+            {state.settings.quickDeliveryEnabled || ad.badge?.toLowerCase() !== "quick delivery"
+              ? ad.badge
+              : "Sponsored"}
           </p>
           <h2 className="mt-1.5 max-w-xl text-xl font-semibold tracking-tight sm:mt-2 md:text-3xl">
             {ad.title}

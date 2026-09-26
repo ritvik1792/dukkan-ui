@@ -2,7 +2,7 @@
 
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { useApp } from "@/context/AppContext";
-import { ROUTES } from "@/lib/routes";
+import { isStaffRole, ROUTES } from "@/lib/routes";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
@@ -10,7 +10,6 @@ import type { ReactNode } from "react";
 const links = [
   { href: "/account", label: "Profile" },
   { href: "/account?tab=addresses", label: "Saved addresses" },
-  { href: "/account?tab=payments", label: "Saved payment methods" },
   { href: "/account/orders", label: "Orders" },
   { href: "/account/bookings", label: "Bookings" },
   { href: "/account/service-requests", label: "Service requests" },
@@ -64,14 +63,16 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
                   </li>
                 );
               })}
-              <li className="shrink-0 md:w-full">
-                <Link
-                  href={ROUTES.consoleDashboard}
-                  className="mt-0 block whitespace-nowrap rounded-xl bg-white px-3 py-2 text-left text-sm hover:bg-blush md:mt-1 md:bg-transparent"
-                >
-                  Console
-                </Link>
-              </li>
+              {isStaffRole(user.role) && (
+                <li className="shrink-0 md:w-full">
+                  <Link
+                    href={ROUTES.consoleDashboard}
+                    className="mt-0 block whitespace-nowrap rounded-xl bg-white px-3 py-2 text-left text-sm hover:bg-blush md:mt-1 md:bg-transparent"
+                  >
+                    Console
+                  </Link>
+                </li>
+              )}
             </ul>
           </nav>
         </aside>
