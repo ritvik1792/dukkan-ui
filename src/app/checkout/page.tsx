@@ -68,8 +68,8 @@ function CheckoutForm() {
             coupon,
           )
         : 0;
-      const couponOk = Boolean(coupon?.coupon) && eligible > 0;
-      const couponOff = couponOk && coupon.coupon ? couponDiscount(eligible, coupon.coupon) : 0;
+      const couponOff =
+        coupon?.coupon && eligible > 0 ? couponDiscount(eligible, coupon.coupon) : 0;
       const subtotal = Math.max(0, afterSale - couponOff);
       return {
         shipment,

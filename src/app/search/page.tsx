@@ -153,9 +153,11 @@ function SearchResultsView() {
         nearbyShops.find((item) => item.id === hit.providerId) ??
         state.shops.find((item) => item.id === hit.providerId);
       if (!shop) continue;
+      const fromShop =
+        "distanceKm" in shop && typeof shop.distanceKm === "number" ? shop.distanceKm : 0;
       providers.push({
         ...shop,
-        distanceKm: hit.distanceKm ?? ("distanceKm" in shop ? shop.distanceKm : 0),
+        distanceKm: hit.distanceKm ?? fromShop,
       });
       seen.add(shop.id);
     }

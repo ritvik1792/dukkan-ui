@@ -244,7 +244,7 @@ export function ApplicationTracker({
         reviewNote: note,
         ...(status ? { status } : {}),
       };
-      let mapped = {
+      let mapped: SellerApplication = {
         ...application,
         reviewNote: note,
         ...(status ? { status } : {}),

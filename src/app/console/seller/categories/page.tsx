@@ -30,6 +30,7 @@ export default function SellerCategoriesPage() {
   const selected = shop.categoryIds;
 
   async function persist(nextIds: string[]) {
+    if (!shop) return;
     setBusy(true);
     setError("");
     dispatch({

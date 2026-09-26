@@ -70,12 +70,11 @@ export function SellerIntentFields({
   values: SellerIntentValues;
   onChange: (next: SellerIntentValues) => void;
   locationLabel: string;
-  mode: "signup" | "apply" | "add";
+  mode: "apply" | "add";
 }) {
   const productCategories = categories.filter(isProductCategory);
   const serviceCategories = categories.filter(isServiceCategory);
-  const selling = isSelling(values);
-  const showDetails = mode !== "add" && (mode === "apply" || selling);
+  const showDetails = mode === "apply";
   const showDelivery = showDetails && values.productCategoryIds.length > 0;
 
   function set<K extends keyof SellerIntentValues>(key: K, value: SellerIntentValues[K]) {
