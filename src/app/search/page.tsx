@@ -8,7 +8,6 @@ import {
 } from "@/components/discovery/HitCards";
 import { CategoryList } from "@/components/CategoryNav";
 import { HorizontalScroller } from "@/components/HorizontalScroller";
-import { LocationChip } from "@/components/location/LocationChip";
 import { useLocationDialog } from "@/components/location/LocationDialog";
 import { ShopCard } from "@/components/ShopCard";
 import { Field, Select } from "@/components/ui/Field";
@@ -18,7 +17,8 @@ import { distanceKm } from "@/lib/geo";
 import { useMotionRouter } from "@/lib/motion";
 import { isNameMatch, nameRelevance } from "@/lib/searchRank";
 import type { NearbyShop, SearchFilter, SearchResults } from "@/lib/types";
-import { shopsInRadius } from "@/services/catalog";
+import { isShopOpenNow } from "@/lib/shopOps";
+import { shopsInRadius, type UniqueOffer } from "@/services/catalog";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -41,6 +41,7 @@ function SearchResultsView() {
   const { openLocation } = useLocationDialog();
   const [delivery, setDelivery] = useState<"all" | "partner" | "shop">("all");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [openNow, setOpenNow] = useState(false);
   const [remote, setRemote] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -216,6 +217,52 @@ function SearchResultsView() {
   const serviceHits = isCategoryBrowse ? [] : (remote?.services ?? []);
   const peopleHits = isCategoryBrowse ? [] : (remote?.people ?? []);
 
+  const openShopIds = useMemo(() => {
+    if (!openNow) return null;
+    return new Set(state.shops.filter((shop) => isShopOpenNow(shop)).map((shop) => shop.id));
+  }, [openNow, state.shops]);
+
+  const visibleShops = useMemo(
+    () => (openShopIds ? shopsToShow.filter((shop) => openShopIds.has(shop.id)) : shopsToShow),
+    [shopsToShow, openShopIds],
+  );
+
+  const toOpenOffer = useMemo(() => {
+    return (offer: UniqueOffer): UniqueOffer | null => {
+      if (!openShopIds) return offer;
+      const nearbyListings = offer.nearbyListings.filter((listing) => openShopIds.has(listing.shopId));
+      if (nearbyListings.length === 0) return null;
+      const bestListing =
+        nearbyListings.find((listing) => listing.id === offer.bestListing?.id) ??
+        nearbyListings.slice().sort((a, b) => a.sellerPrice - b.sellerPrice)[0] ??
+        null;
+      return {
+        ...offer,
+        nearbyListings,
+        bestListing,
+        sellerCount: nearbyListings.length,
+        fromPrice: bestListing?.sellerPrice ?? offer.fromPrice,
+      };
+    };
+  }, [openShopIds]);
+
+  const visibleOffers = useMemo(
+    () => filteredOffers.flatMap((offer) => {
+      const next = toOpenOffer(offer);
+      return next ? [next] : [];
+    }),
+    [filteredOffers, toOpenOffer],
+  );
+
+  const visibleProductHits = useMemo(() => {
+    if (!openShopIds) return productHits;
+    return productHits.filter((hit) => {
+      const offer = offers.find((item) => item.product.id === hit.id);
+      return offer ? toOpenOffer(offer) != null : true;
+    });
+  }, [productHits, offers, openShopIds, toOpenOffer]);
+
+  const hasVisibleProducts = visibleProductHits.length > 0 || visibleOffers.length > 0;
   const hasProducts = productHits.length > 0 || filteredOffers.length > 0;
   const hasShops = shopsToShow.length > 0;
   const hasServices = serviceHits.length > 0;
@@ -315,12 +362,23 @@ function SearchResultsView() {
       </aside>
 
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium uppercase tracking-wider text-stone-400">{heading}</p>
-        <h1 className="mt-1 text-2xl font-semibold">
-          {q ? `Results for “${q}”` : heading === "All" ? "Explore near you" : heading}
-        </h1>
-        <div className="mt-3 max-w-xl">
-          <LocationChip tone="hero" className="w-full" />
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wider text-stone-400">{heading}</p>
+            <h1 className="mt-1 text-2xl font-semibold">
+              {q ? `Results for “${q}”` : heading === "All" ? "Explore near you" : heading}
+            </h1>
+          </div>
+          <ResultFilters
+            filters={[
+              {
+                id: "open-now",
+                label: "Open now",
+                active: openNow,
+                onToggle: () => setOpenNow((current) => !current),
+              },
+            ]}
+          />
         </div>
 
         {showTabBar && (
@@ -366,21 +424,21 @@ function SearchResultsView() {
 
         {loading && <p className="mt-4 text-sm text-stone-500">Searching…</p>}
 
-        {showShops && shopsToShow.length > 0 && (
+        {showShops && visibleShops.length > 0 && (
           <div className="mt-6">
             {isTextSearch ? (
               <>
                 <h2 className="text-lg font-semibold">Shops</h2>
                 <p className="mt-1 text-sm text-stone-500">Name matches first, then shops that sell it.</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {shopsToShow.map((shop) => (
+                  {visibleShops.map((shop) => (
                     <ShopCard key={shop.id} shop={shop} layout="grid" />
                   ))}
                 </div>
               </>
             ) : (
               <HorizontalScroller title="Shops">
-                {shopsToShow.map((shop) => (
+                {visibleShops.map((shop) => (
                   <ShopCard key={shop.id} shop={shop} />
                 ))}
               </HorizontalScroller>
@@ -388,18 +446,19 @@ function SearchResultsView() {
           </div>
         )}
 
-        {showProducts && hasProducts && (
+        {showProducts && hasVisibleProducts && (
           <div className="mt-8">
             <h2 className="text-lg font-semibold">Products</h2>
             {isTextSearch && (
               <p className="mt-1 text-sm text-stone-500">Closest name match first.</p>
             )}
-            {productHits.length > 0 && (
+            {visibleProductHits.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
-                {productHits.map((hit) => {
-                  const offer = isTextSearch
+                {visibleProductHits.map((hit) => {
+                  const match = isTextSearch
                     ? offers.find((item) => item.product.id === hit.id && item.sellerCount > 0)
                     : undefined;
+                  const offer = match ? toOpenOffer(match) : null;
                   return offer ? (
                     <CatalogProductCard key={hit.id} offer={offer} />
                   ) : (
@@ -408,10 +467,10 @@ function SearchResultsView() {
                 })}
               </div>
             )}
-            {filteredOffers.length > 0 && (
+            {visibleOffers.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
-                {filteredOffers
-                  .filter((offer) => !productHits.some((hit) => hit.id === offer.product.id))
+                {visibleOffers
+                  .filter((offer) => !visibleProductHits.some((hit) => hit.id === offer.product.id))
                   .map((offer) => (
                     <CatalogProductCard key={offer.product.id} offer={offer} />
                   ))}
@@ -434,6 +493,15 @@ function SearchResultsView() {
               <PersonHitCard key={hit.id} hit={hit} />
             ))}
           </div>
+        )}
+
+        {openNow && !loading && showShops && shopsToShow.length > 0 && visibleShops.length === 0 && (
+          <p className="mt-6 rounded-2xl bg-white p-6 text-sm text-stone-500">
+            No shops are open right now.{" "}
+            <button type="button" className="underline" onClick={() => setOpenNow(false)}>
+              Show closed shops
+            </button>
+          </p>
         )}
 
         {isCategoryBrowse && !loading && !hasShops && !hasProducts && (
@@ -484,6 +552,30 @@ function SearchResultsView() {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+function ResultFilters({
+  filters,
+}: {
+  filters: { id: string; label: string; active: boolean; onToggle: () => void }[];
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2" role="group" aria-label="Filters">
+      {filters.map((filter) => (
+        <button
+          key={filter.id}
+          type="button"
+          aria-pressed={filter.active}
+          onClick={filter.onToggle}
+          className={`rounded-full px-3 py-1.5 text-sm font-medium transition duration-200 ${
+            filter.active ? "chip-active" : "chip-idle"
+          }`}
+        >
+          {filter.label}
+        </button>
+      ))}
     </div>
   );
 }

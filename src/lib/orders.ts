@@ -3,6 +3,7 @@ import type { Order, OrderEvent, OrderStatus, Shop, User } from "@/lib/types";
 
 export const ORDER_FLOW: OrderStatus[] = [
   "placed",
+  "accepted",
   "packing",
   "ready_for_delivery",
   "out_for_delivery",
@@ -11,7 +12,9 @@ export const ORDER_FLOW: OrderStatus[] = [
 
 export const ORDER_STATUS_FILTERS: OrderStatus[] = [
   "placed",
+  "accepted",
   "packing",
+  "assigned",
   "ready_for_delivery",
   "out_for_delivery",
   "delivered",
@@ -19,27 +22,38 @@ export const ORDER_STATUS_FILTERS: OrderStatus[] = [
 ];
 
 export function normalizeOrderStatus(status: OrderStatus): OrderStatus {
-  if (status === "accepted") return "packing";
   if (status === "assigned") return "ready_for_delivery";
   return status;
 }
 
+export function orderMatchesStatusFilter(
+  status: OrderStatus,
+  filter: OrderStatus | "",
+): boolean {
+  if (!filter) return true;
+  return status === filter || normalizeOrderStatus(status) === filter;
+}
+
 export function orderStatusLabel(status: OrderStatus): string {
-  switch (normalizeOrderStatus(status)) {
+  switch (status) {
     case "placed":
       return "Placed";
+    case "accepted":
+      return "Accepted";
     case "packing":
       return "Packing";
+    case "assigned":
+      return "Assigned";
     case "ready_for_delivery":
       return "Ready for delivery";
     case "out_for_delivery":
-      return "Given to delivery";
+      return "Out for delivery";
     case "delivered":
       return "Delivered";
     case "cancelled":
       return "Cancelled";
     default:
-      return status.replaceAll("_", " ");
+      return normalizeOrderStatus(status).replaceAll("_", " ");
   }
 }
 
@@ -51,6 +65,8 @@ export type OrderAdvance = {
 export function nextOrderAdvance(status: OrderStatus): OrderAdvance | null {
   switch (normalizeOrderStatus(status)) {
     case "placed":
+      return { status: "accepted", label: "Accept order" };
+    case "accepted":
       return { status: "packing", label: "Start packing" };
     case "packing":
       return { status: "ready_for_delivery", label: "Ready for delivery" };
@@ -124,19 +140,4 @@ export function shopStaff(users: User[], shop?: Shop): User[] {
     staff.push(user);
   }
   return staff;
-}
-
-export function toDatetimeLocal(iso?: string): string {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-export function fromDatetimeLocal(value: string): string | undefined {
-  if (!value) return undefined;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return undefined;
-  return date.toISOString();
 }

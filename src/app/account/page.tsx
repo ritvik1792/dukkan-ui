@@ -7,7 +7,7 @@ import { Field, TextInput } from "@/components/ui/Field";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useApp } from "@/context/AppContext";
 import { mapApiUser, updateProfileRequest } from "@/lib/api";
-import { MAX_SHOP_RADIUS_KM, MIN_SHOP_RADIUS_KM } from "@/lib/constants";
+import { MIN_SHOP_RADIUS_KM } from "@/lib/constants";
 import { formatDate, formatPhone, titleCase } from "@/lib/format";
 import { formatCoordinates } from "@/lib/geo";
 import { createId } from "@/lib/ids";
@@ -143,11 +143,10 @@ function RadiusSection() {
           )}
         </div>
       </div>
-      <Field label="Shops within (km)" hint={`${MIN_SHOP_RADIUS_KM}–${MAX_SHOP_RADIUS_KM}`}>
+      <Field label="Shops within (km)" hint="Any distance">
         <TextInput
           type="number"
           min={MIN_SHOP_RADIUS_KM}
-          max={MAX_SHOP_RADIUS_KM}
           value={shopRadiusKm}
           onChange={(e) => {
             const next = clampShopRadiusKm(Number(e.target.value));

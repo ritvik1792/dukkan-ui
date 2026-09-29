@@ -11,6 +11,7 @@ import {
   nextOrderAdvance,
   normalizeOrderStatus,
   ORDER_STATUS_FILTERS,
+  orderMatchesStatusFilter,
   orderStatusLabel,
 } from "@/lib/orders";
 import type { DeliveryMode, Order, OrderStatus } from "@/lib/types";
@@ -21,7 +22,7 @@ export default function SellerOrders() {
   const { user, state, dispatch, shopById, catalogById } = useApp();
   const { showAlert } = useAlert();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | "">("");
   const [deliveryFilter, setDeliveryFilter] = useState("");
   const [shopFilter, setShopFilter] = useState("");
   const [sort, setSort] = useState<"newest" | "oldest" | "total">("newest");
@@ -49,8 +50,7 @@ export default function SellerOrders() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const rows = orders.filter((order) => {
-      const status = normalizeOrderStatus(order.status);
-      if (statusFilter && status !== statusFilter) return false;
+      if (!orderMatchesStatusFilter(order.status, statusFilter)) return false;
       if (deliveryFilter && order.deliveryMode !== deliveryFilter) return false;
       if (shopFilter && order.shopId !== shopFilter) return false;
       if (!q) return true;
@@ -129,23 +129,37 @@ export default function SellerOrders() {
         <p className="text-sm text-stone-500">{filtered.length} shown</p>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setStatusFilter("")}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition duration-200 ${
+            statusFilter === "" ? "chip-active" : "chip-idle"
+          }`}
+        >
+          All
+        </button>
+        {ORDER_STATUS_FILTERS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition duration-200 ${
+              statusFilter === status ? "chip-active" : "chip-idle"
+            }`}
+          >
+            {orderStatusLabel(status)}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Field label="Search">
           <TextInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Order, customer, product"
           />
-        </Field>
-        <Field label="Status">
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">All statuses</option>
-            {ORDER_STATUS_FILTERS.map((status) => (
-              <option key={status} value={status}>
-                {orderStatusLabel(status as OrderStatus)}
-              </option>
-            ))}
-          </Select>
         </Field>
         <Field label="Delivery">
           <Select
@@ -223,7 +237,7 @@ export default function SellerOrders() {
                     {formatInr(order.total)}
                   </td>
                   <td className="px-4 py-3">
-                    <StatusPill>{orderStatusLabel(status)}</StatusPill>
+                    <StatusPill>{orderStatusLabel(order.status)}</StatusPill>
                   </td>
                   <td className="px-4 py-3 text-xs text-stone-500">
                     {order.deliveryMode === "partner" ? "Partner" : "Shop"}

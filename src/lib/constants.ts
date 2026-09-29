@@ -1,7 +1,6 @@
 /** Defaults. Live values live in platform settings (admin) so they can change without a deploy. */
 export const DEFAULT_DELIVERY_RADIUS_KM = 5;
 export const MIN_SHOP_RADIUS_KM = 1;
-export const MAX_SHOP_RADIUS_KM = 25;
 export const DEFAULT_PARTNER_ETA_MINUTES = 12;
 
 /** Browser geolocation tuning. */

@@ -1,8 +1,4 @@
-import {
-  DEFAULT_DELIVERY_RADIUS_KM,
-  MAX_SHOP_RADIUS_KM,
-  MIN_SHOP_RADIUS_KM,
-} from "@/lib/constants";
+import { DEFAULT_DELIVERY_RADIUS_KM, MIN_SHOP_RADIUS_KM } from "@/lib/constants";
 import type { User } from "@/lib/types";
 
 export type BuyerProfileInput = {
@@ -64,7 +60,7 @@ export function normalizePhone(phone: string) {
 
 export function clampShopRadiusKm(value: number) {
   if (!Number.isFinite(value)) return DEFAULT_DELIVERY_RADIUS_KM;
-  return Math.min(MAX_SHOP_RADIUS_KM, Math.max(MIN_SHOP_RADIUS_KM, Math.round(value)));
+  return Math.max(MIN_SHOP_RADIUS_KM, Math.round(value));
 }
 
 export function validateBuyerProfile(input: BuyerProfileInput): string | null {

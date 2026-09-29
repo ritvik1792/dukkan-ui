@@ -1,20 +1,18 @@
 import { createId } from "@/lib/ids";
-import { orderStatusLabel, orderTimeline, normalizeOrderStatus } from "@/lib/orders";
+import { normalizeOrderStatus } from "@/lib/orders";
 import {
   adminConsolePath,
   orderDetailPath,
   sellerConsolePath,
 } from "@/lib/routes";
-import { SLA_STEPS, shopAlertPrefs } from "@/lib/shopOps";
+import { shopAlertPrefs } from "@/lib/shopOps";
 import type {
   AppNotification,
   AppNotificationKind,
   Order,
-  OrderStatus,
   ProductRequest,
   Review,
   Shop,
-  ShopSlaStep,
   Ticket,
 } from "@/lib/types";
 
@@ -78,10 +76,10 @@ export function notificationsForOrder(state: ShopLookup, order: Order): AppNotif
       userId: shop.ownerUserId,
       shopId: shop.id,
       kind: "order",
-      title: "New order",
-      message: `${order.id} · ${shop.name}`,
+      title: "Accept this order",
+      message: `${order.id} is waiting for you to accept it.`,
       orderId: order.id,
-      dedupeKey: `order:${order.id}`,
+      dedupeKey: `accept:${order.id}`,
     }),
   ];
 }
@@ -184,11 +182,7 @@ export function notificationsForMerchantAvailability(input: {
   return out;
 }
 
-function statusEnteredAt(order: Order, status: OrderStatus) {
-  const events = orderTimeline(order);
-  const match = [...events].reverse().find((event) => event.status === status);
-  return match?.at ?? order.createdAt;
-}
+const DELIVERY_REMINDER_MS = 24 * 60 * 60 * 1000;
 
 export function slaNotificationsDue(input: {
   shops: Shop[];
@@ -199,36 +193,49 @@ export function slaNotificationsDue(input: {
   const now = input.now ?? new Date();
   const known = new Set(input.existing.map((item) => item.dedupeKey));
   const due: AppNotification[] = [];
-  const slaIds = new Set(SLA_STEPS.map((step) => step.id));
 
   for (const order of input.orders) {
     const status = normalizeOrderStatus(order.status);
-    if (!slaIds.has(status as ShopSlaStep) || status === "delivered" || status === "cancelled") {
-      continue;
-    }
+    if (status === "delivered" || status === "cancelled") continue;
     const shop = ownerOf(input.shops, order.shopId);
-    if (!shop) continue;
-    const pref = shopAlertPrefs(shop).sla[status as ShopSlaStep];
-    if (!pref?.enabled || pref.afterMinutes <= 0) continue;
-    const key = `sla:${order.id}:${status}`;
-    if (known.has(key)) continue;
-    const entered = new Date(statusEnteredAt(order, status)).getTime();
-    if (!Number.isFinite(entered)) continue;
-    const waitMs = pref.afterMinutes * 60_000;
-    if (now.getTime() - entered < waitMs) continue;
-    const maxAgeMs = 12 * 60 * 60 * 1000;
-    if (now.getTime() - entered > maxAgeMs) continue;
-    due.push(
-      note({
-        userId: shop.ownerUserId,
-        shopId: shop.id,
-        kind: "order_sla",
-        title: `${orderStatusLabel(status)} is overdue`,
-        message: `${order.id} still at ${orderStatusLabel(status).toLowerCase()} after ${pref.afterMinutes} min.`,
-        orderId: order.id,
-        dedupeKey: key,
-      }),
-    );
+    if (!shop || shop.notificationsEnabled === false) continue;
+    const prefs = shopAlertPrefs(shop);
+    const created = new Date(order.createdAt).getTime();
+    if (!Number.isFinite(created)) continue;
+
+    if (status === "placed" && prefs.orders) {
+      const key = `accept:${order.id}`;
+      if (!known.has(key)) {
+        due.push(
+          note({
+            userId: shop.ownerUserId,
+            shopId: shop.id,
+            kind: "order",
+            title: "Accept this order",
+            message: `${order.id} has not been accepted yet.`,
+            orderId: order.id,
+            dedupeKey: key,
+          }),
+        );
+      }
+    }
+
+    if (now.getTime() - created >= DELIVERY_REMINDER_MS) {
+      const key = `undelivered24:${order.id}`;
+      if (!known.has(key)) {
+        due.push(
+          note({
+            userId: shop.ownerUserId,
+            shopId: shop.id,
+            kind: "order_sla",
+            title: "Order still not delivered",
+            message: `${order.id} is still open after 24 hours.`,
+            orderId: order.id,
+            dedupeKey: key,
+          }),
+        );
+      }
+    }
   }
   return due;
 }

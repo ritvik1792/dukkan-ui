@@ -3,7 +3,7 @@
 import { PinIcon, useLocationDialog } from "@/components/location/LocationDialog";
 import { useApp } from "@/context/AppContext";
 import { updateProfileRequest } from "@/lib/api";
-import { MAX_SHOP_RADIUS_KM, MIN_SHOP_RADIUS_KM } from "@/lib/constants";
+import { MIN_SHOP_RADIUS_KM } from "@/lib/constants";
 import { clampShopRadiusKm } from "@/services/auth";
 import { FormEvent, useEffect, useId, useRef, useState } from "react";
 
@@ -133,7 +133,6 @@ export function LocationChip({
               type="number"
               inputMode="numeric"
               min={MIN_SHOP_RADIUS_KM}
-              max={MAX_SHOP_RADIUS_KM}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               className="w-full rounded-xl border border-border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-carrot/40"
@@ -145,9 +144,7 @@ export function LocationChip({
               Set
             </button>
           </form>
-          <p className="mt-2 text-[11px] text-stone-400">
-            {MIN_SHOP_RADIUS_KM}–{MAX_SHOP_RADIUS_KM} km
-          </p>
+          <p className="mt-2 text-[11px] text-stone-400">Any distance in km</p>
         </div>
       )}
     </div>

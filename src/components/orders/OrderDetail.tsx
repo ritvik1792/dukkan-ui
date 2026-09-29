@@ -4,19 +4,17 @@ import { ReviewCard } from "@/components/reviews/ReviewCard";
 import { WriteReviewForm } from "@/components/reviews/WriteReviewForm";
 import { OrderLineItems, OrderPaymentFacts } from "@/components/orders/OrderFacts";
 import { TicketThread } from "@/components/tickets/TicketThread";
-import { Field, Select, TextArea, TextInput } from "@/components/ui/Field";
+import { Field, Select, TextArea } from "@/components/ui/Field";
 import { StatusPill } from "@/components/ui/StatCard";
 import { useAlert } from "@/components/ui/AlertMessage";
 import { useApp } from "@/context/AppContext";
 import { fetchSellerPartners, mapOrder, patchOrderRequest } from "@/lib/api";
 import { formatDate, formatInr } from "@/lib/format";
 import {
-  fromDatetimeLocal,
   nextOrderAdvance,
   normalizeOrderStatus,
   orderStatusLabel,
   orderTimeline,
-  toDatetimeLocal,
 } from "@/lib/orders";
 import type { Order, Partner } from "@/lib/types";
 import { useEffect, useState } from "react";
@@ -44,17 +42,8 @@ export function OrderDetail({
   const timeline = orderTimeline(order);
   const tickets = state.tickets.filter((t) => t.orderId === order.id);
   const reviews = state.reviews.filter((r) => r.orderId === order.id);
-  const [packingBy, setPackingBy] = useState(toDatetimeLocal(order.packingBy));
-  const [readyBy, setReadyBy] = useState(toDatetimeLocal(order.readyBy));
-  const [deliverBy, setDeliverBy] = useState(toDatetimeLocal(order.deliverBy));
   const [reviewDrafts, setReviewDrafts] = useState<Record<string, string>>({});
   const drawer = layout === "drawer";
-
-  useEffect(() => {
-    setPackingBy(toDatetimeLocal(order.packingBy));
-    setReadyBy(toDatetimeLocal(order.readyBy));
-    setDeliverBy(toDatetimeLocal(order.deliverBy));
-  }, [order.id, order.packingBy, order.readyBy, order.deliverBy]);
 
   useEffect(() => {
     if (mode !== "seller") return;
@@ -87,23 +76,6 @@ export function OrderDetail({
       .catch(() => undefined);
   }
 
-  function saveSchedule() {
-    const next = {
-      packingBy: fromDatetimeLocal(packingBy),
-      readyBy: fromDatetimeLocal(readyBy),
-      deliverBy: fromDatetimeLocal(deliverBy),
-    };
-    dispatch({
-      type: "setOrderSchedule",
-      orderId: order.id,
-      ...next,
-    });
-    void patchOrderRequest(order.id, next)
-      .then((updated) => dispatch({ type: "upsertOrder", order: mapOrder(updated) }))
-      .catch(() => undefined);
-    showAlert({ tone: "success", title: "Timelines saved" });
-  }
-
   return (
     <>
       <div
@@ -121,7 +93,7 @@ export function OrderDetail({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <StatusPill>{orderStatusLabel(status)}</StatusPill>
+          <StatusPill>{orderStatusLabel(order.status)}</StatusPill>
           {onClose && (
             <button type="button" className="text-sm text-stone-500" onClick={onClose}>
               Close
@@ -178,38 +150,8 @@ export function OrderDetail({
         {mode === "seller" && (
           <section className="rounded-2xl bg-white p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">
-              Set timelines
+              Update status
             </p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <Field label="Packing by">
-                <TextInput
-                  type="datetime-local"
-                  value={packingBy}
-                  onChange={(e) => setPackingBy(e.target.value)}
-                />
-              </Field>
-              <Field label="Ready by">
-                <TextInput
-                  type="datetime-local"
-                  value={readyBy}
-                  onChange={(e) => setReadyBy(e.target.value)}
-                />
-              </Field>
-              <Field label="Deliver by">
-                <TextInput
-                  type="datetime-local"
-                  value={deliverBy}
-                  onChange={(e) => setDeliverBy(e.target.value)}
-                />
-              </Field>
-            </div>
-            <button
-              type="button"
-              className="mt-3 rounded-full border border-border px-3 py-1.5 text-xs"
-              onClick={saveSchedule}
-            >
-              Save timelines
-            </button>
             {order.deliveryMode === "partner" ? (
               <div className="mt-3 max-w-xs">
                 <Field label="Give to rider">
@@ -271,32 +213,19 @@ export function OrderDetail({
         <section className="rounded-2xl bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">Timeline</p>
           <ol className="mt-3 space-y-3">
-            {timeline.map((event, index) => {
-              const planned =
-                event.status === "packing"
-                  ? order.packingBy
-                  : event.status === "ready_for_delivery"
-                    ? order.readyBy
-                    : event.status === "out_for_delivery" || event.status === "delivered"
-                      ? order.deliverBy
-                      : undefined;
-              return (
-                <li key={`${event.status}-${event.at}`} className="flex gap-3">
-                  <span
-                    className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
-                      index === timeline.length - 1 ? "bg-carrot" : "bg-stone-300"
-                    }`}
-                  />
-                  <div>
-                    <p className="text-sm font-medium">{orderStatusLabel(event.status)}</p>
-                    <p className="text-xs text-stone-500">{formatDate(event.at)}</p>
-                    {mode === "seller" && planned && (
-                      <p className="text-xs text-stone-400">Planned {formatDate(planned)}</p>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
+            {timeline.map((event, index) => (
+              <li key={`${event.status}-${event.at}`} className="flex gap-3">
+                <span
+                  className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                    index === timeline.length - 1 ? "bg-carrot" : "bg-stone-300"
+                  }`}
+                />
+                <div>
+                  <p className="text-sm font-medium">{orderStatusLabel(event.status)}</p>
+                  <p className="text-xs text-stone-500">{formatDate(event.at)}</p>
+                </div>
+              </li>
+            ))}
           </ol>
         </section>
 

@@ -7,7 +7,6 @@ import { mapShop, patchShopRequest } from "@/lib/api";
 import {
   DEFAULT_CLOSE_TIME,
   DEFAULT_OPEN_TIME,
-  SLA_STEPS,
   isShopOpenNow,
   shopAlertPrefs,
   shopCloseTime,
@@ -15,7 +14,7 @@ import {
   shopManuallyOpen,
   shopOpenTime,
 } from "@/lib/shopOps";
-import type { Shop, ShopAlertPrefs, ShopSlaStep } from "@/lib/types";
+import type { Shop, ShopAlertPrefs } from "@/lib/types";
 
 export function ShopOpsSettings({ shop, compact = false }: { shop: Shop; compact?: boolean }) {
   const { dispatch } = useApp();
@@ -59,15 +58,6 @@ export function ShopOpsSettings({ shop, compact = false }: { shop: Shop; compact
       notifyOrderReceived: merged.orders,
       notifyOrderStatus: merged.delivered,
       notifyStockConfirmation: merged.stockConfirmation,
-    });
-  }
-
-  function patchSla(step: ShopSlaStep, next: Partial<ShopAlertPrefs["sla"][ShopSlaStep]>) {
-    patchPrefs({
-      sla: {
-        ...prefs.sla,
-        [step]: { ...prefs.sla[step], ...next },
-      },
     });
   }
 
@@ -138,46 +128,12 @@ export function ShopOpsSettings({ shop, compact = false }: { shop: Shop; compact
           ))}
         </div>
 
-        <h3 className="mt-5 text-sm font-semibold">Stuck-order reminders</h3>
+        <h3 className="mt-5 text-sm font-semibold">Order reminders</h3>
         <p className="text-xs text-stone-500">
-          If an order stays on a step longer than this, send a notification. Turn each step on or off.
+          A new order notifies the seller to accept it. This is not quick delivery, so packing and
+          dispatch are not timed. If the order is still not delivered after 24 hours, one reminder
+          is sent.
         </p>
-        <ul className="mt-3 space-y-3">
-          {SLA_STEPS.map((step) => {
-            const row = prefs.sla[step.id];
-            return (
-              <li
-                key={step.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-cream px-3 py-2.5"
-              >
-                <div className="min-w-0 flex-1">
-                  <Toggle
-                    label={step.label}
-                    hint={step.hint}
-                    checked={row.enabled}
-                    onChange={(checked) => patchSla(step.id, { enabled: checked })}
-                  />
-                </div>
-                <label className="flex items-center gap-2 text-xs text-stone-500">
-                  After
-                  <TextInput
-                    type="number"
-                    min={1}
-                    className="w-20"
-                    disabled={!row.enabled}
-                    value={row.afterMinutes}
-                    onChange={(event) =>
-                      patchSla(step.id, {
-                        afterMinutes: Math.max(1, Number(event.target.value) || 1),
-                      })
-                    }
-                  />
-                  min
-                </label>
-              </li>
-            );
-          })}
-        </ul>
       </section>
     </div>
   );
