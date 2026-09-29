@@ -157,7 +157,7 @@ export function AccountMenu() {
                 <MenuLink href="/cart" onClick={close}>
                   Cart
                 </MenuLink>
-                <MenuLink href="/search" onClick={close}>
+                <MenuLink href="/" onClick={close}>
                   Keep shopping
                 </MenuLink>
                 {categories.slice(0, 6).map((c) => (
@@ -165,9 +165,6 @@ export function AccountMenu() {
                     {c.name}
                   </MenuLink>
                 ))}
-                <MenuLink href="/sell" onClick={close}>
-                  Sell on Pink Carrot
-                </MenuLink>
               </div>
             </div>
 
@@ -198,9 +195,9 @@ export function AccountMenu() {
                 </button>
               </div>
               <div className="my-3 border-t border-border" />
-                <MenuLink href="/account" onClick={close}>
-                  Your Profile
-                </MenuLink>
+              <MenuLink href="/account" onClick={close}>
+                Your Profile
+              </MenuLink>
               <MenuLink href="/account/wishlist" onClick={close}>
                 Your Wishlist
               </MenuLink>
@@ -213,17 +210,12 @@ export function AccountMenu() {
               <MenuLink href="/account" onClick={close}>
                 Profile, addresses &amp; cards
               </MenuLink>
-              <MenuLink href="/search" onClick={close}>
-                Keep shopping for
-              </MenuLink>
               <MenuLink href="/" onClick={close}>
                 Your recommendations
               </MenuLink>
-              {user.role === "buyer" && (
-                <MenuLink href="/sell" onClick={close}>
-                  Sell on Pink Carrot
-                </MenuLink>
-              )}
+              <MenuLink href="/sell" onClick={close}>
+                Sell on Pink Carrot
+              </MenuLink>
               {isStaffRole(user.role) && (
                 <MenuLink href={ROUTES.consoleDashboard} onClick={close}>
                   Console
